@@ -1,0 +1,194 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  SUPER_ADMIN
+  DISTRICT_LEADER
+  UNION_LEADER
+  CADRE
+}
+
+enum DistrictGroupEnum {
+  KURINJIPADI
+  CUDDALORE
+}
+
+model User {
+  id                String       @id @default(uuid())
+  userId            String       @unique
+  passwordHash      String
+  role              Role         @default(CADRE)
+  
+  districtId        String?
+  district          District?    @relation(fields: [districtId], references: [id])
+  
+  unionId           String?
+  union             Union?       @relation(fields: [unionId], references: [id])
+  
+  cadre             Cadre?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+}
+
+model District {
+  id           String          @id @default(uuid())
+  name         String          @unique
+  
+  contactName  String?
+  contactPhone String?
+  contactEmail String?
+  attachments  Json?
+  
+  unions       Union[]
+  users        User[]
+  cadres       Cadre[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+}
+
+model Union {
+  id           String             @id @default(uuid())
+  name         String             @unique
+  
+  districtId   String
+  district     District           @relation(fields: [districtId], references: [id])
+  
+  group        DistrictGroupEnum  @default(KURINJIPADI)
+  
+  contactName  String?
+  contactPhone String?
+  contactEmail String?
+  attachments  Json?
+  
+  kilais       Kilai[]
+  users        User[]
+  cadres       Cadre[]
+  
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+}
+
+enum KilaiStatus {
+  ACTIVE
+  INACTIVE
+  PENDING
+}
+
+model Kilai {
+  id             String         @id @default(uuid())
+  name           String
+  tamilName      String?
+  code           String         @unique
+  description    String?
+  village        String?
+  address        String?
+  pincode        String?
+  latitude       Float?
+  longitude      Float?
+  phone          String?
+  email          String?
+  officePhotoUrl String?
+  status         KilaiStatus    @default(ACTIVE)
+  healthScore    Int            @default(0)
+  
+  unionId        String
+  union          Union          @relation(fields: [unionId], references: [id])
+  
+  cadres         Cadre[]        @relation("KilaiCadres")
+  officeBearers  OfficeBearer[]
+  
+  booths         Booth[]
+  
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+enum CadreLevel {
+  DISTRICT
+  GROUP
+  UNION
+  KILAI
+}
+
+model Cadre {
+  id                  String             @id @default(uuid())
+  userId              String?            @unique
+  user                User?              @relation(fields: [userId], references: [id])
+  memberId            String             @unique
+  name                String
+  phone               String?
+  aadhaarNumber       String?            @unique
+  voterId             String?            @unique
+  photoUrl            String?
+  attachments         Json?
+  
+  level               CadreLevel         @default(KILAI)
+  
+  districtId          String?
+  district            District?          @relation(fields: [districtId], references: [id])
+  
+  districtGroup       DistrictGroupEnum?
+  
+  unionId             String?
+  union               Union?             @relation(fields: [unionId], references: [id])
+  
+  homeKilaiId         String?
+  homeKilai           Kilai?             @relation("KilaiCadres", fields: [homeKilaiId], references: [id])
+  
+  officeBearerRoles   OfficeBearer[]
+  
+  boothsAsAgent       Booth[]            @relation("BoothAgents")
+  
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+}
+
+enum OfficeBearerRole {
+  SECRETARY
+  PRESIDENT
+  TREASURER
+  DEPUTY_SECRETARY
+  YOUTH_WING
+  WOMEN_WING
+  STUDENT_WING
+  IT_WING
+}
+
+model OfficeBearer {
+  id         String           @id @default(uuid())
+  role       OfficeBearerRole
+  status     KilaiStatus      @default(ACTIVE)
+  joinedOn   DateTime         @default(now())
+  
+  level      CadreLevel       @default(KILAI)
+  
+  kilaiId    String?
+  kilai      Kilai?           @relation(fields: [kilaiId], references: [id])
+  
+  cadreId    String
+  cadre      Cadre            @relation(fields: [cadreId], references: [id])
+  
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+}
+
+model Booth {
+  id               String       @id @default(uuid())
+  name             String
+  boothNo          String       @unique
+  maleCount        Int          @default(0)
+  femaleCount      Int          @default(0)
+  thirdGenderCount Int          @default(0)
+  totalCount       Int          @default(0)
+  
+  kilais           Kilai[]
+  agents           Cadre[]      @relation("BoothAgents")
+  
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+}
