@@ -126,6 +126,7 @@ model Cadre {
   voterId             String?            @unique
   photoUrl            String?
   attachments         Json?
+  role                String?
   
   level               CadreLevel         @default(KILAI)
   

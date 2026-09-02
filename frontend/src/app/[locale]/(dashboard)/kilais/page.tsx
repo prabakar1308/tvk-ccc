@@ -133,10 +133,15 @@ export default function KilaisPage() {
         </div>
         
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={handleOpenCreate} className="bg-primary hover:bg-primary/90 text-white font-semibold shadow-md h-11 px-6 rounded-lg transition-transform active:scale-95">
-              <Plus className="mr-2 h-5 w-5" /> Add New Kilai
-            </Button>
+          <DialogTrigger 
+            render={
+              <Button 
+                onClick={handleOpenCreate} 
+                className="bg-primary hover:bg-primary/90 text-white font-semibold shadow-md h-11 px-6 rounded-lg transition-transform active:scale-95" 
+              />
+            }
+          >
+            <Plus className="mr-2 h-5 w-5" /> Add New Kilai
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
@@ -173,7 +178,7 @@ export default function KilaisPage() {
                 <Label htmlFor="unionId">Union *</Label>
                 <Select 
                   value={formData.unionId} 
-                  onValueChange={(val) => setFormData({...formData, unionId: val})}
+                  onValueChange={(val) => setFormData({...formData, unionId: val || ''})}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select a union">
@@ -320,10 +325,8 @@ export default function KilaisPage() {
                           <Button onClick={() => handleDelete(kilai.id)} variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full">
                             <Trash2 className="h-4 w-4" />
                           </Button>
-                          <Button asChild variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10 rounded-full">
-                            <Link href={`/kilais/${kilai.id}`}>
-                              <Eye className="h-4 w-4" />
-                            </Link>
+                          <Button render={<Link href={`/kilais/${kilai.id}`} />} variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10 rounded-full">
+                            <Eye className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
