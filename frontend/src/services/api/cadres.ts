@@ -16,6 +16,8 @@ export interface Cadre {
   unionId?: string;
   homeKilaiId?: string;
   role?: string; // We'll handle primary role mapping if needed
+  area?: string;
+  boothNo?: string;
 }
 
 export type CreateCadreDto = Omit<Cadre, 'id' | 'createdAt' | 'updatedAt'>;

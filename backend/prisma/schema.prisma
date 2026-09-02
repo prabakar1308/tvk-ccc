@@ -127,6 +127,8 @@ model Cadre {
   photoUrl            String?
   attachments         Json?
   role                String?
+  area                String?
+  boothNo             String?
   
   level               CadreLevel         @default(KILAI)
   

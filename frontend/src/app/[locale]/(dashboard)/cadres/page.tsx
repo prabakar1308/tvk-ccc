@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, Plus, UserCheck, UserPlus, Trophy, Eye, Edit2, Trash2, Upload, FileText } from "lucide-react";
+import { Search, Plus, UserCheck, UserPlus, Trophy, Eye, Edit2, Trash2, Upload, FileText, Check, ChevronsUpDown } from "lucide-react";
 import { useCadres, useCreateCadre, useUpdateCadre, useDeleteCadre } from '@/hooks/use-cadres';
 import {
   Dialog,
@@ -26,6 +26,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CreateCadreDto } from '@/services/api/cadres';
 import { uploadApi } from '@/services/api/upload';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 
 export default function CadresPage() {
   const [levelFilter, setLevelFilter] = useState<string>('ALL');
@@ -46,9 +49,10 @@ export default function CadresPage() {
     role: '',
     level: 'KILAI',
     aadhaarNumber: '',
-    voterId: '',
     photoUrl: '',
     attachments: { aadhaarPhoto: '', voterIdPhoto: '' },
+    area: '',
+    boothNo: '',
   };
 
   const [formData, setFormData] = useState<CreateCadreDto>(initialFormData);
@@ -59,6 +63,9 @@ export default function CadresPage() {
     voterIdPhoto?: File;
   }>({});
   const [isUploading, setIsUploading] = useState(false);
+
+  const [areaOpen, setAreaOpen] = useState(false);
+  const [boothOpen, setBoothOpen] = useState(false);
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -79,6 +86,8 @@ export default function CadresPage() {
       voterId: cadre.voterId || '',
       photoUrl: cadre.photoUrl || '',
       attachments: cadre.attachments || { aadhaarPhoto: '', voterIdPhoto: '' },
+      area: cadre.area || '',
+      boothNo: cadre.boothNo || '',
     });
     setPendingFiles({});
     setIsModalOpen(true);
@@ -289,6 +298,98 @@ export default function CadresPage() {
                     onChange={(e) => setFormData({...formData, aadhaarNumber: e.target.value})}
                     required
                   />
+                </div>
+                <div className="col-span-2 space-y-2">
+                  <Label htmlFor="area">Place / Area</Label>
+                  <Popover open={areaOpen} onOpenChange={setAreaOpen}>
+                    <PopoverTrigger 
+                      render={
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={areaOpen}
+                          className={cn("w-full flex justify-between font-normal text-base h-10", !formData.area && "text-muted-foreground")}
+                        />
+                      }
+                    >
+                      {formData.area ? formData.area : "Select place / area"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </PopoverTrigger>
+                    <PopoverContent className="p-0" style={{ width: 'var(--anchor-width)' }}>
+                      <Command>
+                        <CommandInput placeholder="Search area..." />
+                        <CommandList>
+                          <CommandEmpty>No area found.</CommandEmpty>
+                          <CommandGroup>
+                            {['Area 1', 'Area 2', 'Area 3'].map((area) => (
+                              <CommandItem
+                                key={area}
+                                value={area}
+                                onSelect={(currentValue) => {
+                                  setFormData({ ...formData, area: currentValue === formData.area ? "" : currentValue })
+                                  setAreaOpen(false)
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    formData.area === area ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {area}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <div className="col-span-2 space-y-2">
+                  <Label htmlFor="boothNo">Booth No.</Label>
+                  <Popover open={boothOpen} onOpenChange={setBoothOpen}>
+                    <PopoverTrigger 
+                      render={
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={boothOpen}
+                          className={cn("w-full flex justify-between font-normal text-base h-10", !formData.boothNo && "text-muted-foreground")}
+                        />
+                      }
+                    >
+                      {formData.boothNo ? formData.boothNo : "Select booth number"}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </PopoverTrigger>
+                    <PopoverContent className="p-0" style={{ width: 'var(--anchor-width)' }}>
+                      <Command>
+                        <CommandInput placeholder="Search booth..." />
+                        <CommandList>
+                          <CommandEmpty>No booth found.</CommandEmpty>
+                          <CommandGroup>
+                            {['Booth 1', 'Booth 2', 'Booth 3'].map((booth) => (
+                              <CommandItem
+                                key={booth}
+                                value={booth}
+                                onSelect={(currentValue) => {
+                                  setFormData({ ...formData, boothNo: currentValue === formData.boothNo ? "" : currentValue })
+                                  setBoothOpen(false)
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    formData.boothNo === booth ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {booth}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
               
