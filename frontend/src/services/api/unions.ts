@@ -1,5 +1,6 @@
 import { fetchWithAuth } from './client';
 import { District } from './districts';
+import { Cadre } from './cadres';
 
 export interface Union {
   id: string;
@@ -13,6 +14,12 @@ export interface Union {
   district?: District;
   createdAt: string;
   updatedAt: string;
+  _count?: {
+    kilais: number;
+    cadres: number;
+  };
+  totalBooths?: number;
+  unionCadres?: Cadre[];
 }
 
 export interface CreateUnionDto {

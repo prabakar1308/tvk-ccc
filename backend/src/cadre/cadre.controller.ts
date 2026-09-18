@@ -16,6 +16,12 @@ export class CadreController {
     return this.cadreService.create(payload);
   }
 
+  @Post('bulk')
+  @ApiOperation({ summary: 'Create multiple cadres in bulk' })
+  createBulk(@Body() payload: any[]) {
+    return this.cadreService.createBulk(payload);
+  }
+
   @Get()
   @ApiOperation({ summary: 'Get cadres based on filters' })
   findAll(@Query() query: any) {

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CadreLevel } from '@prisma/client';
 
@@ -11,6 +11,49 @@ export class CadreService {
       data: payload,
     });
   }
+
+  async createBulk(payloads: any[]) {
+    const aadhaars = payloads.map(p => p.aadhaarNumber).filter(Boolean);
+    const memberIds = payloads.map(p => p.memberId).filter(Boolean);
+    const voterIds = payloads.map(p => p.voterId).filter(Boolean);
+
+    if (aadhaars.length > 0) {
+      const existingAadhaars = await this.prisma.cadre.findMany({
+        where: { aadhaarNumber: { in: aadhaars } },
+        select: { aadhaarNumber: true }
+      });
+      if (existingAadhaars.length > 0) {
+        throw new BadRequestException(`Duplicate Aadhaar Numbers found: ${existingAadhaars.map(c => c.aadhaarNumber).join(', ')}`);
+      }
+    }
+
+    if (memberIds.length > 0) {
+      const existingMemberIds = await this.prisma.cadre.findMany({
+        where: { memberId: { in: memberIds } },
+        select: { memberId: true }
+      });
+      if (existingMemberIds.length > 0) {
+        throw new BadRequestException(`Duplicate Member IDs found: ${existingMemberIds.map(c => c.memberId).join(', ')}`);
+      }
+    }
+
+    if (voterIds.length > 0) {
+      const existingVoterIds = await this.prisma.cadre.findMany({
+        where: { voterId: { in: voterIds } },
+        select: { voterId: true }
+      });
+      if (existingVoterIds.length > 0) {
+        throw new BadRequestException(`Duplicate Voter IDs found: ${existingVoterIds.map(c => c.voterId).join(', ')}`);
+      }
+    }
+
+    const result = await this.prisma.cadre.createMany({
+      data: payloads,
+    });
+
+    return { message: 'Cadres imported successfully', count: result.count };
+  }
+
 
   findAll(query: any) {
     const { level, districtId, districtGroup, unionId, kilaiId, search } = query;

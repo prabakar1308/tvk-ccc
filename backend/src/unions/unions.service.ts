@@ -19,11 +19,49 @@ export class UnionsService {
     });
   }
 
-  findOne(id: string) {
-    return this.prisma.union.findUnique({
+  async findOne(id: string) {
+    const union = await this.prisma.union.findUnique({
       where: { id },
-      include: { district: true },
+      include: { 
+        district: true,
+        _count: {
+          select: {
+            kilais: true,
+            cadres: true
+          }
+        }
+      },
     });
+
+    if (!union) {
+      return null;
+    }
+
+    const totalBooths = await this.prisma.booth.count({
+      where: {
+        kilais: {
+          some: {
+            unionId: id
+          }
+        }
+      }
+    });
+
+    const unionCadres = await this.prisma.cadre.findMany({
+      where: {
+        unionId: id,
+        level: 'UNION'
+      },
+      include: {
+        officeBearerRoles: true
+      }
+    });
+
+    return {
+      ...union,
+      totalBooths,
+      unionCadres
+    };
   }
 
   update(id: string, updateUnionDto: UpdateUnionDto) {

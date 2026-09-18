@@ -28,6 +28,18 @@ export function useCreateCadre() {
   });
 }
 
+export function useCreateBulkCadres() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (data: CreateCadreDto[]) => cadreApi.createBulk(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cadres'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+    },
+  });
+}
+
 export function useUpdateCadre() {
   const queryClient = useQueryClient();
   

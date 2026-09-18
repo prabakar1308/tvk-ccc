@@ -12,8 +12,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, Plus, UserCheck, UserPlus, Trophy, Eye, Edit2, Trash2, Upload, FileText, Check, ChevronsUpDown } from "lucide-react";
-import { useCadres, useCreateCadre, useUpdateCadre, useDeleteCadre } from '@/hooks/use-cadres';
+import { Search, Plus, UserCheck, UserPlus, Trophy, Eye, Edit2, Trash2, Upload, FileText, Check, ChevronsUpDown, UploadCloud, AlertCircle } from "lucide-react";
+import { useCadres, useCreateCadre, useUpdateCadre, useDeleteCadre, useCreateBulkCadres } from '@/hooks/use-cadres';
+import { useUnions } from '@/hooks/use-unions';
+import { useKilais } from '@/hooks/use-kilais';
+import * as XLSX from 'xlsx';
+import { romanize } from 'tamil-romanizer';
 import {
   Dialog,
   DialogContent,
@@ -29,6 +33,7 @@ import { uploadApi } from '@/services/api/upload';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
+import { CadreFormDialog } from '@/components/cadre-form-dialog';
 
 export default function CadresPage() {
   const [levelFilter, setLevelFilter] = useState<string>('ALL');
@@ -42,142 +47,126 @@ export default function CadresPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const initialFormData: CreateCadreDto = {
-    name: '',
-    memberId: '',
-    phone: '',
-    role: '',
-    level: 'KILAI',
-    aadhaarNumber: '',
-    photoUrl: '',
-    attachments: { aadhaarPhoto: '', voterIdPhoto: '' },
-    area: '',
-    boothNo: '',
+  
+
+  // Import Modal State
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importLevel, setImportLevel] = useState<string>('KILAI');
+  const [importUnionId, setImportUnionId] = useState<string>('');
+  const [importKilaiId, setImportKilaiId] = useState<string>('');
+  const [parsedCadres, setParsedCadres] = useState<CreateCadreDto[]>([]);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [editingRowIdx, setEditingRowIdx] = useState<number | null>(null);
+  const [tempEditRow, setTempEditRow] = useState<CreateCadreDto | null>(null);
+
+  const { data: unions = [] } = useUnions();
+  const { data: kilais = [] } = useKilais();
+  const bulkCreateMutation = useCreateBulkCadres();
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const bstr = evt.target?.result;
+        const wb = XLSX.read(bstr, { type: 'binary' });
+        const wsname = wb.SheetNames[0];
+        const ws = wb.Sheets[wsname];
+        const data = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
+        
+        // Filter out empty rows and header rows
+        const rows = data.filter(row => {
+          if (!row || row.length === 0 || !row[1]) return false;
+          const nameCol = String(row[1]).trim();
+          if (nameCol === 'பெயர்' || nameCol === 'Name') return false;
+          return true;
+        });
+        
+        const translateRole = (role: string) => {
+          if (!role) return '';
+          const lower = role.trim().toLowerCase();
+          if (lower.includes('செயலாளர்') && lower.includes('இணை')) return 'Joint Secretary';
+          if (lower.includes('செயலாளர்') && lower.includes('துணை')) return 'Deputy Secretary';
+          if (lower.includes('செயலாளர்')) return 'Secretary';
+          if (lower.includes('பொருளாளர்')) return 'Treasurer';
+          if (lower.includes('செயற்குழு')) return 'Executive Committee Member';
+          if (lower.includes('உறுப்பினர்')) return 'Executive Committee Member'; // fallback
+          
+          // If English or unknown, return as-is (maybe capitalized)
+          return role;
+        };
+
+        const safeRomanize = (text: string) => {
+          if (!text) return '';
+          try {
+            // Check if it contains Tamil characters (Unicode block 0B80–0BFF)
+            const tamilRegex = /[\u0B80-\u0BFF]/;
+            if (tamilRegex.test(text)) {
+              return romanize(text);
+            }
+            return text;
+          } catch (e) {
+            return text;
+          }
+        };
+
+        const mappedCadres: CreateCadreDto[] = rows.map((row) => ({
+          name: safeRomanize(row[1]?.toString() || ''),
+          role: translateRole(row[2]?.toString() || ''),
+          area: safeRomanize(row[3]?.toString() || ''),
+          boothNo: row[4]?.toString() || '',
+          phone: row[5]?.toString() || '',
+          aadhaarNumber: row[6]?.toString() || '',
+          memberId: row[7]?.toString() || '',
+          voterId: row[7]?.toString() || '',
+          level: importLevel as any,
+          unionId: importUnionId || undefined,
+          homeKilaiId: importKilaiId || undefined,
+        }));
+        setParsedCadres(mappedCadres);
+        setImportError(null);
+      } catch (error) {
+        console.error(error);
+        setImportError("Failed to parse Excel file. Ensure it matches the template format.");
+      }
+    };
+    reader.readAsBinaryString(file);
+    e.target.value = ''; // reset input
   };
 
-  const [formData, setFormData] = useState<CreateCadreDto>(initialFormData);
-
-  const [pendingFiles, setPendingFiles] = useState<{
-    photo?: File;
-    aadhaarPhoto?: File;
-    voterIdPhoto?: File;
-  }>({});
-  const [isUploading, setIsUploading] = useState(false);
-
-  const [areaOpen, setAreaOpen] = useState(false);
-  const [boothOpen, setBoothOpen] = useState(false);
+  const handleBulkSubmit = async () => {
+    setImportError(null);
+    try {
+      const finalPayload = parsedCadres.map(c => ({
+        ...c,
+        level: importLevel as any,
+        unionId: importUnionId || undefined,
+        homeKilaiId: importKilaiId || undefined,
+      }));
+      
+      await bulkCreateMutation.mutateAsync(finalPayload);
+      setIsImportModalOpen(false);
+      setParsedCadres([]);
+      setImportUnionId('');
+      setImportKilaiId('');
+    } catch (error: any) {
+      setImportError(error.response?.data?.message || error.message || "Failed to import cadres");
+    }
+  };
 
   const handleOpenCreate = () => {
     setEditingId(null);
-    setFormData(initialFormData);
-    setPendingFiles({});
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (cadre: any) => {
     setEditingId(cadre.id);
-    setFormData({
-      name: cadre.name || '',
-      memberId: cadre.memberId || '',
-      phone: cadre.phone || '',
-      role: cadre.role || '',
-      level: cadre.level || 'KILAI',
-      aadhaarNumber: cadre.aadhaarNumber || '',
-      voterId: cadre.voterId || '',
-      photoUrl: cadre.photoUrl || '',
-      attachments: cadre.attachments || { aadhaarPhoto: '', voterIdPhoto: '' },
-      area: cadre.area || '',
-      boothNo: cadre.boothNo || '',
-    });
-    setPendingFiles({});
     setIsModalOpen(true);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsUploading(true);
-    
-    try {
-      let photoUrl = formData.photoUrl;
-      let aadhaarPhoto = formData.attachments?.aadhaarPhoto;
-      let voterIdPhoto = formData.attachments?.voterIdPhoto;
-
-      if (pendingFiles.photo) {
-        const res = await uploadApi.uploadFile(pendingFiles.photo);
-        photoUrl = res.url;
-      }
-      if (pendingFiles.aadhaarPhoto) {
-        const res = await uploadApi.uploadFile(pendingFiles.aadhaarPhoto);
-        aadhaarPhoto = res.url;
-      }
-      if (pendingFiles.voterIdPhoto) {
-        const res = await uploadApi.uploadFile(pendingFiles.voterIdPhoto);
-        voterIdPhoto = res.url;
-      }
-
-      const finalData: CreateCadreDto = {
-        ...formData,
-        photoUrl,
-        attachments: {
-          aadhaarPhoto,
-          voterIdPhoto,
-        }
-      };
-
-      if (editingId) {
-        const originalCadre = cadres?.find(c => c.id === editingId);
-        updateMutation.mutate({ id: editingId, data: finalData }, {
-          onSuccess: () => {
-            // Delete old files that were replaced by new ones
-            if (pendingFiles.photo && originalCadre?.photoUrl) {
-              uploadApi.deleteFile(originalCadre.photoUrl).catch(console.error);
-            }
-            if (pendingFiles.aadhaarPhoto && originalCadre?.attachments?.aadhaarPhoto) {
-              uploadApi.deleteFile(originalCadre.attachments.aadhaarPhoto).catch(console.error);
-            }
-            if (pendingFiles.voterIdPhoto && originalCadre?.attachments?.voterIdPhoto) {
-              uploadApi.deleteFile(originalCadre.attachments.voterIdPhoto).catch(console.error);
-            }
-
-            setIsModalOpen(false);
-            setPendingFiles({});
-          },
-          onError: () => {
-            // Cleanup newly uploaded files if the cadre update fails
-            if (pendingFiles.photo && photoUrl && photoUrl !== formData.photoUrl) {
-              uploadApi.deleteFile(photoUrl).catch(console.error);
-            }
-            if (pendingFiles.aadhaarPhoto && aadhaarPhoto && aadhaarPhoto !== formData.attachments?.aadhaarPhoto) {
-              uploadApi.deleteFile(aadhaarPhoto).catch(console.error);
-            }
-            if (pendingFiles.voterIdPhoto && voterIdPhoto && voterIdPhoto !== formData.attachments?.voterIdPhoto) {
-              uploadApi.deleteFile(voterIdPhoto).catch(console.error);
-            }
-            alert("Failed to update cadre. Uploaded files were cleaned up.");
-          }
-        });
-      } else {
-        createMutation.mutate(finalData, {
-          onSuccess: () => {
-            setIsModalOpen(false);
-            setPendingFiles({});
-          },
-          onError: () => {
-            // Cleanup newly uploaded files if the cadre creation fails
-            if (pendingFiles.photo && photoUrl) uploadApi.deleteFile(photoUrl).catch(console.error);
-            if (pendingFiles.aadhaarPhoto && aadhaarPhoto) uploadApi.deleteFile(aadhaarPhoto).catch(console.error);
-            if (pendingFiles.voterIdPhoto && voterIdPhoto) uploadApi.deleteFile(voterIdPhoto).catch(console.error);
-            alert("Failed to create cadre. Uploaded files were cleaned up.");
-          }
-        });
-      }
-    } catch (error) {
-      console.error("Error uploading files", error);
-      alert("Failed to upload files. Please try again.");
-    } finally {
-      setIsUploading(false);
-    }
-  };
+  
 
   const handleDelete = (id: string) => {
     if (confirm("Are you sure you want to delete this cadre?")) {
@@ -213,314 +202,190 @@ export default function CadresPage() {
           <p className="text-muted-foreground mt-1 text-lg font-medium">Manage party members, roles, and grassroots engagement.</p>
         </div>
         
-        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogTrigger 
-            render={
-              <Button onClick={handleOpenCreate} className="bg-primary hover:bg-primary/90 text-white font-semibold shadow-md h-11 px-6 rounded-lg transition-transform active:scale-95" />
-            }
-          >
+        <Button onClick={handleOpenCreate} className="bg-primary hover:bg-primary/90 text-white font-semibold shadow-md h-11 px-6 rounded-lg transition-transform active:scale-95">
             <Plus className="mr-2 h-5 w-5" /> Register Cadre
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{editingId ? 'Edit Cadre' : 'Register New Cadre'}</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4 pt-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Name *</Label>
-                  <Input 
-                    id="name" 
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    required 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="memberId">Member ID / Voter ID *</Label>
-                  <Input 
-                    id="memberId" 
-                    value={formData.memberId}
-                    onChange={(e) => setFormData({...formData, memberId: e.target.value})}
-                    required 
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone No *</Label>
-                  <Input 
-                    id="phone" 
-                    value={formData.phone || ''}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="level">Level *</Label>
-                  <Select 
-                    value={formData.level} 
-                    onValueChange={(val: any) => setFormData({...formData, level: val})}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select level" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="DISTRICT">District</SelectItem>
-                      <SelectItem value="GROUP">Group</SelectItem>
-                      <SelectItem value="UNION">Union</SelectItem>
-                      <SelectItem value="KILAI">Kilai</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="role">Designation *</Label>
-                  <Select 
-                    value={formData.role || ''} 
-                    onValueChange={(val) => setFormData({...formData, role: val || ''})}
-                    required
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select designation" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Secretary">Secretary</SelectItem>
-                      <SelectItem value="Joint Secretary">Joint Secretary</SelectItem>
-                      <SelectItem value="Treasurer">Treasurer</SelectItem>
-                      <SelectItem value="Deputy Secretary">Deputy Secretary</SelectItem>
-                      <SelectItem value="Executive Committee Member">Executive Committee Member</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="aadhaar">Aadhaar No *</Label>
-                  <Input 
-                    id="aadhaar" 
-                    value={formData.aadhaarNumber || ''}
-                    onChange={(e) => setFormData({...formData, aadhaarNumber: e.target.value})}
-                    required
-                  />
-                </div>
-                <div className="col-span-2 space-y-2">
-                  <Label htmlFor="area">Place / Area</Label>
-                  <Popover open={areaOpen} onOpenChange={setAreaOpen}>
-                    <PopoverTrigger 
-                      render={
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={areaOpen}
-                          className={cn("w-full flex justify-between font-normal text-base h-10", !formData.area && "text-muted-foreground")}
-                        />
-                      }
-                    >
-                      {formData.area ? formData.area : "Select place / area"}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </PopoverTrigger>
-                    <PopoverContent className="p-0" style={{ width: 'var(--anchor-width)' }}>
-                      <Command>
-                        <CommandInput placeholder="Search area..." />
-                        <CommandList>
-                          <CommandEmpty>No area found.</CommandEmpty>
-                          <CommandGroup>
-                            {['Area 1', 'Area 2', 'Area 3'].map((area) => (
-                              <CommandItem
-                                key={area}
-                                value={area}
-                                onSelect={(currentValue) => {
-                                  setFormData({ ...formData, area: currentValue === formData.area ? "" : currentValue })
-                                  setAreaOpen(false)
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    formData.area === area ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                {area}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div className="col-span-2 space-y-2">
-                  <Label htmlFor="boothNo">Booth No.</Label>
-                  <Popover open={boothOpen} onOpenChange={setBoothOpen}>
-                    <PopoverTrigger 
-                      render={
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={boothOpen}
-                          className={cn("w-full flex justify-between font-normal text-base h-10", !formData.boothNo && "text-muted-foreground")}
-                        />
-                      }
-                    >
-                      {formData.boothNo ? formData.boothNo : "Select booth number"}
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                    </PopoverTrigger>
-                    <PopoverContent className="p-0" style={{ width: 'var(--anchor-width)' }}>
-                      <Command>
-                        <CommandInput placeholder="Search booth..." />
-                        <CommandList>
-                          <CommandEmpty>No booth found.</CommandEmpty>
-                          <CommandGroup>
-                            {['Booth 1', 'Booth 2', 'Booth 3'].map((booth) => (
-                              <CommandItem
-                                key={booth}
-                                value={booth}
-                                onSelect={(currentValue) => {
-                                  setFormData({ ...formData, boothNo: currentValue === formData.boothNo ? "" : currentValue })
-                                  setBoothOpen(false)
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    formData.boothNo === booth ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                {booth}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-              </div>
-              
-              <div className="pt-4 border-t space-y-4">
-                <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Photo Uploads</h3>
-                <div className="grid grid-cols-3 gap-4">
-                  {/* Cadre Photo */}
-                  <div className="space-y-2">
-                    <Label className="text-center block w-full text-xs font-semibold">Cadre Photo</Label>
-                    <label htmlFor="photo" className="relative flex flex-col items-center justify-center w-full aspect-square border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-primary hover:bg-primary/5 transition-all group overflow-hidden bg-gray-50">
-                      {formData.photoUrl ? (
-                        <>
-                          <img src={formData.photoUrl} alt="Cadre Photo" className="w-full h-full object-cover" />
-                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Upload className="w-6 h-6 text-white drop-shadow-md" />
-                          </div>
-                        </>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center text-muted-foreground group-hover:text-primary">
-                          <Upload className="w-6 h-6 mb-2 opacity-50 group-hover:opacity-100 transition-opacity" />
-                          <span className="text-[10px] font-medium text-center">Upload Photo</span>
-                        </div>
-                      )}
-                      <input 
-                        id="photo" 
-                        type="file" 
-                        accept="image/*"
-                        className="hidden" 
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            setPendingFiles({...pendingFiles, photo: file});
-                            setFormData({...formData, photoUrl: URL.createObjectURL(file)});
-                          }
-                        }}
-                      />
-                    </label>
-                  </div>
+          </Button>
+      <CadreFormDialog 
+        isOpen={isModalOpen}
+        onOpenChange={setIsModalOpen}
+        editingId={editingId}
+        cadres={cadres}
+      />
 
-                  {/* Aadhaar Photo */}
-                  <div className="space-y-2">
-                    <Label className="text-center block w-full text-xs font-semibold">Aadhaar</Label>
-                    <label htmlFor="aadhaarPhoto" className="relative flex flex-col items-center justify-center w-full aspect-square border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-primary hover:bg-primary/5 transition-all group overflow-hidden bg-gray-50">
-                      {formData.attachments?.aadhaarPhoto ? (
-                        <>
-                          {formData.attachments.aadhaarPhoto.includes('blob:') || formData.attachments.aadhaarPhoto.match(/\.(jpeg|jpg|gif|png)$/) ? (
-                            <img src={formData.attachments.aadhaarPhoto} alt="Aadhaar" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="flex flex-col items-center justify-center w-full h-full bg-muted">
-                              <FileText className="w-8 h-8 text-muted-foreground mb-1" />
-                              <span className="text-[10px] font-bold text-muted-foreground">PDF</span>
-                            </div>
-                          )}
-                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Upload className="w-6 h-6 text-white drop-shadow-md" />
-                          </div>
-                        </>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center text-muted-foreground group-hover:text-primary">
-                          <Upload className="w-6 h-6 mb-2 opacity-50 group-hover:opacity-100 transition-opacity" />
-                          <span className="text-[10px] font-medium text-center">Upload Aadhaar</span>
-                        </div>
-                      )}
-                      <input 
-                        id="aadhaarPhoto" 
-                        type="file" 
-                        accept="image/*,application/pdf"
-                        className="hidden" 
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            setPendingFiles({...pendingFiles, aadhaarPhoto: file});
-                            setFormData({...formData, attachments: { ...formData.attachments, aadhaarPhoto: URL.createObjectURL(file) }});
-                          }
-                        }}
-                      />
-                    </label>
-                  </div>
-
-                  {/* Voter ID Photo */}
-                  <div className="space-y-2">
-                    <Label className="text-center block w-full text-xs font-semibold">Voter ID</Label>
-                    <label htmlFor="voterIdPhoto" className="relative flex flex-col items-center justify-center w-full aspect-square border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-primary hover:bg-primary/5 transition-all group overflow-hidden bg-gray-50">
-                      {formData.attachments?.voterIdPhoto ? (
-                        <>
-                          {formData.attachments.voterIdPhoto.includes('blob:') || formData.attachments.voterIdPhoto.match(/\.(jpeg|jpg|gif|png)$/) ? (
-                            <img src={formData.attachments.voterIdPhoto} alt="Voter ID" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="flex flex-col items-center justify-center w-full h-full bg-muted">
-                              <FileText className="w-8 h-8 text-muted-foreground mb-1" />
-                              <span className="text-[10px] font-bold text-muted-foreground">PDF</span>
-                            </div>
-                          )}
-                          <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Upload className="w-6 h-6 text-white drop-shadow-md" />
-                          </div>
-                        </>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center text-muted-foreground group-hover:text-primary">
-                          <Upload className="w-6 h-6 mb-2 opacity-50 group-hover:opacity-100 transition-opacity" />
-                          <span className="text-[10px] font-medium text-center">Upload Voter ID</span>
-                        </div>
-                      )}
-                      <input 
-                        id="voterIdPhoto" 
-                        type="file" 
-                        accept="image/*,application/pdf"
-                        className="hidden" 
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            setPendingFiles({...pendingFiles, voterIdPhoto: file});
-                            setFormData({...formData, attachments: { ...formData.attachments, voterIdPhoto: URL.createObjectURL(file) }});
-                          }
-                        }}
-                      />
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              <DialogFooter className="pt-4">
-                <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
-                <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending || isUploading}>
-                  {isUploading ? 'Uploading...' : editingId ? 'Save Changes' : 'Register Cadre'}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
       </div>
+      {/* Import Modal */}
+      <Dialog open={isImportModalOpen} onOpenChange={(open) => {
+        setIsImportModalOpen(open);
+        if (!open) {
+          setParsedCadres([]);
+          setImportError(null);
+          setEditingRowIdx(null);
+          setTempEditRow(null);
+        }
+      }}>
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] flex flex-col p-0 gap-0">
+          <DialogHeader className="p-6 pb-4">
+            <DialogTitle>Import Cadres from Excel</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 overflow-hidden flex flex-col px-6 min-h-0">
+            
+            <div className="shrink-0 space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Import Level</Label>
+                <Select value={importLevel} onValueChange={setImportLevel}>
+                  <SelectTrigger className="w-full text-base">
+                    <SelectValue placeholder="Select level">
+                      {importLevel === 'DISTRICT' ? 'District' : importLevel === 'UNION' ? 'Union' : importLevel === 'KILAI' ? 'Kilai' : ''}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="DISTRICT">District</SelectItem>
+                    <SelectItem value="UNION">Union</SelectItem>
+                    <SelectItem value="KILAI">Kilai</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {importLevel === 'UNION' && (
+                <div className="space-y-2">
+                  <Label>Select Union</Label>
+                  <Select value={importUnionId} onValueChange={setImportUnionId}>
+                    <SelectTrigger className="w-full text-base">
+                      <SelectValue placeholder="Select Union">
+                        {importUnionId ? unions.find((u: any) => String(u.id) === importUnionId)?.name : ''}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {unions.map((u: any) => (
+                        <SelectItem key={String(u.id)} value={String(u.id)}>{u.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {importLevel === 'KILAI' && (
+                <div className="space-y-2">
+                  <Label>Select Kilai</Label>
+                  <Select value={importKilaiId} onValueChange={setImportKilaiId}>
+                    <SelectTrigger className="w-full text-base">
+                      <SelectValue placeholder="Select Kilai">
+                        {importKilaiId ? kilais.find((k: any) => String(k.id) === importKilaiId)?.name : ''}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {kilais.map((k: any) => (
+                        <SelectItem key={String(k.id)} value={String(k.id)}>{k.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Upload Excel File</Label>
+              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-primary/30 rounded-lg cursor-pointer bg-primary/5 hover:bg-primary/10 transition-colors">
+                <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                  <UploadCloud className="w-8 h-8 mb-2 text-primary/60" />
+                  <p className="mb-2 text-sm text-foreground font-semibold"><span className="text-primary">Click to upload</span> or drag and drop</p>
+                  <p className="text-xs text-muted-foreground">.xlsx or .xls files only</p>
+                </div>
+                <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} className="hidden" />
+              </label>
+            </div>
+
+            {importError && (
+              <div className="p-3 bg-destructive/10 text-destructive rounded-md flex items-start gap-2 text-sm font-medium">
+                <AlertCircle className="w-5 h-5 shrink-0" />
+                <span>{importError}</span>
+              </div>
+            )}
+
+            </div>
+
+            {parsedCadres.length > 0 && (
+              <div className="flex-1 flex flex-col min-h-0 mt-6 space-y-2">
+                <h3 className="font-semibold text-sm shrink-0">Preview ({parsedCadres.length} rows)</h3>
+                <div className="border rounded-md overflow-auto flex-1 min-h-0 w-full relative">
+                  <Table>
+                    <TableHeader className="bg-muted">
+                      <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Role</TableHead>
+                        <TableHead>Area</TableHead>
+                        <TableHead>Booth No</TableHead>
+                        <TableHead>Phone</TableHead>
+                        <TableHead>Aadhaar</TableHead>
+                        <TableHead>Member ID</TableHead>
+                        <TableHead className="text-right sticky right-0 bg-muted z-10 shadow-[-1px_0_0_rgba(0,0,0,0.05)] after:absolute after:left-0 after:top-0 after:bottom-0 after:w-[1px] after:bg-border">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {parsedCadres.map((cadre, idx) => (
+                        <TableRow key={idx}>
+                          {editingRowIdx === idx ? (
+                            <>
+                              <TableCell className="p-2"><Input className="h-8 min-w-[120px]" value={tempEditRow?.name || ''} onChange={(e) => setTempEditRow({...tempEditRow!, name: e.target.value})} /></TableCell>
+                              <TableCell className="p-2"><Input className="h-8 min-w-[120px]" value={tempEditRow?.role || ''} onChange={(e) => setTempEditRow({...tempEditRow!, role: e.target.value})} /></TableCell>
+                              <TableCell className="p-2"><Input className="h-8 min-w-[120px]" value={tempEditRow?.area || ''} onChange={(e) => setTempEditRow({...tempEditRow!, area: e.target.value})} /></TableCell>
+                              <TableCell className="p-2"><Input className="h-8 min-w-[120px]" value={tempEditRow?.boothNo || ''} onChange={(e) => setTempEditRow({...tempEditRow!, boothNo: e.target.value})} /></TableCell>
+                              <TableCell className="p-2"><Input className="h-8 min-w-[120px]" value={tempEditRow?.phone || ''} onChange={(e) => setTempEditRow({...tempEditRow!, phone: e.target.value})} /></TableCell>
+                              <TableCell className="p-2"><Input className="h-8 min-w-[120px]" value={tempEditRow?.aadhaarNumber || ''} onChange={(e) => setTempEditRow({...tempEditRow!, aadhaarNumber: e.target.value})} /></TableCell>
+                              <TableCell className="p-2"><Input className="h-8 min-w-[120px]" value={tempEditRow?.memberId || ''} onChange={(e) => setTempEditRow({...tempEditRow!, memberId: e.target.value})} /></TableCell>
+                              <TableCell className="p-2 text-right sticky right-0 bg-background z-10 shadow-[-1px_0_0_rgba(0,0,0,0.05)] after:absolute after:left-0 after:top-0 after:bottom-0 after:w-[1px] after:bg-border">
+                                <div className="flex gap-1 justify-end">
+                                  <Button size="sm" onClick={() => {
+                                    const newCadres = [...parsedCadres];
+                                    newCadres[idx] = tempEditRow!;
+                                    setParsedCadres(newCadres);
+                                    setEditingRowIdx(null);
+                                  }}>Save</Button>
+                                  <Button size="sm" variant="ghost" onClick={() => setEditingRowIdx(null)}>Cancel</Button>
+                                </div>
+                              </TableCell>
+                            </>
+                          ) : (
+                            <>
+                              <TableCell className="p-3 font-medium">{cadre.name}</TableCell>
+                              <TableCell className="p-3">{cadre.role}</TableCell>
+                              <TableCell className="p-3">{cadre.area}</TableCell>
+                              <TableCell className="p-3">{cadre.boothNo}</TableCell>
+                              <TableCell className="p-3">{cadre.phone}</TableCell>
+                              <TableCell className="p-3">{cadre.aadhaarNumber}</TableCell>
+                              <TableCell className="p-3">{cadre.memberId}</TableCell>
+                              <TableCell className="p-2 text-right sticky right-0 bg-background z-10 shadow-[-1px_0_0_rgba(0,0,0,0.05)] after:absolute after:left-0 after:top-0 after:bottom-0 after:w-[1px] after:bg-border">
+                                <div className="flex justify-end gap-1">
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => { setEditingRowIdx(idx); setTempEditRow(cadre); }}>
+                                    <Edit2 className="w-4 h-4" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => {
+                                    const newCadres = parsedCadres.filter((_, i) => i !== idx);
+                                    setParsedCadres(newCadres);
+                                  }}>
+                                    <Trash2 className="w-4 h-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </>
+                          )}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="mt-4 p-6 pt-4 border-t shrink-0">
+            <Button variant="outline" onClick={() => { setIsImportModalOpen(false); setParsedCadres([]); setImportError(null); }}>Cancel</Button>
+            <Button onClick={handleBulkSubmit} disabled={parsedCadres.length === 0 || bulkCreateMutation.isPending}>
+              {bulkCreateMutation.isPending ? 'Importing...' : 'Import Cadres'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Metrics Row */}
       <div className="grid gap-6 sm:grid-cols-3">
@@ -573,6 +438,9 @@ export default function CadresPage() {
           />
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
+          <Button variant="outline" onClick={() => setIsImportModalOpen(true)} className="h-11 rounded-md px-6 font-medium border-primary/20 text-primary hover:bg-primary/5">
+            <UploadCloud className="w-4 h-4 mr-2" /> Import Excel
+          </Button>
           <Button variant="outline" className="h-11 rounded-md px-6 font-medium border-primary/20 text-primary hover:bg-primary/5">Export CSV</Button>
         </div>
       </div>

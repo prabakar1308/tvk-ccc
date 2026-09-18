@@ -18,6 +18,7 @@ export interface Cadre {
   role?: string; // We'll handle primary role mapping if needed
   area?: string;
   boothNo?: string;
+  officeBearerRoles?: { role: string }[];
 }
 
 export type CreateCadreDto = Omit<Cadre, 'id' | 'createdAt' | 'updatedAt'>;
@@ -37,6 +38,14 @@ export const cadreApi = {
 
   create: async (data: CreateCadreDto): Promise<Cadre> => {
     const res = await fetchWithAuth('/api/v1/cadres', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+
+  createBulk: async (data: CreateCadreDto[]): Promise<{ message: string; count: number }> => {
+    const res = await fetchWithAuth('/api/v1/cadres/bulk', {
       method: 'POST',
       body: JSON.stringify(data),
     });
