@@ -7,6 +7,22 @@ import { UpdateBoothDto } from './dto/update-booth.dto';
 export class BoothsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async getDistinctAreas() {
+    const booths = await this.prisma.booth.findMany({
+      select: { area: true },
+      distinct: ['area'],
+      where: {
+        area: {
+          not: null,
+        },
+      },
+      orderBy: {
+        area: 'asc',
+      }
+    });
+    return booths.map(b => b.area).filter(a => a && a.trim() !== '') as string[];
+  }
+
   async create(createBoothDto: CreateBoothDto) {
     const { kilaiIds, agentIds, ...boothData } = createBoothDto;
     
@@ -28,15 +44,15 @@ export class BoothsService {
   }
 
   async findAll() {
-    return this.prisma.booth.findMany({
+    const booths = await this.prisma.booth.findMany({
       include: {
         kilais: true,
         agents: true,
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
     });
+    
+    // Use natural alphanumeric sorting so "10" comes after "2"
+    return booths.sort((a, b) => a.boothNo.localeCompare(b.boothNo, undefined, { numeric: true }));
   }
 
   async findOne(id: string) {

@@ -5,6 +5,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import Providers from "@/providers/query-provider";
 import { UserProvider } from "@/contexts/user-context";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const instrumentSans = Instrument_Sans({
   variable: "--font-sans",
@@ -47,7 +48,9 @@ export default async function RootLayout({
         <NextIntlClientProvider messages={messages}>
           <UserProvider>
             <Providers>
-              {children}
+              <TooltipProvider delayDuration={300}>
+                {children}
+              </TooltipProvider>
             </Providers>
           </UserProvider>
         </NextIntlClientProvider>

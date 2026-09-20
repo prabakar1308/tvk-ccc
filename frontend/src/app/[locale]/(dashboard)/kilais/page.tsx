@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useSearchParams } from 'next/navigation';
 import {
   Table,
   TableBody,
@@ -11,7 +12,10 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Eye, Building2, Plus, Edit2, Trash2 } from "lucide-react";
+import { Search, Eye, Building2, Plus, Edit2, Trash2, Check, ChevronsUpDown, X } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 import { Link } from '@/i18n/routing';
 import {
   Select,
@@ -31,34 +35,37 @@ import {
 import { Label } from "@/components/ui/label";
 import { useKilais, useCreateKilai, useUpdateKilai, useDeleteKilai } from '@/hooks/use-kilais';
 import { useUnions } from '@/hooks/use-unions';
+import { useBooths, useBoothAreas } from '@/hooks/use-booths';
 import { CreateKilaiDto } from '@/services/api/kilais';
 
 export default function KilaisPage() {
   const { data: kilais, isLoading } = useKilais();
   const { data: unions } = useUnions();
+  const { data: booths } = useBooths();
+  const { data: areas } = useBoothAreas();
 
   const createMutation = useCreateKilai();
   const updateMutation = useUpdateKilai();
   const deleteMutation = useDeleteKilai();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedUnion, setSelectedUnion] = useState<string>('all');
+  const searchParams = useSearchParams();
+  const [selectedUnion, setSelectedUnion] = useState<string>(searchParams.get('union') || 'all');
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const initialFormData: CreateKilaiDto = {
     name: '',
-    tamilName: '',
-    code: '',
     description: '',
     unionId: '',
-    village: '',
+    villages: [],
     address: '',
     pincode: '',
     phone: '',
     email: '',
-    status: 'ACTIVE'
+    status: 'ACTIVE',
+    linkedBooths: []
   };
 
   const [formData, setFormData] = useState<CreateKilaiDto>(initialFormData);
@@ -73,16 +80,15 @@ export default function KilaisPage() {
     setEditingId(kilai.id);
     setFormData({
       name: kilai.name || '',
-      tamilName: kilai.tamilName || '',
-      code: kilai.code || '',
       description: kilai.description || '',
       unionId: kilai.unionId ? String(kilai.unionId) : '',
-      village: kilai.village || '',
+      villages: kilai.villages || [],
       address: kilai.address || '',
       pincode: kilai.pincode || '',
       phone: kilai.phone || '',
       email: kilai.email || '',
-      status: kilai.status || 'ACTIVE'
+      status: kilai.status || 'ACTIVE',
+      linkedBooths: kilai.booths ? kilai.booths.map((b: any) => String(b.id || b._id)) : []
     });
     setIsModalOpen(true);
   };
@@ -115,8 +121,7 @@ export default function KilaisPage() {
     if (!kilais) return [];
     
     return kilais.filter((kilai) => {
-      const matchesSearch = kilai.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                            (kilai.code && kilai.code.toLowerCase().includes(searchQuery.toLowerCase()));
+      const matchesSearch = kilai.name?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesUnion = selectedUnion === 'all' || kilai.unionId === selectedUnion;
       
       return matchesSearch && matchesUnion;
@@ -158,23 +163,6 @@ export default function KilaisPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="tamilName">Tamil Name</Label>
-                <Input 
-                  id="tamilName" 
-                  value={formData.tamilName || ''}
-                  onChange={(e) => setFormData({...formData, tamilName: e.target.value})}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="code">Code *</Label>
-                <Input 
-                  id="code" 
-                  value={formData.code}
-                  onChange={(e) => setFormData({...formData, code: e.target.value})}
-                  required 
-                />
-              </div>
-              <div className="space-y-2">
                 <Label htmlFor="unionId">Union *</Label>
                 <Select 
                   value={formData.unionId} 
@@ -196,6 +184,152 @@ export default function KilaisPage() {
                   </SelectContent>
                 </Select>
               </div>
+              <div className="space-y-2 flex flex-col">
+                <Label>Linked Booths</Label>
+                <Popover>
+                  <PopoverTrigger className="flex h-auto min-h-11 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm hover:bg-accent hover:text-accent-foreground font-normal">
+                      <div className="flex flex-wrap gap-1 items-center">
+                        {formData.linkedBooths && formData.linkedBooths.length > 0 ? (
+                          formData.linkedBooths.map((boothId) => {
+                            const booth = booths?.find((b: any) => String(b.id || b._id) === String(boothId));
+                            return (
+                              <div
+                                key={boothId}
+                                className="bg-primary/10 text-primary text-xs rounded-md px-2 py-1 flex items-center gap-1"
+                              >
+                                {booth ? `${booth.boothNo} - ${booth.area || booth.name}` : boothId}
+                                <div
+                                  className="cursor-pointer hover:bg-primary/20 rounded-full p-0.5"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setFormData({
+                                      ...formData,
+                                      linkedBooths: formData.linkedBooths?.filter((id) => id !== boothId)
+                                    });
+                                  }}
+                                >
+                                  <X className="h-3 w-3" />
+                                </div>
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <span className="text-muted-foreground">Select booths...</span>
+                        )}
+                      </div>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[300px] sm:w-[375px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search booths..." />
+                      <CommandList>
+                        <CommandEmpty>No booth found.</CommandEmpty>
+                        <CommandGroup>
+                          {booths?.map((booth: any) => {
+                            const isSelected = formData.linkedBooths?.includes(String(booth.id || booth._id));
+                            return (
+                              <CommandItem
+                                key={booth.id || booth._id}
+                                value={`${booth.boothNo} ${booth.name}`}
+                                onSelect={() => {
+                                  const id = String(booth.id || booth._id);
+                                  const current = formData.linkedBooths || [];
+                                  setFormData({
+                                    ...formData,
+                                    linkedBooths: isSelected
+                                      ? current.filter((b) => b !== id)
+                                      : [...current, id]
+                                  });
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    isSelected ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {booth.boothNo} - {booth.name}
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="space-y-2 flex flex-col">
+                <Label>Villages / Areas</Label>
+                <Popover>
+                  <PopoverTrigger className="flex h-auto min-h-11 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm hover:bg-accent hover:text-accent-foreground font-normal">
+                      <div className="flex flex-wrap gap-1 items-center">
+                        {formData.villages && formData.villages.length > 0 ? (
+                          formData.villages.map((area) => (
+                            <div
+                              key={area}
+                              className="bg-primary/10 text-primary text-xs rounded-md px-2 py-1 flex items-center gap-1"
+                            >
+                              {area}
+                              <div
+                                className="cursor-pointer hover:bg-primary/20 rounded-full p-0.5"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setFormData({
+                                    ...formData,
+                                    villages: formData.villages?.filter((a) => a !== area)
+                                  });
+                                }}
+                              >
+                                <X className="h-3 w-3" />
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <span className="text-muted-foreground">Select areas...</span>
+                        )}
+                      </div>
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[300px] sm:w-[375px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search areas..." />
+                      <CommandList>
+                        <CommandEmpty>No area found.</CommandEmpty>
+                        <CommandGroup>
+                          {areas?.map((area: string) => {
+                            const isSelected = formData.villages?.includes(area);
+                            return (
+                              <CommandItem
+                                key={area}
+                                value={area}
+                                onSelect={() => {
+                                  const current = formData.villages || [];
+                                  setFormData({
+                                    ...formData,
+                                    villages: isSelected
+                                      ? current.filter((a) => a !== area)
+                                      : [...current, area]
+                                  });
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    isSelected ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {area}
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
                 <Select 
@@ -211,14 +345,6 @@ export default function KilaisPage() {
                     <SelectItem value="PENDING">Pending</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="village">Village</Label>
-                <Input 
-                  id="village" 
-                  value={formData.village || ''}
-                  onChange={(e) => setFormData({...formData, village: e.target.value})}
-                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone</Label>
@@ -244,7 +370,7 @@ export default function KilaisPage() {
         <div className="relative w-full sm:w-96">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input 
-            placeholder="Search kilais by name or code..." 
+            placeholder="Search kilais by name..." 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 h-11 bg-zinc-50 dark:bg-zinc-900 border-primary/20 focus-visible:ring-primary/30 rounded-md transition-all"
@@ -252,8 +378,8 @@ export default function KilaisPage() {
         </div>
 
         <div className="w-full sm:w-64">
-          <Select value={selectedUnion} onValueChange={setSelectedUnion}>
-            <SelectTrigger className="h-11 border-primary/20 bg-zinc-50 dark:bg-zinc-900 focus:ring-primary/30 rounded-md">
+          <Select value={selectedUnion} onValueChange={(value) => setSelectedUnion(value || '')}>
+            <SelectTrigger className="h-11 border-primary/20 bg-zinc-50 dark:bg-zinc-900 focus:ring-primary/30 rounded-md w-full">
               <SelectValue placeholder="Filter by Union">
                 {selectedUnion === 'all' 
                   ? 'All Unions' 
@@ -284,7 +410,6 @@ export default function KilaisPage() {
               <TableHeader className="bg-primary/5">
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="font-semibold text-primary py-4">Kilai Name</TableHead>
-                  <TableHead className="font-semibold text-primary py-4">Code</TableHead>
                   <TableHead className="font-semibold text-primary py-4">Union</TableHead>
                   <TableHead className="font-semibold text-primary py-4">Status</TableHead>
                   <TableHead className="font-semibold text-primary py-4 text-right">Actions</TableHead>
@@ -302,7 +427,6 @@ export default function KilaisPage() {
                           {kilai.name} {kilai.tamilName && <span className="text-sm font-normal text-muted-foreground">({kilai.tamilName})</span>}
                         </Link>
                       </TableCell>
-                      <TableCell className="py-4 font-medium">{kilai.code || '-'}</TableCell>
                       <TableCell className="py-4">
                         <span className="inline-flex items-center px-3 py-1 rounded-md text-xs font-bold bg-secondary text-secondary-foreground shadow-sm">
                           {kilaiUnion?.name || '-'}

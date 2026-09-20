@@ -8,8 +8,17 @@ export class KilaisService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createKilaiDto: CreateKilaiDto) {
+    const { linkedBooths, ...data } = createKilaiDto;
+    const createData: any = { ...data };
+    
+    if (linkedBooths && linkedBooths.length > 0) {
+      createData.booths = {
+        connect: linkedBooths.map((id: string) => ({ id }))
+      };
+    }
+
     return this.prisma.kilai.create({
-      data: createKilaiDto,
+      data: createData,
     });
   }
 
@@ -19,6 +28,7 @@ export class KilaisService {
       where,
       include: {
         union: true,
+        booths: true,
         _count: {
           select: {
             cadres: true,
@@ -34,6 +44,7 @@ export class KilaisService {
       where: { id },
       include: {
         union: true,
+        booths: true,
         officeBearers: {
           include: { cadre: true },
         },
@@ -58,9 +69,18 @@ export class KilaisService {
       throw new NotFoundException(`Kilai with ID ${id} not found`);
     }
 
+    const { linkedBooths, ...data } = updateKilaiDto;
+    const updateData: any = { ...data };
+    
+    if (linkedBooths !== undefined) {
+      updateData.booths = {
+        set: linkedBooths.map((id: string) => ({ id }))
+      };
+    }
+
     return this.prisma.kilai.update({
       where: { id },
-      data: updateKilaiDto,
+      data: updateData,
     });
   }
 

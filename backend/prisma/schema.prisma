@@ -83,9 +83,8 @@ model Kilai {
   id             String         @id @default(uuid())
   name           String
   tamilName      String?
-  code           String         @unique
   description    String?
-  village        String?
+  villages       String[]
   address        String?
   pincode        String?
   latitude       Float?
@@ -184,6 +183,7 @@ model Booth {
   id               String       @id @default(uuid())
   name             String
   boothNo          String       @unique
+  area             String?
   maleCount        Int          @default(0)
   femaleCount      Int          @default(0)
   thirdGenderCount Int          @default(0)

@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsNumber, IsEnum, IsEmail } from 'class-validator';
+import { IsString, IsOptional, IsNumber, IsEnum, IsEmail, IsArray } from 'class-validator';
 import { KilaiStatus } from '@prisma/client';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -12,19 +12,16 @@ export class CreateKilaiDto {
   @IsOptional()
   tamilName?: string;
 
-  @ApiProperty()
-  @IsString()
-  code: string;
-
   @ApiPropertyOptional()
   @IsString()
   @IsOptional()
   description?: string;
 
   @ApiPropertyOptional()
-  @IsString()
+  @IsArray()
+  @IsString({ each: true })
   @IsOptional()
-  village?: string;
+  villages?: string[];
 
   @ApiPropertyOptional()
   @IsString()
@@ -69,4 +66,10 @@ export class CreateKilaiDto {
   @ApiProperty()
   @IsString()
   unionId: string;
+
+  @ApiPropertyOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  linkedBooths?: string[];
 }

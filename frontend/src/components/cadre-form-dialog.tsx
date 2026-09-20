@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { CreateCadreDto } from '@/services/api/cadres';
 import { uploadApi } from '@/services/api/upload';
 import { useCreateCadre, useUpdateCadre } from '@/hooks/use-cadres';
+import { useBooths, useBoothAreas } from '@/hooks/use-booths';
 
 export interface CadreFormDialogProps {
   isOpen: boolean;
@@ -41,6 +42,9 @@ export function CadreFormDialog({
 }: CadreFormDialogProps) {
   const createMutation = useCreateCadre();
   const updateMutation = useUpdateCadre();
+  
+  const { data: booths = [] } = useBooths();
+  const { data: areas = [] } = useBoothAreas();
 
   const initialFormData: CreateCadreDto = {
     name: '',
@@ -280,12 +284,13 @@ export function CadreFormDialog({
                     <CommandList>
                       <CommandEmpty>No area found.</CommandEmpty>
                       <CommandGroup>
-                        {['Area 1', 'Area 2', 'Area 3'].map((area) => (
+                        {areas.map((area: string) => (
                           <CommandItem
                             key={area}
                             value={area}
                             onSelect={(currentValue) => {
-                              setFormData({ ...formData, area: currentValue === formData.area ? "" : currentValue })
+                              const selectedArea = areas.find((a: string) => a.toLowerCase() === currentValue) || currentValue;
+                              setFormData({ ...formData, area: selectedArea === formData.area ? "" : selectedArea })
                               setAreaOpen(false)
                             }}
                           >
@@ -317,7 +322,12 @@ export function CadreFormDialog({
                   />
                 }
               >
-                {formData.boothNo ? formData.boothNo : "Select booth number"}
+                {formData.boothNo ? (
+                  (() => {
+                    const selected = booths.find((b: any) => b.boothNo === formData.boothNo);
+                    return selected ? `${selected.boothNo} - ${selected.area || selected.name}` : formData.boothNo;
+                  })()
+                ) : "Select booth number"}
                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
               </PopoverTrigger>
                 <PopoverContent className="p-0" style={{ width: 'var(--anchor-width)' }}>
@@ -326,22 +336,23 @@ export function CadreFormDialog({
                     <CommandList>
                       <CommandEmpty>No booth found.</CommandEmpty>
                       <CommandGroup>
-                        {['Booth 1', 'Booth 2', 'Booth 3'].map((booth) => (
+                        {booths.map((booth: any) => (
                           <CommandItem
-                            key={booth}
-                            value={booth}
+                            key={booth.id}
+                            value={booth.boothNo}
                             onSelect={(currentValue) => {
-                              setFormData({ ...formData, boothNo: currentValue === formData.boothNo ? "" : currentValue })
+                              const selectedBooth = booths.find((b: any) => b.boothNo.toLowerCase() === currentValue) || { boothNo: currentValue };
+                              setFormData({ ...formData, boothNo: selectedBooth.boothNo === formData.boothNo ? "" : selectedBooth.boothNo })
                               setBoothOpen(false)
                             }}
                           >
                             <Check
                               className={cn(
                                 "mr-2 h-4 w-4",
-                                formData.boothNo === booth ? "opacity-100" : "opacity-0"
+                                formData.boothNo === booth.boothNo ? "opacity-100" : "opacity-0"
                               )}
                             />
-                            {booth}
+                            {booth.boothNo} - {booth.area || booth.name}
                           </CommandItem>
                         ))}
                       </CommandGroup>

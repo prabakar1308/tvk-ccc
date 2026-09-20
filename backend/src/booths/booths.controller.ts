@@ -19,6 +19,11 @@ export class BoothsController {
     return this.boothsService.findAll();
   }
 
+  @Get('areas')
+  getDistinctAreas() {
+    return this.boothsService.getDistinctAreas();
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.boothsService.findOne(id);

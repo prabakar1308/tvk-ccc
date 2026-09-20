@@ -7,7 +7,7 @@ export interface Kilai {
   tamilName?: string;
   description?: string;
   unionId: string;
-  village?: string;
+  villages?: string[];
   address?: string;
   pincode?: string;
   latitude?: number;
@@ -18,20 +18,21 @@ export interface Kilai {
   healthScore: number;
   createdAt: string;
   updatedAt: string;
+  linkedBooths?: string[];
 }
 
 export interface CreateKilaiDto {
   name: string;
   tamilName?: string;
-  code: string;
   description?: string;
   unionId: string;
-  village?: string;
+  villages?: string[];
   address?: string;
   pincode?: string;
   phone?: string;
   email?: string;
   status: 'ACTIVE' | 'INACTIVE' | 'PENDING';
+  linkedBooths?: string[];
 }
 
 export const kilaiApi = {

@@ -21,6 +21,11 @@ import {
   DialogTrigger 
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 import { useBooths, useCreateBooth, useUpdateBooth, useDeleteBooth } from '@/hooks/use-booths';
 import { useKilais } from '@/hooks/use-kilais';
@@ -132,10 +137,12 @@ export default function BoothsPage() {
   const [search, setSearch] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBooth, setEditingBooth] = useState<any>(null);
+  const [viewingBooth, setViewingBooth] = useState<any>(null);
 
   const initialFormState = {
     name: '',
     boothNo: '',
+    area: '',
     maleCount: 0,
     femaleCount: 0,
     thirdGenderCount: 0,
@@ -151,6 +158,7 @@ export default function BoothsPage() {
       setFormData({
         name: booth.name || '',
         boothNo: booth.boothNo || '',
+        area: booth.area || '',
         maleCount: booth.maleCount || 0,
         femaleCount: booth.femaleCount || 0,
         thirdGenderCount: booth.thirdGenderCount || 0,
@@ -234,15 +242,25 @@ export default function BoothsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="name">Booth Name *</Label>
+                  <Label htmlFor="area">Area</Label>
                   <Input 
-                    id="name" 
-                    value={formData.name} 
-                    onChange={e => setFormData({...formData, name: e.target.value})}
-                    required 
-                    placeholder="e.g. Govt School"
+                    id="area" 
+                    value={formData.area} 
+                    onChange={e => setFormData({...formData, area: e.target.value})}
+                    placeholder="e.g. North Zone"
                   />
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="name">Booth Name *</Label>
+                <Input 
+                  id="name" 
+                  value={formData.name} 
+                  onChange={e => setFormData({...formData, name: e.target.value})}
+                  required 
+                  placeholder="e.g. Govt School"
+                />
               </div>
 
               <div className="space-y-2">
@@ -273,7 +291,10 @@ export default function BoothsPage() {
                     type="number" 
                     min="0"
                     value={formData.maleCount} 
-                    onChange={e => setFormData({...formData, maleCount: parseInt(e.target.value) || 0})}
+                    onChange={e => {
+                      const val = parseInt(e.target.value) || 0;
+                      setFormData({...formData, maleCount: val, totalCount: val + formData.femaleCount + formData.thirdGenderCount});
+                    }}
                   />
                 </div>
                 <div className="space-y-2">
@@ -283,7 +304,10 @@ export default function BoothsPage() {
                     type="number" 
                     min="0"
                     value={formData.femaleCount} 
-                    onChange={e => setFormData({...formData, femaleCount: parseInt(e.target.value) || 0})}
+                    onChange={e => {
+                      const val = parseInt(e.target.value) || 0;
+                      setFormData({...formData, femaleCount: val, totalCount: formData.maleCount + val + formData.thirdGenderCount});
+                    }}
                   />
                 </div>
                 <div className="space-y-2">
@@ -293,7 +317,10 @@ export default function BoothsPage() {
                     type="number" 
                     min="0"
                     value={formData.thirdGenderCount} 
-                    onChange={e => setFormData({...formData, thirdGenderCount: parseInt(e.target.value) || 0})}
+                    onChange={e => {
+                      const val = parseInt(e.target.value) || 0;
+                      setFormData({...formData, thirdGenderCount: val, totalCount: formData.maleCount + formData.femaleCount + val});
+                    }}
                   />
                 </div>
                 <div className="space-y-2">
@@ -303,7 +330,8 @@ export default function BoothsPage() {
                     type="number" 
                     min="0"
                     value={formData.totalCount} 
-                    onChange={e => setFormData({...formData, totalCount: parseInt(e.target.value) || 0})}
+                    readOnly
+                    className="bg-muted cursor-not-allowed"
                   />
                 </div>
               </div>
@@ -315,6 +343,73 @@ export default function BoothsPage() {
                 </Button>
               </div>
             </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* View Booth Dialog */}
+        <Dialog open={!!viewingBooth} onOpenChange={(open) => !open && setViewingBooth(null)}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle className="text-2xl text-primary">{viewingBooth?.name}</DialogTitle>
+              <p className="text-muted-foreground font-medium">Booth {viewingBooth?.boothNo} {viewingBooth?.area ? `• ${viewingBooth?.area}` : ''}</p>
+            </DialogHeader>
+            
+            <div className="space-y-6 mt-2">
+              {/* Linked Kilais */}
+              <div>
+                <h4 className="text-sm font-semibold mb-3 text-foreground/80">Linked Kilais</h4>
+                <div className="flex flex-wrap gap-2">
+                  {viewingBooth?.kilais?.length ? viewingBooth.kilais.map((k: any) => (
+                    <span key={k.id} className="inline-flex items-center px-2.5 py-1 rounded-md text-sm font-medium bg-green-100 text-green-800 border border-green-200">
+                      {k.name}
+                    </span>
+                  )) : (
+                    <span className="text-sm text-muted-foreground italic bg-muted px-3 py-1 rounded-md">No kilais linked</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Agents */}
+              <div>
+                <h4 className="text-sm font-semibold mb-3 text-foreground/80">Agents (Cadres)</h4>
+                <div className="flex flex-wrap gap-2">
+                  {viewingBooth?.agents?.length ? viewingBooth.agents.map((a: any) => (
+                    <span key={a.id} className="inline-flex items-center px-2.5 py-1 rounded-md text-sm font-medium bg-primary/10 text-primary border border-primary/20">
+                      {a.name}
+                    </span>
+                  )) : (
+                    <span className="text-sm text-muted-foreground italic bg-muted px-3 py-1 rounded-md">No agents assigned</span>
+                  )}
+                </div>
+              </div>
+
+              {/* Demographics */}
+              <div>
+                <h4 className="text-sm font-semibold mb-3 text-foreground/80">Demographics</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900 rounded-lg p-3 text-center transition-all hover:scale-105">
+                    <div className="text-xs text-muted-foreground mb-1 font-medium">Male</div>
+                    <div className="text-xl font-bold text-blue-700 dark:text-blue-400">{viewingBooth?.maleCount || 0}</div>
+                  </div>
+                  <div className="bg-pink-50/50 dark:bg-pink-950/20 border border-pink-100 dark:border-pink-900 rounded-lg p-3 text-center transition-all hover:scale-105">
+                    <div className="text-xs text-muted-foreground mb-1 font-medium">Female</div>
+                    <div className="text-xl font-bold text-pink-700 dark:text-pink-400">{viewingBooth?.femaleCount || 0}</div>
+                  </div>
+                  <div className="bg-purple-50/50 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900 rounded-lg p-3 text-center transition-all hover:scale-105">
+                    <div className="text-xs text-muted-foreground mb-1 font-medium">3rd Gender</div>
+                    <div className="text-xl font-bold text-purple-700 dark:text-purple-400">{viewingBooth?.thirdGenderCount || 0}</div>
+                  </div>
+                  <div className="bg-muted/50 border rounded-lg p-3 text-center transition-all hover:scale-105">
+                    <div className="text-xs text-muted-foreground mb-1 font-medium">Total</div>
+                    <div className="text-xl font-bold text-foreground">{viewingBooth?.totalCount || 0}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex justify-end pt-6 mt-2 border-t border-border/50">
+              <Button variant="outline" onClick={() => setViewingBooth(null)}>Close</Button>
+            </div>
           </DialogContent>
         </Dialog>
       </div>
@@ -388,7 +483,7 @@ export default function BoothsPage() {
               <TableHead className="font-semibold text-primary py-4">Agents (Cadres)</TableHead>
               <TableHead className="font-semibold text-primary py-4 text-center">M / F / 3rd</TableHead>
               <TableHead className="font-semibold text-primary py-4 text-center">Total Count</TableHead>
-              <TableHead className="font-semibold text-primary py-4 text-right">Actions</TableHead>
+              <TableHead className="font-semibold text-primary py-4 text-right sticky right-0 z-10 bg-card border-l">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -404,10 +499,18 @@ export default function BoothsPage() {
               filteredBooths.map((booth: any) => (
                 <TableRow key={booth.id} className="hover:bg-primary/5 transition-colors group border-b-primary/10">
                   <TableCell className="py-4">
-                    <div className="flex flex-col">
-                      <span className="font-bold text-base text-foreground">{booth.boothNo}</span>
-                      <span className="text-sm text-muted-foreground">{booth.name}</span>
-                    </div>
+                    <Tooltip>
+                      <TooltipTrigger onClick={() => setViewingBooth(booth)}>
+                        <div className="flex flex-col items-start text-left cursor-pointer">
+                          <span className="font-bold text-base text-foreground underline decoration-dashed decoration-primary/30 underline-offset-4 hover:text-primary transition-colors">
+                            {booth.area ? `${booth.area} - ${booth.boothNo}` : booth.boothNo}
+                          </span>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="right">
+                        <p className="font-medium text-sm px-1 py-0.5">{booth.name}</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </TableCell>
                   <TableCell className="font-medium py-4">
                     <div className="flex flex-wrap gap-1">
@@ -434,7 +537,7 @@ export default function BoothsPage() {
                   <TableCell className="text-center font-bold text-foreground py-4">
                     {booth.totalCount}
                   </TableCell>
-                  <TableCell className="text-right py-4">
+                  <TableCell className="text-right py-4 sticky right-0 z-10 bg-card group-hover:bg-zinc-50 dark:group-hover:bg-zinc-800/50 border-l">
                     <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10 rounded-full" onClick={() => handleOpenDialog(booth)}>
                         <Edit2 className="h-4 w-4" />

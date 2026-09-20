@@ -8,6 +8,13 @@ export function useBooths() {
   });
 }
 
+export function useBoothAreas() {
+  return useQuery({
+    queryKey: ['booth-areas'],
+    queryFn: boothApi.getAreas,
+  });
+}
+
 export function useBooth(id: string) {
   return useQuery({
     queryKey: ['booths', id],

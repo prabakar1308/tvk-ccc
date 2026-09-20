@@ -42,7 +42,10 @@ export default function UnionDetailsPage() {
       {/* Union Stats */}
       <div className="grid gap-4 sm:grid-cols-3">
         {/* Total Kilais */}
-        <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-gray-100 flex items-center gap-3 sm:gap-4">
+        <Link 
+          href={`/kilais?union=${union.id || union._id}`} 
+          className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-gray-100 flex items-center gap-3 sm:gap-4 hover:border-primary/50 hover:shadow-md transition-all cursor-pointer block text-left"
+        >
           <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-green-50 flex items-center justify-center shrink-0">
             <Store className="w-6 h-6 sm:w-8 sm:h-8 text-green-500" />
           </div>
@@ -51,7 +54,7 @@ export default function UnionDetailsPage() {
             <h3 className="text-[22px] sm:text-[28px] font-bold text-gray-900 leading-tight">{union._count?.kilais || 0}</h3>
             <p className="text-[10px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1">In this union</p>
           </div>
-        </div>
+        </Link>
 
         {/* Total Booths */}
         <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-gray-100 flex items-center gap-3 sm:gap-4">

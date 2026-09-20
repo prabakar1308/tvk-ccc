@@ -82,7 +82,7 @@ export default function KilaiDetailPage() {
                 {kilai.status}
               </span>
             </div>
-            <p className="text-sm text-muted-foreground font-medium mt-1">Code: {kilai.code} • Health: {kilai.health}</p>
+            <p className="text-sm text-muted-foreground font-medium mt-1">Health: {kilai.health}</p>
           </div>
         </div>
 

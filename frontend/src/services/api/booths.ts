@@ -4,6 +4,7 @@ export interface Booth {
   id: string;
   name: string;
   boothNo: string;
+  area?: string;
   maleCount: number;
   femaleCount: number;
   thirdGenderCount: number;
@@ -17,6 +18,7 @@ export interface Booth {
 export interface CreateBoothDto {
   name: string;
   boothNo: string;
+  area?: string;
   maleCount?: number;
   femaleCount?: number;
   thirdGenderCount?: number;
@@ -28,6 +30,11 @@ export interface CreateBoothDto {
 export const boothApi = {
   getAll: async (): Promise<Booth[]> => {
     const res = await fetchWithAuth('/api/v1/booths');
+    return res.json();
+  },
+
+  getAreas: async (): Promise<string[]> => {
+    const res = await fetchWithAuth('/api/v1/booths/areas');
     return res.json();
   },
 
