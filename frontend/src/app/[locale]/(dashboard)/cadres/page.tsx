@@ -12,8 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, Plus, UserCheck, UserPlus, Trophy, Eye, Edit2, Trash2, Upload, FileText, Check, ChevronsUpDown, UploadCloud, AlertCircle } from "lucide-react";
-import { useCadres, useCreateCadre, useUpdateCadre, useDeleteCadre, useCreateBulkCadres } from '@/hooks/use-cadres';
+import { Search, Plus, UserCheck, UserPlus, Trophy, Edit2, Trash2, UploadCloud, AlertCircle } from "lucide-react";
+import { useCadres, useDeleteCadre, useCreateBulkCadres } from '@/hooks/use-cadres';
 import { useUnions } from '@/hooks/use-unions';
 import { useKilais } from '@/hooks/use-kilais';
 import * as XLSX from 'xlsx';
@@ -23,16 +23,11 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CreateCadreDto } from '@/services/api/cadres';
-import { uploadApi } from '@/services/api/upload';
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { cn } from "@/lib/utils";
 import { CadreFormDialog } from '@/components/cadre-form-dialog';
 
 export default function CadresPage() {
@@ -40,8 +35,6 @@ export default function CadresPage() {
   const [searchQuery, setSearchQuery] = useState('');
   
   const { data: cadres, isLoading } = useCadres();
-  const createMutation = useCreateCadre();
-  const updateMutation = useUpdateCadre();
   const deleteMutation = useDeleteCadre();
 
   const [isModalOpen, setIsModalOpen] = useState(false);

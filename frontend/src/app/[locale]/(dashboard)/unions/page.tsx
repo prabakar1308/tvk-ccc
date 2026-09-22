@@ -129,7 +129,7 @@ export default function UnionsPage() {
                 <Label htmlFor="districtId">District *</Label>
                 <Select 
                   value={formData.districtId} 
-                  onValueChange={(val) => setFormData({...formData, districtId: val})}
+                  onValueChange={(val) => setFormData({...formData, districtId: val || ''})}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select a district">
@@ -151,7 +151,7 @@ export default function UnionsPage() {
                 <Label htmlFor="group">Group *</Label>
                 <Select 
                   value={formData.group} 
-                  onValueChange={(val) => setFormData({...formData, group: val})}
+                  onValueChange={(val) => setFormData({...formData, group: val || ''})}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select a group">
