@@ -60,7 +60,21 @@ export class KilaisService {
       throw new NotFoundException(`Kilai with ID ${id} not found`);
     }
 
-    return kilai;
+    const kilaiCadres = await this.prisma.cadre.findMany({
+      where: {
+        homeKilaiId: id,
+        level: 'KILAI'
+      },
+      include: {
+        officeBearerRoles: true
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    return {
+      ...kilai,
+      kilaiCadres
+    };
   }
 
   async update(id: string, updateKilaiDto: UpdateKilaiDto) {

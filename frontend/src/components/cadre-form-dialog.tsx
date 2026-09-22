@@ -20,6 +20,8 @@ import { CreateCadreDto } from '@/services/api/cadres';
 import { uploadApi } from '@/services/api/upload';
 import { useCreateCadre, useUpdateCadre } from '@/hooks/use-cadres';
 import { useBooths, useBoothAreas } from '@/hooks/use-booths';
+import { useUnions } from '@/hooks/use-unions';
+import { useKilais } from '@/hooks/use-kilais';
 
 export interface CadreFormDialogProps {
   isOpen: boolean;
@@ -28,6 +30,9 @@ export interface CadreFormDialogProps {
   cadres?: any[]; // list of existing cadres (needed to find the one being edited)
   defaultLevel?: 'KILAI' | 'UNION' | 'DISTRICT' | 'GROUP';
   defaultUnionId?: string;
+  defaultKilaiId?: string;
+  defaultBoothNo?: string;
+  defaultArea?: string;
   onSuccess?: () => void;
 }
 
@@ -38,6 +43,9 @@ export function CadreFormDialog({
   cadres = [],
   defaultLevel = 'KILAI',
   defaultUnionId,
+  defaultKilaiId,
+  defaultBoothNo,
+  defaultArea,
   onSuccess,
 }: CadreFormDialogProps) {
   const createMutation = useCreateCadre();
@@ -45,6 +53,9 @@ export function CadreFormDialog({
   
   const { data: booths = [] } = useBooths();
   const { data: areas = [] } = useBoothAreas();
+  const { data: unions = [] } = useUnions();
+  const { data: kilais = [] } = useKilais();
+
 
   const initialFormData: CreateCadreDto = {
     name: '',
@@ -53,14 +64,17 @@ export function CadreFormDialog({
     role: '',
     level: defaultLevel,
     unionId: defaultUnionId,
+    homeKilaiId: defaultKilaiId,
     aadhaarNumber: '',
     photoUrl: '',
     attachments: { aadhaarPhoto: '', voterIdPhoto: '' },
-    area: '',
-    boothNo: '',
+    area: defaultArea || '',
+    boothNo: defaultBoothNo || '',
   };
 
   const [formData, setFormData] = useState<CreateCadreDto>(initialFormData);
+
+  const filteredKilais = kilais.filter((k: any) => k.unionId === formData.unionId);
 
   const [pendingFiles, setPendingFiles] = useState<{
     photo?: File;
@@ -93,11 +107,19 @@ export function CadreFormDialog({
           });
         }
       } else {
-        setFormData({ ...initialFormData, level: defaultLevel, unionId: defaultUnionId });
+        setFormData({ 
+          ...initialFormData, 
+          level: defaultLevel, 
+          unionId: defaultUnionId, 
+          homeKilaiId: defaultKilaiId,
+          boothNo: defaultBoothNo || '',
+          area: defaultArea || ''
+        });
       }
       setPendingFiles({});
     }
-  }, [isOpen, editingId, cadres, defaultLevel, defaultUnionId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, editingId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,14 +143,22 @@ export function CadreFormDialog({
         voterIdPhoto = res.url;
       }
 
-      const finalData: CreateCadreDto = {
+      const finalData: any = {
         ...formData,
-        photoUrl,
+        photoUrl: photoUrl || undefined,
+        aadhaarNumber: formData.aadhaarNumber || undefined,
+        voterId: formData.voterId || undefined,
+        phone: formData.phone || undefined,
+        unionId: (formData.level === 'UNION' || formData.level === 'KILAI') ? formData.unionId : undefined,
+        homeKilaiId: formData.level === 'KILAI' ? formData.homeKilaiId : undefined,
         attachments: {
-          aadhaarPhoto,
-          voterIdPhoto,
+          aadhaarPhoto: aadhaarPhoto || undefined,
+          voterIdPhoto: voterIdPhoto || undefined,
         }
       };
+
+      // Remove undefined properties to avoid issues with some APIs
+      Object.keys(finalData).forEach(key => finalData[key] === undefined && delete finalData[key]);
 
       if (editingId) {
         const originalCadre = cadres?.find(c => c.id === editingId);
@@ -234,6 +264,55 @@ export function CadreFormDialog({
                 </SelectContent>
               </Select>
             </div>
+            {(formData.level === 'UNION' || formData.level === 'KILAI') && (
+              <div className="space-y-2">
+                <Label htmlFor="unionId">Union *</Label>
+                <Select 
+                  key={`union-${unions.length}`}
+                  value={formData.unionId || ''} 
+                  onValueChange={(val) => setFormData({...formData, unionId: val, homeKilaiId: ''})}
+                  required
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select union">
+                      {formData.unionId ? unions.find((u: any) => String(u.id || u._id) === formData.unionId)?.name : "Select union"}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {unions.map((u: any) => (
+                      <SelectItem key={u.id || u._id} value={String(u.id || u._id)}>
+                        {u.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {formData.level === 'KILAI' && (
+              <div className="space-y-2">
+                <Label htmlFor="homeKilaiId">Kilai *</Label>
+                <Select 
+                  key={`kilai-${filteredKilais.length}`}
+                  value={formData.homeKilaiId || ''} 
+                  onValueChange={(val) => setFormData({...formData, homeKilaiId: val})}
+                  required
+                  disabled={!formData.unionId}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={formData.unionId ? "Select kilai" : "Select union first"}>
+                      {formData.homeKilaiId ? filteredKilais.find((k: any) => String(k.id || k._id) === formData.homeKilaiId)?.name : (formData.unionId ? "Select kilai" : "Select union first")}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {filteredKilais.map((k: any) => (
+                      <SelectItem key={k.id || k._id} value={String(k.id || k._id)}>
+                        {k.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="role">Designation *</Label>
               <Select 

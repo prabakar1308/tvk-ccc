@@ -233,7 +233,7 @@ export default function CadresPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Import Level</Label>
-                <Select value={importLevel} onValueChange={setImportLevel}>
+                <Select value={importLevel} onValueChange={(value) => setImportLevel(value || '')}>
                   <SelectTrigger className="w-full text-base">
                     <SelectValue placeholder="Select level">
                       {importLevel === 'DISTRICT' ? 'District' : importLevel === 'UNION' ? 'Union' : importLevel === 'KILAI' ? 'Kilai' : ''}
@@ -250,7 +250,7 @@ export default function CadresPage() {
               {importLevel === 'UNION' && (
                 <div className="space-y-2">
                   <Label>Select Union</Label>
-                  <Select value={importUnionId} onValueChange={setImportUnionId}>
+                  <Select value={importUnionId} onValueChange={(value) => setImportUnionId(value || '')}>
                     <SelectTrigger className="w-full text-base">
                       <SelectValue placeholder="Select Union">
                         {importUnionId ? unions.find((u: any) => String(u.id) === importUnionId)?.name : ''}
@@ -268,7 +268,7 @@ export default function CadresPage() {
               {importLevel === 'KILAI' && (
                 <div className="space-y-2">
                   <Label>Select Kilai</Label>
-                  <Select value={importKilaiId} onValueChange={setImportKilaiId}>
+                  <Select value={importKilaiId} onValueChange={(value) => setImportKilaiId(value || '')}>
                     <SelectTrigger className="w-full text-base">
                       <SelectValue placeholder="Select Kilai">
                         {importKilaiId ? kilais.find((k: any) => String(k.id) === importKilaiId)?.name : ''}
