@@ -7,9 +7,14 @@ const intlMiddleware = createMiddleware(routing);
 export default function middleware(request: NextRequest) {
   const token = request.cookies.get('tcc_auth_token')?.value;
   
-  // Handle API proxies to attach Authorization header
+  // Handle API proxies to attach Authorization and Language headers
   if (request.nextUrl.pathname.startsWith('/api/v1')) {
     const requestHeaders = new Headers(request.headers);
+    
+    // Add Accept-Language for backend localization interceptor
+    const localeCookie = request.cookies.get('NEXT_LOCALE')?.value || 'en';
+    requestHeaders.set('Accept-Language', localeCookie);
+    
     if (token) {
       requestHeaders.set('Authorization', `Bearer ${token}`);
     }

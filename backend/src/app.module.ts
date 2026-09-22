@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { LocalizationInterceptor } from './i18n/localization/localization.interceptor';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
@@ -11,10 +13,17 @@ import { DistrictModule } from './district/district.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { StorageModule } from './storage/storage.module';
 import { UploadModule } from './upload/upload.module';
+import { I18nModule } from './i18n/i18n.module';
 
 @Module({
-  imports: [AuthModule, PrismaModule, CadreModule, KilaisModule, UnionsModule, BoothsModule, DistrictModule, DashboardModule, StorageModule, UploadModule],
+  imports: [AuthModule, PrismaModule, CadreModule, KilaisModule, UnionsModule, BoothsModule, DistrictModule, DashboardModule, StorageModule, UploadModule, I18nModule],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LocalizationInterceptor,
+    },
+  ],
 })
 export class AppModule {}

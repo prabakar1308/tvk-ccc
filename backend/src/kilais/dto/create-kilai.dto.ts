@@ -8,9 +8,8 @@ export class CreateKilaiDto {
   name: string;
 
   @ApiPropertyOptional()
-  @IsString()
   @IsOptional()
-  tamilName?: string;
+  translations?: any;
 
   @ApiPropertyOptional()
   @IsString()

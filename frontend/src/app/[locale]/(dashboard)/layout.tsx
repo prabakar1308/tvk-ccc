@@ -8,6 +8,7 @@ import { useUnions } from '@/hooks/use-unions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Bell, Mail, Menu, ChevronDown } from 'lucide-react';
 import Image from 'next/image';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 export default function DashboardLayout({
   children,
@@ -15,23 +16,24 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const t = useTranslations('Index');
+  const tSidebar = useTranslations('Sidebar');
   const pathname = usePathname();
   const { user, activeUnionId, setActiveUnionId, logout } = useUser();
   const { data: unions } = useUnions();
 
   const navItems = [
-    { name: 'Home', href: '/', icon: 'home' },
-    { name: 'Unions', href: '/unions', icon: 'building' },
-    { name: 'Kilais', href: '/kilais', icon: 'git-branch' },
-    { name: 'Cadres', href: '/cadres', icon: 'users' },
-    { name: 'Booths', href: '/booths', icon: 'map-pin' },
+    { name: tSidebar('home'), href: '/', icon: 'home' },
+    { name: tSidebar('unions'), href: '/unions', icon: 'building' },
+    { name: tSidebar('kilais'), href: '/kilais', icon: 'git-branch' },
+    { name: tSidebar('cadres'), href: '/cadres', icon: 'users' },
+    { name: tSidebar('booths'), href: '/booths', icon: 'map-pin' },
     // { name: 'Representatives', href: '/representatives', icon: 'user-check' },
     // { name: 'Training', href: '/training', icon: 'graduation-cap' },
     // { name: 'Communications', href: '/communications', icon: 'megaphone' },
-    { name: 'Announcements', href: '/announcements', icon: 'clipboard-list' },
-    { name: 'Analytics', href: '/analytics', icon: 'bar-chart' },
-    { name: 'Reports', href: '/reports', icon: 'file-text' },
-    { name: 'Settings', href: '/settings', icon: 'settings' },
+    { name: tSidebar('announcements'), href: '/announcements', icon: 'clipboard-list' },
+    { name: tSidebar('analytics'), href: '/analytics', icon: 'bar-chart' },
+    { name: tSidebar('reports'), href: '/reports', icon: 'file-text' },
+    { name: tSidebar('settings'), href: '/settings', icon: 'settings' },
   ];
 
   return (
@@ -112,6 +114,8 @@ export default function DashboardLayout({
               <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[#8F0A1B] text-white text-[9px] font-bold flex items-center justify-center rounded-full border-2 border-[#F8F9FA]">5</span>
             </button>
             
+            <LanguageSwitcher />
+
             <div className="flex items-center gap-2 md:gap-3 cursor-pointer">
               <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gray-200 overflow-hidden border-2 border-white shadow-sm">
                 <img src={`https://ui-avatars.com/api/?name=${user?.name || 'Rajkumar RKD'}&background=random`} alt="User" className="w-full h-full object-cover" />

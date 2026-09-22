@@ -1,11 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { I18nService } from '../i18n/i18n.service';
 import { CreateKilaiDto } from './dto/create-kilai.dto';
 import { UpdateKilaiDto } from './dto/update-kilai.dto';
 
 @Injectable()
 export class KilaisService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly i18nService: I18nService,
+  ) {}
 
   async create(createKilaiDto: CreateKilaiDto) {
     const { linkedBooths, ...data } = createKilaiDto;
@@ -15,6 +19,13 @@ export class KilaisService {
       createData.booths = {
         connect: linkedBooths.map((id: string) => ({ id }))
       };
+    }
+
+    if (createData.name && !createData.translations) {
+      createData.translations = await this.i18nService.generateTranslationsForEntity({
+        name: createData.name,
+        description: createData.description,
+      });
     }
 
     return this.prisma.kilai.create({

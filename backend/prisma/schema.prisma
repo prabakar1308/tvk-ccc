@@ -43,6 +43,8 @@ model District {
   contactPhone String?
   contactEmail String?
   attachments  Json?
+  translations Json?
+
   
   unions       Union[]
   users        User[]
@@ -64,6 +66,8 @@ model Union {
   contactPhone String?
   contactEmail String?
   attachments  Json?
+  translations Json?
+
   
   kilais       Kilai[]
   users        User[]
@@ -82,8 +86,8 @@ enum KilaiStatus {
 model Kilai {
   id             String         @id @default(uuid())
   name           String
-  tamilName      String?
   description    String?
+  translations   Json?
   villages       String[]
   address        String?
   pincode        String?
@@ -125,6 +129,7 @@ model Cadre {
   voterId             String?            @unique
   photoUrl            String?
   attachments         Json?
+  translations        Json?
   role                String?
   area                String?
   boothNo             String?
@@ -183,6 +188,7 @@ model Booth {
   id               String       @id @default(uuid())
   name             String
   boothNo          String       @unique
+  translations     Json?
   area             String?
   maleCount        Int          @default(0)
   femaleCount      Int          @default(0)

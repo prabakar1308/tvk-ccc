@@ -1,5 +1,16 @@
 {
   "Index": {
     "title": "TVK Command Center"
+  },
+  "Sidebar": {
+    "home": "Home",
+    "unions": "Unions",
+    "kilais": "Kilais",
+    "cadres": "Cadres",
+    "booths": "Booths",
+    "announcements": "Announcements",
+    "analytics": "Analytics",
+    "reports": "Reports",
+    "settings": "Settings"
   }
 }
