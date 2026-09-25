@@ -55,5 +55,5 @@ jobs:
           # You can also reference Google Cloud Secret Manager for secrets
           env_vars: |
             NODE_ENV=production
-            # DATABASE_URL=... (recommend passing from Secret Manager)
-            # GCS_BUCKET_NAME=...
+            DATABASE_URL=${{ secrets.STAGING_DATABASE_URL }}
+            CORS_ORIGIN=${{ secrets.STAGING_CORS_ORIGIN }}

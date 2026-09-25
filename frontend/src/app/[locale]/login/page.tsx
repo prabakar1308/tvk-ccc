@@ -33,7 +33,7 @@ export default function LoginPage() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      const res = await fetch(`${process.env.BACKEND_API_URL || 'http://localhost:8000'}/api/v1/auth/login`, {
+      const res = await fetch(`/api/v1/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(values),
