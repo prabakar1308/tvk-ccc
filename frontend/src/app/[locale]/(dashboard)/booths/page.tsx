@@ -30,6 +30,7 @@ import {
 import { useBooths, useCreateBooth, useUpdateBooth, useDeleteBooth } from '@/hooks/use-booths';
 import { useKilais } from '@/hooks/use-kilais';
 import { useCadres } from '@/hooks/use-cadres';
+import { shortenBoothName } from '@/lib/booth-utils';
 
 // Custom MultiSelect Dropdown
 function MultiSelectDropdown({ 
@@ -226,7 +227,7 @@ export default function BoothsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-4xl font-heading font-bold uppercase tracking-wide text-primary">Booths</h1>
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold uppercase tracking-wide text-primary">Booths</h1>
           <p className="text-muted-foreground mt-1 text-lg font-medium">Manage voting booths, agents, and voter demographics.</p>
         </div>
         <Button onClick={() => handleOpenDialog()} className="bg-primary hover:bg-primary/90 text-white font-semibold shadow-md h-11 px-6 rounded-lg transition-transform active:scale-95">
@@ -431,7 +432,7 @@ export default function BoothsPage() {
             </div>
             <div>
               <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Total Booths</p>
-              <h2 className="text-4xl font-heading font-bold text-foreground mt-1">{booths?.length || 0}</h2>
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold text-foreground mt-1">{booths?.length || 0}</h2>
             </div>
           </CardContent>
         </Card>
@@ -443,7 +444,7 @@ export default function BoothsPage() {
             </div>
             <div>
               <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Total Voters</p>
-              <h2 className="text-4xl font-heading font-bold text-foreground mt-1">
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold text-foreground mt-1">
                 {booths?.reduce((acc: number, curr: any) => acc + (curr.totalCount || 0), 0) || 0}
               </h2>
             </div>
@@ -457,7 +458,7 @@ export default function BoothsPage() {
             </div>
             <div>
               <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Agent Coverage</p>
-              <h2 className="text-4xl font-heading font-bold text-foreground mt-1">
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold text-foreground mt-1">
                 {booths?.length ? Math.round((booths.filter((b: any) => b.agents?.length > 0).length / booths.length) * 100) : 0}%
               </h2>
             </div>
@@ -512,14 +513,17 @@ export default function BoothsPage() {
                   <TableCell className="py-4">
                     <Tooltip>
                       <TooltipTrigger onClick={() => setViewingBooth(booth)}>
-                        <div className="flex flex-col items-start text-left cursor-pointer">
-                          <span className="font-bold text-base text-foreground underline decoration-dashed decoration-primary/30 underline-offset-4 hover:text-primary transition-colors">
-                            {booth.area ? `${booth.area} - ${booth.boothNo}` : booth.boothNo}
+                        <div className="flex flex-col items-start text-left cursor-pointer max-w-[200px] sm:max-w-[300px] lg:max-w-[450px]">
+                          <span className="font-bold text-sm md:text-base text-foreground underline decoration-dashed decoration-primary/30 underline-offset-4 hover:text-primary transition-colors truncate w-full block">
+                            {booth.name 
+                              ? `${booth.boothNo} - ${shortenBoothName(booth.name)}`
+                              : booth.boothNo}
                           </span>
                         </div>
                       </TooltipTrigger>
-                      <TooltipContent side="right">
-                        <p className="font-medium text-sm px-1 py-0.5">{booth.name}</p>
+                      <TooltipContent side="right" className="max-w-[350px] whitespace-normal">
+                        <p className="font-semibold text-sm mb-1">{booth.name}</p>
+                        <p className="text-xs text-muted-foreground">{booth.area || 'No area specified'}</p>
                       </TooltipContent>
                     </Tooltip>
                   </TableCell>
@@ -566,8 +570,8 @@ export default function BoothsPage() {
 
         {/* Pagination Controls */}
         {totalPages > 0 && (
-          <div className="flex items-center justify-between px-4 py-4 border-t border-primary/10 bg-primary/5">
-            <div className="text-sm text-muted-foreground font-medium">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-4 border-t border-primary/10 bg-primary/5">
+            <div className="text-sm text-muted-foreground font-medium text-center sm:text-left">
               Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredBooths.length)} of {filteredBooths.length} entries
             </div>
             <div className="flex items-center space-x-2">

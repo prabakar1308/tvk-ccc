@@ -36,7 +36,7 @@ export default function KilaisListPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-heading font-bold uppercase tracking-wide text-primary">Kilai Management</h1>
+          <h1 className="text-xl md:text-2xl lg:text-3xl font-heading font-bold uppercase tracking-wide text-primary">Kilai Management</h1>
           <p className="text-muted-foreground mt-1 font-medium">Manage all organizational Kilais and their health metrics.</p>
         </div>
         <div className="flex items-center gap-3">

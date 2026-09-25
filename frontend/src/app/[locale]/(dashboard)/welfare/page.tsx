@@ -38,7 +38,7 @@ export default function WelfarePage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-4xl font-heading font-bold uppercase tracking-wide text-primary">Welfare</h1>
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold uppercase tracking-wide text-primary">Welfare</h1>
           <p className="text-muted-foreground mt-1 text-lg font-medium">Track social welfare programs, funds, and beneficiaries.</p>
         </div>
         <Button className="bg-primary hover:bg-primary/90 text-white font-semibold shadow-md h-11 px-6 rounded-lg transition-transform active:scale-95">
@@ -55,7 +55,7 @@ export default function WelfarePage() {
             </div>
             <div>
               <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Total Spend (YTD)</p>
-              <h2 className="text-4xl font-heading font-bold text-foreground mt-1">₹ 28.5L</h2>
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold text-foreground mt-1">₹ 28.5L</h2>
             </div>
           </CardContent>
         </Card>
@@ -67,7 +67,7 @@ export default function WelfarePage() {
             </div>
             <div>
               <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Beneficiaries</p>
-              <h2 className="text-4xl font-heading font-bold text-foreground mt-1">45,200</h2>
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold text-foreground mt-1">45,200</h2>
             </div>
           </CardContent>
         </Card>
@@ -79,7 +79,7 @@ export default function WelfarePage() {
             </div>
             <div>
               <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Welfare Drives</p>
-              <h2 className="text-4xl font-heading font-bold text-foreground mt-1">128</h2>
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold text-foreground mt-1">128</h2>
             </div>
           </CardContent>
         </Card>

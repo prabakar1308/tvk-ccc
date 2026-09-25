@@ -75,7 +75,7 @@ export default function KilaiDetailPage() {
           </Button>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl sm:text-3xl font-heading font-bold uppercase tracking-wide text-primary">
+              <h1 className="text-2xl sm:text-xl md:text-2xl lg:text-3xl font-heading font-bold uppercase tracking-wide text-primary">
                 {kilai.name}
               </h1>
               <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${kilai.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>

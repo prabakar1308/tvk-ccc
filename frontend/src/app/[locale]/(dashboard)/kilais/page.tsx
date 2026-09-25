@@ -133,7 +133,7 @@ export default function KilaisPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-4xl font-heading font-bold uppercase tracking-wide text-primary">Kilais</h1>
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold uppercase tracking-wide text-primary">Kilais</h1>
           <p className="text-muted-foreground mt-1 text-lg font-medium">Manage all organizational kilais.</p>
         </div>
         

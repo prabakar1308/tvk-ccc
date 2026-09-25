@@ -22,7 +22,7 @@ export function OverviewTab({ kilaiId }: { kilaiId: string }) {
               <stat.icon className={`h-5 w-5 ${stat.color}`} />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-heading font-bold">{stat.value}</div>
+              <div className="text-xl md:text-2xl lg:text-3xl font-heading font-bold">{stat.value}</div>
             </CardContent>
           </Card>
         ))}

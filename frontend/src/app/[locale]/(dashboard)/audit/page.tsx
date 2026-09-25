@@ -40,7 +40,7 @@ export default function AuditPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-4xl font-heading font-bold uppercase tracking-wide text-primary">Audit Logs</h1>
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold uppercase tracking-wide text-primary">Audit Logs</h1>
           <p className="text-muted-foreground mt-1 text-lg font-medium">Monitor system activities, changes, and access records.</p>
         </div>
         <Button variant="outline" className="h-11 px-6 border-primary/30 text-primary hover:bg-primary/5 font-semibold rounded-lg">
@@ -57,7 +57,7 @@ export default function AuditPage() {
             </div>
             <div>
               <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Critical Events</p>
-              <h2 className="text-4xl font-heading font-bold text-foreground mt-1">12</h2>
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold text-foreground mt-1">12</h2>
             </div>
           </CardContent>
         </Card>
@@ -69,7 +69,7 @@ export default function AuditPage() {
             </div>
             <div>
               <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Events Today</p>
-              <h2 className="text-4xl font-heading font-bold text-foreground mt-1">1,452</h2>
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold text-foreground mt-1">1,452</h2>
             </div>
           </CardContent>
         </Card>
@@ -81,7 +81,7 @@ export default function AuditPage() {
             </div>
             <div>
               <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Total Logs</p>
-              <h2 className="text-4xl font-heading font-bold text-foreground mt-1">45.2K</h2>
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold text-foreground mt-1">45.2K</h2>
             </div>
           </CardContent>
         </Card>

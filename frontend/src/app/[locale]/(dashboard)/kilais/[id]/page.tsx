@@ -39,7 +39,7 @@ export default function KilaiDetailsPage() {
             <ArrowLeft className="w-5 h-5 text-gray-700" />
           </Link>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-heading font-bold text-gray-900">{kilaiData.name} {kilaiData.tamilName && <span className="text-xl font-normal text-muted-foreground">({kilaiData.tamilName})</span>}</h1>
+            <h1 className="text-2xl sm:text-xl md:text-2xl lg:text-3xl font-heading font-bold text-gray-900">{kilaiData.name} {kilaiData.tamilName && <span className="text-xl font-normal text-muted-foreground">({kilaiData.tamilName})</span>}</h1>
             <p className="text-muted-foreground font-medium mt-1 flex items-center gap-1.5">
               <Building2 className="w-4 h-4" />
               Union: {kilaiData.union?.name || 'Unknown'}

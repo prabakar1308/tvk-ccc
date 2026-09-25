@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Instrument_Sans, Teko, Roboto_Mono } from "next/font/google";
+import { Inter, Outfit, Roboto_Mono } from "next/font/google";
 import "../globals.css";
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
@@ -7,12 +7,12 @@ import Providers from "@/providers/query-provider";
 import { UserProvider } from "@/contexts/user-context";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
-const instrumentSans = Instrument_Sans({
+const inter = Inter({
   variable: "--font-sans",
   subsets: ["latin"],
 });
 
-const teko = Teko({
+const outfit = Outfit({
   variable: "--font-heading",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
@@ -41,7 +41,7 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
-      className={`${instrumentSans.variable} ${teko.variable} ${robotoMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${outfit.variable} ${robotoMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">

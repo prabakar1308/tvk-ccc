@@ -92,7 +92,7 @@ export default function CadresPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-4xl font-heading font-bold uppercase tracking-wide text-primary">Cadres</h1>
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold uppercase tracking-wide text-primary">Cadres</h1>
           <p className="text-muted-foreground mt-1 text-lg font-medium">Manage party members, roles, and grassroots engagement.</p>
         </div>
         
@@ -117,7 +117,7 @@ export default function CadresPage() {
             </div>
             <div>
               <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Total Cadres</p>
-              <h2 className="text-4xl font-heading font-bold text-foreground mt-1">{cadres?.length || 0}</h2>
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold text-foreground mt-1">{cadres?.length || 0}</h2>
             </div>
           </CardContent>
         </Card>
@@ -129,7 +129,7 @@ export default function CadresPage() {
             </div>
             <div>
               <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">New This Month</p>
-              <h2 className="text-4xl font-heading font-bold text-foreground mt-1">+{(cadres?.length || 0) > 0 ? 1 : 0}</h2>
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold text-foreground mt-1">+{(cadres?.length || 0) > 0 ? 1 : 0}</h2>
             </div>
           </CardContent>
         </Card>
@@ -141,7 +141,7 @@ export default function CadresPage() {
             </div>
             <div>
               <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Active Cadres</p>
-              <h2 className="text-4xl font-heading font-bold text-foreground mt-1">100%</h2>
+              <h2 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold text-foreground mt-1">100%</h2>
             </div>
           </CardContent>
         </Card>
