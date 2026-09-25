@@ -549,7 +549,7 @@ export default function BoothsPage() {
                     {booth.totalCount}
                   </TableCell>
                   <TableCell className="text-right py-4 sticky right-0 z-10 bg-card group-hover:bg-zinc-50 dark:group-hover:bg-zinc-800/50 border-l">
-                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex justify-end gap-2 transition-opacity">
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10 rounded-full" onClick={() => handleOpenDialog(booth)}>
                         <Edit2 className="h-4 w-4" />
                       </Button>

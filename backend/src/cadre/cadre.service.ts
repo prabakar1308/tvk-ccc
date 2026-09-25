@@ -14,36 +14,49 @@ export class CadreService {
 
   async createBulk(payloads: any[]) {
     const aadhaars = payloads.map(p => p.aadhaarNumber).filter(Boolean);
-    const memberIds = payloads.map(p => p.memberId).filter(Boolean);
+    const phones = payloads.map(p => p.phone).filter(Boolean);
     const voterIds = payloads.map(p => p.voterId).filter(Boolean);
 
-    if (aadhaars.length > 0) {
-      const existingAadhaars = await this.prisma.cadre.findMany({
-        where: { aadhaarNumber: { in: aadhaars } },
-        select: { aadhaarNumber: true }
-      });
-      if (existingAadhaars.length > 0) {
-        throw new BadRequestException(`Duplicate Aadhaar Numbers found: ${existingAadhaars.map(c => c.aadhaarNumber).join(', ')}`);
-      }
-    }
+    const orConditions: any[] = [];
+    if (aadhaars.length > 0) orConditions.push({ aadhaarNumber: { in: aadhaars } });
+    if (phones.length > 0) orConditions.push({ phone: { in: phones } });
+    if (voterIds.length > 0) orConditions.push({ voterId: { in: voterIds } });
 
-    if (memberIds.length > 0) {
-      const existingMemberIds = await this.prisma.cadre.findMany({
-        where: { memberId: { in: memberIds } },
-        select: { memberId: true }
+    if (orConditions.length > 0) {
+      const existingRecords = await this.prisma.cadre.findMany({
+        where: { OR: orConditions },
+        select: { name: true, phone: true, aadhaarNumber: true, voterId: true, level: true, unionId: true, homeKilaiId: true }
       });
-      if (existingMemberIds.length > 0) {
-        throw new BadRequestException(`Duplicate Member IDs found: ${existingMemberIds.map(c => c.memberId).join(', ')}`);
-      }
-    }
 
-    if (voterIds.length > 0) {
-      const existingVoterIds = await this.prisma.cadre.findMany({
-        where: { voterId: { in: voterIds } },
-        select: { voterId: true }
-      });
-      if (existingVoterIds.length > 0) {
-        throw new BadRequestException(`Duplicate Voter IDs found: ${existingVoterIds.map(c => c.voterId).join(', ')}`);
+      if (existingRecords.length > 0) {
+        const duplicates = [];
+        
+        for (const payload of payloads) {
+          const matching = existingRecords.find(r => 
+            (payload.phone && r.phone === payload.phone) || 
+            (payload.aadhaarNumber && r.aadhaarNumber === payload.aadhaarNumber) || 
+            (payload.voterId && r.voterId === payload.voterId)
+          );
+          
+          if (matching) {
+            let reason = [];
+            if (payload.phone && matching.phone === payload.phone) reason.push('Phone');
+            if (payload.aadhaarNumber && matching.aadhaarNumber === payload.aadhaarNumber) reason.push('Aadhaar');
+            if (payload.voterId && matching.voterId === payload.voterId) reason.push('Voter ID');
+            
+            duplicates.push({
+              name: payload.name || 'Unknown',
+              phone: payload.phone || '-',
+              aadhaarNumber: payload.aadhaarNumber || '-',
+              voterId: payload.voterId || '-',
+              reason: `${reason.join(', ')} already exists`
+            });
+          }
+        }
+
+        if (duplicates.length > 0) {
+          throw new BadRequestException({ message: 'Duplicate records found', duplicates });
+        }
       }
     }
 

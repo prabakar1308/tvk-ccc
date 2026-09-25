@@ -119,7 +119,7 @@ export default function UnionDetailsPage() {
                 </div>
                 <h3 className="font-bold text-[14px] sm:text-[15px] text-gray-900 text-center leading-tight mb-1">{cadre.name}</h3>
                 {cadre.phone && (
-                  <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCallConfirmation({ name: cadre.name, phone: cadre.phone }); }} className="flex items-center justify-center gap-1.5 text-[12px] sm:text-[13px] font-medium text-blue-600 hover:text-blue-800 transition-colors bg-blue-50 hover:bg-blue-100 px-2.5 py-0.5 rounded-md mb-1.5">
+                  <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCallConfirmation({ name: cadre.name, phone: cadre.phone || '' }); }} className="flex items-center justify-center gap-1.5 text-[12px] sm:text-[13px] font-medium text-blue-600 hover:text-blue-800 transition-colors bg-blue-50 hover:bg-blue-100 px-2.5 py-0.5 rounded-md mb-1.5">
                     <Phone className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                     {cadre.phone}
                   </button>
@@ -155,10 +155,14 @@ export default function UnionDetailsPage() {
           </DialogHeader>
           <DialogFooter className="mt-4 gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setCallConfirmation(null)}>Cancel</Button>
-            <Button asChild className="bg-primary text-white hover:bg-primary/90">
-              <a href={`tel:${callConfirmation?.phone}`} onClick={() => setCallConfirmation(null)}>
-                Yes, Call Now
-              </a>
+            <Button 
+              className="bg-primary text-white hover:bg-primary/90" 
+              onClick={() => {
+                window.location.href = `tel:${callConfirmation?.phone}`;
+                setCallConfirmation(null);
+              }}
+            >
+              Yes, Call Now
             </Button>
           </DialogFooter>
         </DialogContent>

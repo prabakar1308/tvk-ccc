@@ -187,7 +187,7 @@ export default function DistrictsPage() {
                   <TableCell className="py-4 font-medium text-muted-foreground">{district.contactPhone || '-'}</TableCell>
                   <TableCell className="text-muted-foreground py-4 font-medium">{new Date(district.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell className="text-right py-4">
-                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex justify-end gap-2 transition-opacity">
                       <Button onClick={() => handleOpenEdit(district)} variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10 rounded-full">
                         <Edit2 className="h-4 w-4" />
                       </Button>

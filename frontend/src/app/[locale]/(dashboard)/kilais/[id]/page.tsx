@@ -179,10 +179,14 @@ export default function KilaiDetailsPage() {
           </DialogHeader>
           <DialogFooter className="mt-4 gap-2 sm:gap-0">
             <Button variant="outline" onClick={() => setCallConfirmation(null)}>Cancel</Button>
-            <Button asChild className="bg-primary text-white hover:bg-primary/90">
-              <a href={`tel:${callConfirmation?.phone}`} onClick={() => setCallConfirmation(null)}>
-                Yes, Call Now
-              </a>
+            <Button 
+              className="bg-primary text-white hover:bg-primary/90" 
+              onClick={() => {
+                window.location.href = `tel:${callConfirmation?.phone}`;
+                setCallConfirmation(null);
+              }}
+            >
+              Yes, Call Now
             </Button>
           </DialogFooter>
         </DialogContent>

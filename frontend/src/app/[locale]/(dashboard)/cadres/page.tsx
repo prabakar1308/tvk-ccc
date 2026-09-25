@@ -13,11 +13,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Search, Plus, UserCheck, UserPlus, Trophy, Edit2, Trash2, UploadCloud, AlertCircle } from "lucide-react";
-import { useCadres, useDeleteCadre, useCreateBulkCadres } from '@/hooks/use-cadres';
+import { Link } from '@/i18n/routing';
+import { useCadres, useDeleteCadre } from '@/hooks/use-cadres';
 import { useUnions } from '@/hooks/use-unions';
 import { useKilais } from '@/hooks/use-kilais';
-import * as XLSX from 'xlsx';
-import { romanize } from 'tamil-romanizer';
 import {
   Dialog,
   DialogContent,
@@ -32,122 +31,18 @@ import { CadreFormDialog } from '@/components/cadre-form-dialog';
 
 export default function CadresPage() {
   const [levelFilter, setLevelFilter] = useState<string>('ALL');
+  const [filterLevel, setFilterLevel] = useState<string>('ALL');
+  const [filterUnionId, setFilterUnionId] = useState<string>('');
+  const [filterKilaiId, setFilterKilaiId] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState('');
   
   const { data: cadres, isLoading } = useCadres();
+  const { data: unions = [] } = useUnions();
+  const { data: kilais = [] } = useKilais();
   const deleteMutation = useDeleteCadre();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-
-  
-
-  // Import Modal State
-  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
-  const [importLevel, setImportLevel] = useState<string>('KILAI');
-  const [importUnionId, setImportUnionId] = useState<string>('');
-  const [importKilaiId, setImportKilaiId] = useState<string>('');
-  const [parsedCadres, setParsedCadres] = useState<CreateCadreDto[]>([]);
-  const [importError, setImportError] = useState<string | null>(null);
-  const [editingRowIdx, setEditingRowIdx] = useState<number | null>(null);
-  const [tempEditRow, setTempEditRow] = useState<CreateCadreDto | null>(null);
-
-  const { data: unions = [] } = useUnions();
-  const { data: kilais = [] } = useKilais();
-  const bulkCreateMutation = useCreateBulkCadres();
-
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      try {
-        const bstr = evt.target?.result;
-        const wb = XLSX.read(bstr, { type: 'binary' });
-        const wsname = wb.SheetNames[0];
-        const ws = wb.Sheets[wsname];
-        const data = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
-        
-        // Filter out empty rows and header rows
-        const rows = data.filter(row => {
-          if (!row || row.length === 0 || !row[1]) return false;
-          const nameCol = String(row[1]).trim();
-          if (nameCol === 'பெயர்' || nameCol === 'Name') return false;
-          return true;
-        });
-        
-        const translateRole = (role: string) => {
-          if (!role) return '';
-          const lower = role.trim().toLowerCase();
-          if (lower.includes('செயலாளர்') && lower.includes('இணை')) return 'Joint Secretary';
-          if (lower.includes('செயலாளர்') && lower.includes('துணை')) return 'Deputy Secretary';
-          if (lower.includes('செயலாளர்')) return 'Secretary';
-          if (lower.includes('பொருளாளர்')) return 'Treasurer';
-          if (lower.includes('செயற்குழு')) return 'Executive Committee Member';
-          if (lower.includes('உறுப்பினர்')) return 'Executive Committee Member'; // fallback
-          
-          // If English or unknown, return as-is (maybe capitalized)
-          return role;
-        };
-
-        const safeRomanize = (text: string) => {
-          if (!text) return '';
-          try {
-            // Check if it contains Tamil characters (Unicode block 0B80–0BFF)
-            const tamilRegex = /[\u0B80-\u0BFF]/;
-            if (tamilRegex.test(text)) {
-              return romanize(text);
-            }
-            return text;
-          } catch (e) {
-            return text;
-          }
-        };
-
-        const mappedCadres: CreateCadreDto[] = rows.map((row) => ({
-          name: safeRomanize(row[1]?.toString() || ''),
-          role: translateRole(row[2]?.toString() || ''),
-          area: safeRomanize(row[3]?.toString() || ''),
-          boothNo: row[4]?.toString() || '',
-          phone: row[5]?.toString() || '',
-          aadhaarNumber: row[6]?.toString() || '',
-          memberId: row[7]?.toString() || '',
-          voterId: row[7]?.toString() || '',
-          level: importLevel as any,
-          unionId: importUnionId || undefined,
-          homeKilaiId: importKilaiId || undefined,
-        }));
-        setParsedCadres(mappedCadres);
-        setImportError(null);
-      } catch (error) {
-        console.error(error);
-        setImportError("Failed to parse Excel file. Ensure it matches the template format.");
-      }
-    };
-    reader.readAsBinaryString(file);
-    e.target.value = ''; // reset input
-  };
-
-  const handleBulkSubmit = async () => {
-    setImportError(null);
-    try {
-      const finalPayload = parsedCadres.map(c => ({
-        ...c,
-        level: importLevel as any,
-        unionId: importUnionId || undefined,
-        homeKilaiId: importKilaiId || undefined,
-      }));
-      
-      await bulkCreateMutation.mutateAsync(finalPayload);
-      setIsImportModalOpen(false);
-      setParsedCadres([]);
-      setImportUnionId('');
-      setImportKilaiId('');
-    } catch (error: any) {
-      setImportError(error.response?.data?.message || error.message || "Failed to import cadres");
-    }
-  };
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -171,8 +66,14 @@ export default function CadresPage() {
     const matchesSearch = cadre.name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           cadre.memberId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           cadre.phone?.includes(searchQuery);
-    const matchesLevel = levelFilter === 'ALL' || cadre.level === levelFilter;
-    return matchesSearch && matchesLevel;
+    
+    const currentTabLevel = levelFilter === 'ALL' ? filterLevel : levelFilter;
+    const matchesLevel = currentTabLevel === 'ALL' || cadre.level === currentTabLevel;
+    
+    const matchesUnion = filterUnionId ? cadre.unionId === filterUnionId : true;
+    const matchesKilai = filterKilaiId ? cadre.homeKilaiId === filterKilaiId : true;
+    
+    return matchesSearch && matchesLevel && matchesUnion && matchesKilai;
   }) || [];
 
   const getRoleBadge = (role: string | undefined, level: string) => {
@@ -206,179 +107,6 @@ export default function CadresPage() {
       />
 
       </div>
-      {/* Import Modal */}
-      <Dialog open={isImportModalOpen} onOpenChange={(open) => {
-        setIsImportModalOpen(open);
-        if (!open) {
-          setParsedCadres([]);
-          setImportError(null);
-          setEditingRowIdx(null);
-          setTempEditRow(null);
-        }
-      }}>
-        <DialogContent className="sm:max-w-[800px] max-h-[90vh] flex flex-col p-0 gap-0">
-          <DialogHeader className="p-6 pb-4">
-            <DialogTitle>Import Cadres from Excel</DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 overflow-hidden flex flex-col px-6 min-h-0">
-            
-            <div className="shrink-0 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Import Level</Label>
-                <Select value={importLevel} onValueChange={(value) => setImportLevel(value || '')}>
-                  <SelectTrigger className="w-full text-base">
-                    <SelectValue placeholder="Select level">
-                      {importLevel === 'DISTRICT' ? 'District' : importLevel === 'UNION' ? 'Union' : importLevel === 'KILAI' ? 'Kilai' : ''}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="DISTRICT">District</SelectItem>
-                    <SelectItem value="UNION">Union</SelectItem>
-                    <SelectItem value="KILAI">Kilai</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {importLevel === 'UNION' && (
-                <div className="space-y-2">
-                  <Label>Select Union</Label>
-                  <Select value={importUnionId} onValueChange={(value) => setImportUnionId(value || '')}>
-                    <SelectTrigger className="w-full text-base">
-                      <SelectValue placeholder="Select Union">
-                        {importUnionId ? unions.find((u: any) => String(u.id) === importUnionId)?.name : ''}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {unions.map((u: any) => (
-                        <SelectItem key={String(u.id)} value={String(u.id)}>{u.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {importLevel === 'KILAI' && (
-                <div className="space-y-2">
-                  <Label>Select Kilai</Label>
-                  <Select value={importKilaiId} onValueChange={(value) => setImportKilaiId(value || '')}>
-                    <SelectTrigger className="w-full text-base">
-                      <SelectValue placeholder="Select Kilai">
-                        {importKilaiId ? kilais.find((k: any) => String(k.id) === importKilaiId)?.name : ''}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {kilais.map((k: any) => (
-                        <SelectItem key={String(k.id)} value={String(k.id)}>{k.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label>Upload Excel File</Label>
-              <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-primary/30 rounded-lg cursor-pointer bg-primary/5 hover:bg-primary/10 transition-colors">
-                <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                  <UploadCloud className="w-8 h-8 mb-2 text-primary/60" />
-                  <p className="mb-2 text-sm text-foreground font-semibold"><span className="text-primary">Click to upload</span> or drag and drop</p>
-                  <p className="text-xs text-muted-foreground">.xlsx or .xls files only</p>
-                </div>
-                <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} className="hidden" />
-              </label>
-            </div>
-
-            {importError && (
-              <div className="p-3 bg-destructive/10 text-destructive rounded-md flex items-start gap-2 text-sm font-medium">
-                <AlertCircle className="w-5 h-5 shrink-0" />
-                <span>{importError}</span>
-              </div>
-            )}
-
-            </div>
-
-            {parsedCadres.length > 0 && (
-              <div className="flex-1 flex flex-col min-h-0 mt-6 space-y-2">
-                <h3 className="font-semibold text-sm shrink-0">Preview ({parsedCadres.length} rows)</h3>
-                <div className="border rounded-md overflow-auto flex-1 min-h-0 w-full relative">
-                  <Table>
-                    <TableHeader className="bg-muted">
-                      <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Role</TableHead>
-                        <TableHead>Area</TableHead>
-                        <TableHead>Booth No</TableHead>
-                        <TableHead>Phone</TableHead>
-                        <TableHead>Aadhaar</TableHead>
-                        <TableHead>Member ID</TableHead>
-                        <TableHead className="text-right sticky right-0 bg-muted z-10 shadow-[-1px_0_0_rgba(0,0,0,0.05)] after:absolute after:left-0 after:top-0 after:bottom-0 after:w-[1px] after:bg-border">Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {parsedCadres.map((cadre, idx) => (
-                        <TableRow key={idx}>
-                          {editingRowIdx === idx ? (
-                            <>
-                              <TableCell className="p-2"><Input className="h-8 min-w-[120px]" value={tempEditRow?.name || ''} onChange={(e) => setTempEditRow({...tempEditRow!, name: e.target.value})} /></TableCell>
-                              <TableCell className="p-2"><Input className="h-8 min-w-[120px]" value={tempEditRow?.role || ''} onChange={(e) => setTempEditRow({...tempEditRow!, role: e.target.value})} /></TableCell>
-                              <TableCell className="p-2"><Input className="h-8 min-w-[120px]" value={tempEditRow?.area || ''} onChange={(e) => setTempEditRow({...tempEditRow!, area: e.target.value})} /></TableCell>
-                              <TableCell className="p-2"><Input className="h-8 min-w-[120px]" value={tempEditRow?.boothNo || ''} onChange={(e) => setTempEditRow({...tempEditRow!, boothNo: e.target.value})} /></TableCell>
-                              <TableCell className="p-2"><Input className="h-8 min-w-[120px]" value={tempEditRow?.phone || ''} onChange={(e) => setTempEditRow({...tempEditRow!, phone: e.target.value})} /></TableCell>
-                              <TableCell className="p-2"><Input className="h-8 min-w-[120px]" value={tempEditRow?.aadhaarNumber || ''} onChange={(e) => setTempEditRow({...tempEditRow!, aadhaarNumber: e.target.value})} /></TableCell>
-                              <TableCell className="p-2"><Input className="h-8 min-w-[120px]" value={tempEditRow?.memberId || ''} onChange={(e) => setTempEditRow({...tempEditRow!, memberId: e.target.value})} /></TableCell>
-                              <TableCell className="p-2 text-right sticky right-0 bg-background z-10 shadow-[-1px_0_0_rgba(0,0,0,0.05)] after:absolute after:left-0 after:top-0 after:bottom-0 after:w-[1px] after:bg-border">
-                                <div className="flex gap-1 justify-end">
-                                  <Button size="sm" onClick={() => {
-                                    const newCadres = [...parsedCadres];
-                                    newCadres[idx] = tempEditRow!;
-                                    setParsedCadres(newCadres);
-                                    setEditingRowIdx(null);
-                                  }}>Save</Button>
-                                  <Button size="sm" variant="ghost" onClick={() => setEditingRowIdx(null)}>Cancel</Button>
-                                </div>
-                              </TableCell>
-                            </>
-                          ) : (
-                            <>
-                              <TableCell className="p-3 font-medium">{cadre.name}</TableCell>
-                              <TableCell className="p-3">{cadre.role}</TableCell>
-                              <TableCell className="p-3">{cadre.area}</TableCell>
-                              <TableCell className="p-3">{cadre.boothNo}</TableCell>
-                              <TableCell className="p-3">{cadre.phone}</TableCell>
-                              <TableCell className="p-3">{cadre.aadhaarNumber}</TableCell>
-                              <TableCell className="p-3">{cadre.memberId}</TableCell>
-                              <TableCell className="p-2 text-right sticky right-0 bg-background z-10 shadow-[-1px_0_0_rgba(0,0,0,0.05)] after:absolute after:left-0 after:top-0 after:bottom-0 after:w-[1px] after:bg-border">
-                                <div className="flex justify-end gap-1">
-                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => { setEditingRowIdx(idx); setTempEditRow(cadre); }}>
-                                    <Edit2 className="w-4 h-4" />
-                                  </Button>
-                                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => {
-                                    const newCadres = parsedCadres.filter((_, i) => i !== idx);
-                                    setParsedCadres(newCadres);
-                                  }}>
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </div>
-                              </TableCell>
-                            </>
-                          )}
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            )}
-          </div>
-          <DialogFooter className="mt-4 p-6 pt-4 border-t shrink-0">
-            <Button variant="outline" onClick={() => { setIsImportModalOpen(false); setParsedCadres([]); setImportError(null); }}>Cancel</Button>
-            <Button onClick={handleBulkSubmit} disabled={parsedCadres.length === 0 || bulkCreateMutation.isPending}>
-              {bulkCreateMutation.isPending ? 'Importing...' : 'Import Cadres'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Metrics Row */}
       <div className="grid gap-6 sm:grid-cols-3">
@@ -431,9 +159,11 @@ export default function CadresPage() {
           />
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
-          <Button variant="outline" onClick={() => setIsImportModalOpen(true)} className="h-11 rounded-md px-6 font-medium border-primary/20 text-primary hover:bg-primary/5">
-            <UploadCloud className="w-4 h-4 mr-2" /> Import Excel
-          </Button>
+          <Link href="/cadres/import">
+            <Button variant="outline" className="h-11 rounded-md px-6 font-medium border-primary/20 text-primary hover:bg-primary/5">
+              <UploadCloud className="w-4 h-4 mr-2" /> Import Excel
+            </Button>
+          </Link>
           <Button variant="outline" className="h-11 rounded-md px-6 font-medium border-primary/20 text-primary hover:bg-primary/5">Export CSV</Button>
         </div>
       </div>
@@ -441,15 +171,75 @@ export default function CadresPage() {
       {/* Data Table with Tabs */}
       <div className="rounded-lg border border-primary/20 bg-card shadow-sm overflow-hidden p-2">
         <div className="flex border-b border-primary/10 mb-4 px-2 space-x-4 overflow-x-auto">
-          {['ALL', 'DISTRICT', 'GROUP', 'UNION', 'KILAI'].map((level) => (
+          {['ALL', 'DISTRICT', 'UNION', 'KILAI'].map((level) => (
             <button 
               key={level}
-              onClick={() => setLevelFilter(level)}
+              onClick={() => {
+                setLevelFilter(level);
+                setFilterLevel('ALL');
+                setFilterUnionId('');
+                setFilterKilaiId('');
+              }}
               className={`px-4 py-2 font-semibold whitespace-nowrap ${levelFilter === level ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground hover:text-primary'}`}
             >
               {level === 'ALL' ? 'All Cadres' : `${level.charAt(0) + level.slice(1).toLowerCase()} Level`}
             </button>
           ))}
+        </div>
+
+        {/* Dynamic Filters */}
+        <div className="px-4 mb-4 flex flex-wrap gap-4 items-center">
+           {levelFilter === 'ALL' && (
+             <div className="w-48">
+               <Select value={filterLevel} onValueChange={(v) => { setFilterLevel(v || 'ALL'); setFilterUnionId(''); setFilterKilaiId(''); }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="All Levels">
+                      {filterLevel === 'DISTRICT' ? 'District Level' : filterLevel === 'UNION' ? 'Union Level' : filterLevel === 'KILAI' ? 'Kilai Level' : 'All Levels'}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                     <SelectItem value="ALL">All Levels</SelectItem>
+                     <SelectItem value="DISTRICT">District Level</SelectItem>
+                     <SelectItem value="UNION">Union Level</SelectItem>
+                     <SelectItem value="KILAI">Kilai Level</SelectItem>
+                  </SelectContent>
+               </Select>
+             </div>
+           )}
+
+           {(levelFilter === 'UNION' || levelFilter === 'KILAI' || (levelFilter === 'ALL' && (filterLevel === 'UNION' || filterLevel === 'KILAI'))) && (
+             <div className="w-56">
+               <Select value={filterUnionId} onValueChange={(v) => { setFilterUnionId(v || ''); setFilterKilaiId(''); }}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Union">
+                      {filterUnionId ? unions.find((u: any) => String(u.id || u._id) === filterUnionId)?.name : undefined}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                     {unions.map((u: any) => (
+                       <SelectItem key={String(u.id || u._id)} value={String(u.id || u._id)}>{u.name}</SelectItem>
+                     ))}
+                  </SelectContent>
+               </Select>
+             </div>
+           )}
+
+           {(levelFilter === 'KILAI' || (levelFilter === 'ALL' && filterLevel === 'KILAI')) && (
+             <div className="w-56">
+               <Select value={filterKilaiId} onValueChange={(v) => setFilterKilaiId(v || '')} disabled={!filterUnionId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Kilai">
+                      {filterKilaiId ? kilais.find((k: any) => String(k.id || k._id) === filterKilaiId)?.name : undefined}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                     {kilais.filter((k: any) => String(k.unionId) === filterUnionId).map((k: any) => (
+                       <SelectItem key={String(k.id || k._id)} value={String(k.id || k._id)}>{k.name}</SelectItem>
+                     ))}
+                  </SelectContent>
+               </Select>
+             </div>
+           )}
         </div>
         <div className="overflow-x-auto">
           {isLoading ? (
@@ -484,7 +274,7 @@ export default function CadresPage() {
                     </TableCell>
                     <TableCell className="font-medium py-4 text-muted-foreground">{cadre.phone || '-'}</TableCell>
                     <TableCell className="text-right py-4">
-                      <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex justify-end gap-2 transition-opacity">
                         <Button onClick={() => handleOpenEdit(cadre)} variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10 rounded-full">
                           <Edit2 className="h-4 w-4" />
                         </Button>

@@ -127,7 +127,7 @@ export default function WelfarePage() {
                 </TableCell>
                 <TableCell className="text-muted-foreground py-4 font-medium">{new Date(program.date).toLocaleDateString()}</TableCell>
                 <TableCell className="text-right py-4">
-                  <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex justify-end gap-2 transition-opacity">
                     <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-full">
                       <Eye className="h-4 w-4" />
                     </Button>
