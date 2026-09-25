@@ -19,6 +19,8 @@ export default function KilaiDetailsPage() {
   if (isLoading) return <div className="p-8 text-center text-gray-500 font-medium">Loading kilai details...</div>;
   if (!kilai) return <div className="p-8 text-center text-red-500 font-bold">Kilai not found</div>;
 
+  const kilaiData: any = kilai;
+
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both">
       {/* Header */}
@@ -28,10 +30,10 @@ export default function KilaiDetailsPage() {
             <ArrowLeft className="w-5 h-5 text-gray-700" />
           </Link>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-heading font-bold text-gray-900">{kilai.name} {kilai.tamilName && <span className="text-xl font-normal text-muted-foreground">({kilai.tamilName})</span>}</h1>
+            <h1 className="text-2xl sm:text-3xl font-heading font-bold text-gray-900">{kilaiData.name} {kilaiData.tamilName && <span className="text-xl font-normal text-muted-foreground">({kilaiData.tamilName})</span>}</h1>
             <p className="text-muted-foreground font-medium mt-1 flex items-center gap-1.5">
               <Building2 className="w-4 h-4" />
-              Union: {kilai.union?.name || 'Unknown'}
+              Union: {kilaiData.union?.name || 'Unknown'}
             </p>
           </div>
         </div>
@@ -49,9 +51,9 @@ export default function KilaiDetailsPage() {
           </div>
           <div className="flex-1">
             <p className="text-[12px] sm:text-[13px] font-semibold text-gray-800">Linked Booths</p>
-            {kilai.booths && kilai.booths.length > 0 ? (
+            {kilaiData.booths && kilaiData.booths.length > 0 ? (
               <div className="mt-2 flex flex-wrap gap-1.5">
-                {kilai.booths.map((booth: any) => (
+                {kilaiData.booths.map((booth: any) => (
                   <span key={booth.id || booth._id} className="bg-orange-100 text-orange-700 text-xs px-2 py-0.5 rounded-full font-medium">
                     {booth.boothNo} {booth.name && `- ${booth.name}`}
                   </span>
@@ -70,9 +72,9 @@ export default function KilaiDetailsPage() {
           </div>
           <div className="flex-1">
             <p className="text-[12px] sm:text-[13px] font-semibold text-gray-800">Linked Villages / Areas</p>
-            {kilai.villages && kilai.villages.length > 0 ? (
+            {kilaiData.villages && kilaiData.villages.length > 0 ? (
               <div className="mt-2 flex flex-wrap gap-1.5">
-                {kilai.villages.map((area: string) => (
+                {kilaiData.villages.map((area: string) => (
                   <span key={area} className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full font-medium">
                     {area}
                   </span>
@@ -91,7 +93,7 @@ export default function KilaiDetailsPage() {
           </div>
           <div className="flex-1">
             <p className="text-[12px] sm:text-[13px] font-semibold text-gray-800">Total Cadres</p>
-            <h3 className="text-[22px] sm:text-[28px] font-bold text-gray-900 leading-tight">{(kilai.kilaiCadres?.length || 0).toLocaleString()}</h3>
+            <h3 className="text-[22px] sm:text-[28px] font-bold text-gray-900 leading-tight">{(kilaiData.kilaiCadres?.length || 0).toLocaleString()}</h3>
             <p className="text-[10px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1">Active in this kilai</p>
           </div>
         </div>
@@ -101,11 +103,11 @@ export default function KilaiDetailsPage() {
       <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-8 shadow-sm border border-gray-100">
         <h2 className="text-lg font-bold text-gray-900 tracking-wide mb-6">Kilai Cadres (Office Bearers)</h2>
         
-        {!kilai.kilaiCadres || kilai.kilaiCadres.length === 0 ? (
+        {!kilaiData.kilaiCadres || kilaiData.kilaiCadres.length === 0 ? (
           <div className="text-center py-8 text-gray-500">No cadres registered for this Kilai yet.</div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
-            {kilai.kilaiCadres.map((cadre: any, index: number) => {
+            {kilaiData.kilaiCadres.map((cadre: any, index: number) => {
               const rawRole = cadre.officeBearerRoles?.[0]?.role || cadre.role || 'Member';
               const designation = rawRole.replace(/_/g, ' ').replace(/\w\S*/g, (txt: string) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase());
               const photoUrl = cadre.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(cadre.name || 'User')}&background=8F0A1B&color=fff&size=128`;
@@ -142,10 +144,10 @@ export default function KilaiDetailsPage() {
         isOpen={isModalOpen}
         onOpenChange={setIsModalOpen}
         defaultLevel="KILAI"
-        defaultKilaiId={kilai.id}
-        defaultUnionId={kilai.unionId}
-        defaultBoothNo={kilai.booths?.[0]?.boothNo}
-        defaultArea={kilai.villages?.[0]}
+        defaultKilaiId={kilaiData.id}
+        defaultUnionId={kilaiData.unionId}
+        defaultBoothNo={kilaiData.booths?.[0]?.boothNo}
+        defaultArea={kilaiData.villages?.[0]}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['kilais', id] });
         }}

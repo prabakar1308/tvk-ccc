@@ -48,7 +48,7 @@ export default async function RootLayout({
         <NextIntlClientProvider messages={messages}>
           <UserProvider>
             <Providers>
-              <TooltipProvider delayDuration={300}>
+              <TooltipProvider>
                 {children}
               </TooltipProvider>
             </Providers>

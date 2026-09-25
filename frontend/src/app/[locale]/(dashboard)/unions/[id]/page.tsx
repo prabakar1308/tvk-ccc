@@ -43,7 +43,7 @@ export default function UnionDetailsPage() {
       <div className="grid gap-4 sm:grid-cols-3">
         {/* Total Kilais */}
         <Link 
-          href={`/kilais?union=${union.id || union._id}`} 
+          href={`/kilais?union=${(union as any).id || (union as any)._id}`} 
           className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-gray-100 flex items-center gap-3 sm:gap-4 hover:border-primary/50 hover:shadow-md transition-all cursor-pointer block text-left"
         >
           <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-green-50 flex items-center justify-center shrink-0">

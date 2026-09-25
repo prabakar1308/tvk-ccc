@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-process.loadEnvFile();
+try { process.loadEnvFile(); } catch (e) {}
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
@@ -22,7 +22,7 @@ async function bootstrap() {
   // Enable CORS
   app.enableCors();
 
-  await app.listen(process.env.PORT ?? 8000);
+  await app.listen(process.env.PORT ?? 8000, '0.0.0.0');
 }
 bootstrap();
 // Trigger restart for prisma client

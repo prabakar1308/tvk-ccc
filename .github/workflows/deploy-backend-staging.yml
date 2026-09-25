@@ -1,0 +1,59 @@
+name: Deploy Backend to GCP Staging
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'backend/**'
+      - '.github/workflows/deploy-backend-staging.yml'
+
+env:
+  PROJECT_ID: tvk-command-centre-uat
+  REGION: asia-south1 # Mumbai region
+  SERVICE_NAME: tcc-backend-staging
+  GAR_LOCATION: asia-south1-docker.pkg.dev
+  REPOSITORY: tcc-repo # Ensure this repository exists in Google Artifact Registry
+
+jobs:
+  deploy:
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Google Auth
+        id: auth
+        uses: 'google-github-actions/auth@v2'
+        with:
+          # Create a Service Account in GCP with necessary roles (Cloud Run Admin, Artifact Registry Writer, etc.)
+          # Export its key as JSON and store it in GitHub Secrets as GCP_CREDENTIALS
+          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+
+      - name: Set up Cloud SDK
+        uses: 'google-github-actions/setup-gcloud@v2'
+
+      - name: Authorize Docker push
+        run: gcloud auth configure-docker ${{ env.GAR_LOCATION }}
+
+      - name: Build and Push Container
+        run: |-
+          docker build -t "${{ env.GAR_LOCATION }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }}" ./backend
+          docker push "${{ env.GAR_LOCATION }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }}"
+
+      - name: Deploy to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          region: ${{ env.REGION }}
+          image: ${{ env.GAR_LOCATION }}/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE_NAME }}:${{ github.sha }}
+          # You can also reference Google Cloud Secret Manager for secrets
+          env_vars: |
+            NODE_ENV=production
+            # DATABASE_URL=... (recommend passing from Secret Manager)
+            # GCS_BUCKET_NAME=...

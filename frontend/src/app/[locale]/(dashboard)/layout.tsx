@@ -118,10 +118,10 @@ export default function DashboardLayout({
 
             <div className="flex items-center gap-2 md:gap-3 cursor-pointer">
               <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gray-200 overflow-hidden border-2 border-white shadow-sm">
-                <img src={`https://ui-avatars.com/api/?name=${user?.name || 'Rajkumar RKD'}&background=random`} alt="User" className="w-full h-full object-cover" />
+                <img src={`https://ui-avatars.com/api/?name=${(user as any)?.name || 'Rajkumar RKD'}&background=random`} alt="User" className="w-full h-full object-cover" />
               </div>
               <div className="flex flex-col hidden sm:flex">
-                <span className="text-[16px] font-bold text-gray-900 leading-tight">{user?.name || 'Rajkumar RKD'}</span>
+                <span className="text-[16px] font-bold text-gray-900 leading-tight">{(user as any)?.name || 'Rajkumar RKD'}</span>
                 <span className="text-[14px] text-[#8F0A1B] font-semibold">{user?.role === 'SUPER_ADMIN' ? 'Admin' : 'Secretary'}</span>
               </div>
               <ChevronDown className="w-4 h-4 text-gray-500 hidden sm:block" />

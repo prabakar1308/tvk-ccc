@@ -270,7 +270,7 @@ export function CadreFormDialog({
                 <Select 
                   key={`union-${unions.length}`}
                   value={formData.unionId || ''} 
-                  onValueChange={(val) => setFormData({...formData, unionId: val, homeKilaiId: ''})}
+                  onValueChange={(val) => setFormData({...formData, unionId: val, homeKilaiId: ''} as any)}
                   required
                 >
                   <SelectTrigger className="w-full">
@@ -294,7 +294,7 @@ export function CadreFormDialog({
                 <Select 
                   key={`kilai-${filteredKilais.length}`}
                   value={formData.homeKilaiId || ''} 
-                  onValueChange={(val) => setFormData({...formData, homeKilaiId: val})}
+                  onValueChange={(val) => setFormData({...formData, homeKilaiId: val} as any)}
                   required
                   disabled={!formData.unionId}
                 >
@@ -317,7 +317,7 @@ export function CadreFormDialog({
               <Label htmlFor="role">Designation *</Label>
               <Select 
                 value={formData.role || ''} 
-                onValueChange={(val) => setFormData({...formData, role: val || ''})}
+                onValueChange={(val) => setFormData({...formData, role: val || ''} as any)}
                 required
               >
                 <SelectTrigger className="w-full">
@@ -369,7 +369,7 @@ export function CadreFormDialog({
                             value={area}
                             onSelect={(currentValue) => {
                               const selectedArea = areas.find((a: string) => a.toLowerCase() === currentValue) || currentValue;
-                              setFormData({ ...formData, area: selectedArea === formData.area ? "" : selectedArea })
+                              setFormData({ ...formData, area: selectedArea === formData.area ? "" : selectedArea } as any)
                               setAreaOpen(false)
                             }}
                           >
@@ -421,7 +421,7 @@ export function CadreFormDialog({
                             value={booth.boothNo}
                             onSelect={(currentValue) => {
                               const selectedBooth = booths.find((b: any) => b.boothNo.toLowerCase() === currentValue) || { boothNo: currentValue };
-                              setFormData({ ...formData, boothNo: selectedBooth.boothNo === formData.boothNo ? "" : selectedBooth.boothNo })
+                              setFormData({ ...formData, boothNo: selectedBooth.boothNo === formData.boothNo ? "" : selectedBooth.boothNo } as any)
                               setBoothOpen(false)
                             }}
                           >

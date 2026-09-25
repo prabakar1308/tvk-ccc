@@ -3,7 +3,6 @@
 import { useLocale } from 'next-intl';
 import { usePathname, useRouter } from 'next/navigation';
 import { ChangeEvent, useTransition } from 'react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@base-ui/react';
 
 export default function LanguageSwitcher() {
   const [isPending, startTransition] = useTransition();

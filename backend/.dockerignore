@@ -1,0 +1,11 @@
+node_modules
+dist
+test
+.git
+.gitignore
+npm-debug.log
+.env
+.env.*
+.windsurf
+.claude
+brain
