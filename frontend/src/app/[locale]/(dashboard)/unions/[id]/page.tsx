@@ -2,18 +2,27 @@
 
 import { useParams } from 'next/navigation';
 import { useUnion } from '@/hooks/use-unions';
-import { ArrowLeft, Store, Building2, Users } from 'lucide-react';
+import { ArrowLeft, Store, Building2, Users, Phone } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { useState } from 'react';
 import { CadreFormDialog } from '@/components/cadre-form-dialog';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export default function UnionDetailsPage() {
   const { id } = useParams();
   const { data: union, isLoading } = useUnion(id as string);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [callConfirmation, setCallConfirmation] = useState<{name: string, phone: string} | null>(null);
   const queryClient = useQueryClient();
 
   if (isLoading) return <div className="p-8 text-center text-gray-500 font-medium">Loading union details...</div>;
@@ -109,6 +118,12 @@ export default function UnionDetailsPage() {
                   <img src={photoUrl} alt={cadre.name} className="w-full h-full object-cover" />
                 </div>
                 <h3 className="font-bold text-[14px] sm:text-[15px] text-gray-900 text-center leading-tight mb-1">{cadre.name}</h3>
+                {cadre.phone && (
+                  <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCallConfirmation({ name: cadre.name, phone: cadre.phone }); }} className="flex items-center justify-center gap-1.5 text-[12px] sm:text-[13px] font-medium text-blue-600 hover:text-blue-800 transition-colors bg-blue-50 hover:bg-blue-100 px-2.5 py-0.5 rounded-md mb-1.5">
+                    <Phone className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                    {cadre.phone}
+                  </button>
+                )}
                 <p className={`text-[11px] sm:text-[12px] font-semibold text-center ${
                   highlight ? "text-[#8F0A1B] bg-[#8F0A1B]/10 px-2 py-0.5 rounded-full mt-1" : "text-[#8F0A1B]"
                 }`}>{designation}</p>
@@ -128,6 +143,26 @@ export default function UnionDetailsPage() {
           queryClient.invalidateQueries({ queryKey: ['unions', id] });
         }}
       />
+
+      {/* Call Confirmation Dialog */}
+      <Dialog open={!!callConfirmation} onOpenChange={(open) => !open && setCallConfirmation(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Call Cadre</DialogTitle>
+            <DialogDescription className="pt-2">
+              Are you sure you want to call <strong>{callConfirmation?.name}</strong> at <span className="font-semibold text-blue-600">{callConfirmation?.phone}</span>?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setCallConfirmation(null)}>Cancel</Button>
+            <Button asChild className="bg-primary text-white hover:bg-primary/90">
+              <a href={`tel:${callConfirmation?.phone}`} onClick={() => setCallConfirmation(null)}>
+                Yes, Call Now
+              </a>
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

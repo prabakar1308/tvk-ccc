@@ -18,7 +18,11 @@ export default function middleware(request: NextRequest) {
     if (token) {
       requestHeaders.set('Authorization', `Bearer ${token}`);
     }
-    return NextResponse.next({
+    
+    const backendUrl = process.env.BACKEND_API_URL || 'http://localhost:8000';
+    const rewriteUrl = new URL(request.nextUrl.pathname + request.nextUrl.search, backendUrl);
+    
+    return NextResponse.rewrite(rewriteUrl, {
       request: {
         headers: requestHeaders,
       },

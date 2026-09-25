@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, Plus, Eye, Edit2, Building2, Users, CheckCircle2, ChevronDown, Check, X, Trash2 } from "lucide-react";
+import { Search, Plus, Eye, Edit2, Building2, Users, CheckCircle2, ChevronDown, Check, X, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { 
   Dialog, 
   DialogContent, 
@@ -135,6 +135,8 @@ export default function BoothsPage() {
   const deleteBooth = useDeleteBooth();
 
   const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBooth, setEditingBooth] = useState<any>(null);
   const [viewingBooth, setViewingBooth] = useState<any>(null);
@@ -212,6 +214,12 @@ export default function BoothsPage() {
     b.name.toLowerCase().includes(search.toLowerCase()) || 
     b.boothNo.toLowerCase().includes(search.toLowerCase())
   ) || [];
+
+  const totalPages = Math.ceil(filteredBooths.length / itemsPerPage);
+  const paginatedBooths = filteredBooths.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both">
@@ -465,7 +473,10 @@ export default function BoothsPage() {
             placeholder="Search booths by name or number..." 
             className="pl-10 h-11 bg-zinc-50 dark:bg-zinc-900 border-primary/20 focus-visible:ring-primary/30 rounded-md transition-all"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
           />
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
@@ -491,12 +502,12 @@ export default function BoothsPage() {
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Loading booths...</TableCell>
               </TableRow>
-            ) : filteredBooths.length === 0 ? (
+            ) : paginatedBooths.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No booths found.</TableCell>
               </TableRow>
             ) : (
-              filteredBooths.map((booth: any) => (
+              paginatedBooths.map((booth: any) => (
                 <TableRow key={booth.id} className="hover:bg-primary/5 transition-colors group border-b-primary/10">
                   <TableCell className="py-4">
                     <Tooltip>
@@ -552,6 +563,40 @@ export default function BoothsPage() {
             )}
           </TableBody>
         </Table>
+
+        {/* Pagination Controls */}
+        {totalPages > 0 && (
+          <div className="flex items-center justify-between px-4 py-4 border-t border-primary/10 bg-primary/5">
+            <div className="text-sm text-muted-foreground font-medium">
+              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredBooths.length)} of {filteredBooths.length} entries
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="bg-card hover:bg-primary hover:text-primary-foreground border-primary/20 transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4 mr-1" />
+                Previous
+              </Button>
+              <div className="text-sm font-semibold text-primary px-2">
+                Page {currentPage} of {totalPages}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="bg-card hover:bg-primary hover:text-primary-foreground border-primary/20 transition-colors"
+              >
+                Next
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -449,7 +449,7 @@ export default function KilaisPage() {
                           <Button onClick={() => handleDelete(kilai.id)} variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full">
                             <Trash2 className="h-4 w-4" />
                           </Button>
-                          <Button render={<Link href={`/kilais/${kilai.id}`} />} variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10 rounded-full">
+                          <Button render={<Link href={`/kilais/${kilai.id}`} />} nativeButton={false} variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10 rounded-full">
                             <Eye className="h-4 w-4" />
                           </Button>
                         </div>

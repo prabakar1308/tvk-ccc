@@ -86,7 +86,7 @@ export default function DashboardLayout({
           </div>
           <h3 className="text-white font-bold text-[15px] text-center mb-1">Tamizhaga Vetri Kazhagam</h3>
           <p className="text-white/80 text-[13px] text-center leading-relaxed">
-            South East Union<br/>
+            
             Kurinjipadi Assembly Constituency<br/>
             Cuddalore District
           </p>
@@ -101,7 +101,7 @@ export default function DashboardLayout({
             <button className="text-gray-700 hover:text-black">
               <Menu className="w-6 h-6" />
             </button>
-            <h1 className="text-xl md:text-2xl font-bold text-[#8F0A1B]">Cuddalore East District</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-[#8F0A1B]">Kurunjipadi Constituency</h1>
           </div>
           
           <div className="flex items-center gap-4 md:gap-6">

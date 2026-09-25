@@ -30,8 +30,8 @@ jobs:
         id: auth
         uses: 'google-github-actions/auth@v2'
         with:
-          # Use the same GCP_CREDENTIALS secret
-          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+          workload_identity_provider: 'projects/782728506796/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider'
+          service_account: 'github-actions-deployer@tvk-command-centre-uat.iam.gserviceaccount.com'
 
       - name: Set up Cloud SDK
         uses: 'google-github-actions/setup-gcloud@v2'
