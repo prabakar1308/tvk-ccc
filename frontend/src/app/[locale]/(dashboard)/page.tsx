@@ -40,12 +40,12 @@ export default function DashboardPage() {
             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-blue-50 flex items-center justify-center shrink-0">
               <Users className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
             </div>
-            <div className="flex-1">
-              <p className="text-[12px] sm:text-[13px] font-semibold text-gray-800">Total Unions</p>
-              <h3 className="text-[22px] sm:text-[28px] font-bold text-gray-900 leading-tight">
+            <div className="flex-1 grid grid-cols-[1fr_auto] items-center sm:block">
+              <p className="text-[16px] sm:text-[16px] font-semibold text-gray-800 col-start-1 row-start-1">Total Unions</p>
+              <h3 className="text-[22px] sm:text-[28px] font-bold text-gray-900 leading-tight col-start-2 row-start-1 row-span-2 text-right sm:text-left">
                 {statsLoading ? '...' : stats?.totalUnions || 0}
               </h3>
-              <p className="text-[10px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1">Across the constituency</p>
+              <p className="text-[12px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1 col-start-1 row-start-2">Across the constituency</p>
             </div>
             <ArrowRight className="w-4 h-4 text-gray-300 hidden sm:block" />
           </div>
@@ -57,12 +57,12 @@ export default function DashboardPage() {
             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-green-50 flex items-center justify-center shrink-0">
               <Store className="w-6 h-6 sm:w-8 sm:h-8 text-green-500" />
             </div>
-            <div className="flex-1">
-              <p className="text-[12px] sm:text-[13px] font-semibold text-gray-800">Total Kilais</p>
-              <h3 className="text-[22px] sm:text-[28px] font-bold text-gray-900 leading-tight">
+            <div className="flex-1 grid grid-cols-[1fr_auto] items-center sm:block">
+              <p className="text-[16px] sm:text-[16px] font-semibold text-gray-800 col-start-1 row-start-1">Total Kilais</p>
+              <h3 className="text-[22px] sm:text-[28px] font-bold text-gray-900 leading-tight col-start-2 row-start-1 row-span-2 text-right sm:text-left">
                 {statsLoading ? '...' : stats?.totalKilais || 0}
               </h3>
-              <p className="text-[10px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1">Registered kilais</p>
+              <p className="text-[12px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1 col-start-1 row-start-2">Registered kilais</p>
             </div>
             <ArrowRight className="w-4 h-4 text-gray-300 hidden sm:block" />
           </div>
@@ -74,12 +74,12 @@ export default function DashboardPage() {
             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-purple-50 flex items-center justify-center shrink-0">
               <UserCog className="w-6 h-6 sm:w-8 sm:h-8 text-purple-500" />
             </div>
-            <div className="flex-1">
-              <p className="text-[12px] sm:text-[13px] font-semibold text-gray-800">Total Cadres</p>
-              <h3 className="text-[22px] sm:text-[28px] font-bold text-gray-900 leading-tight">
+            <div className="flex-1 grid grid-cols-[1fr_auto] items-center sm:block">
+              <p className="text-[16px] sm:text-[16px] font-semibold text-gray-800 col-start-1 row-start-1">Total Cadres</p>
+              <h3 className="text-[22px] sm:text-[28px] font-bold text-gray-900 leading-tight col-start-2 row-start-1 row-span-2 text-right sm:text-left">
                 {statsLoading ? '...' : stats?.totalCadres || 0}
               </h3>
-              <p className="text-[10px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1">Active cadres</p>
+              <p className="text-[12px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1 col-start-1 row-start-2">Active cadres</p>
             </div>
             <ArrowRight className="w-4 h-4 text-gray-300 hidden sm:block" />
           </div>
@@ -91,12 +91,12 @@ export default function DashboardPage() {
             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-orange-50 flex items-center justify-center shrink-0">
               <Building2 className="w-6 h-6 sm:w-8 sm:h-8 text-orange-500" />
             </div>
-            <div className="flex-1">
-              <p className="text-[12px] sm:text-[13px] font-semibold text-gray-800">Total Booths</p>
-              <h3 className="text-[22px] sm:text-[28px] font-bold text-gray-900 leading-tight">
+            <div className="flex-1 grid grid-cols-[1fr_auto] items-center sm:block">
+              <p className="text-[16px] sm:text-[16px] font-semibold text-gray-800 col-start-1 row-start-1">Total Booths</p>
+              <h3 className="text-[22px] sm:text-[28px] font-bold text-gray-900 leading-tight col-start-2 row-start-1 row-span-2 text-right sm:text-left">
                 {statsLoading ? '...' : stats?.totalBooths || 0}
               </h3>
-              <p className="text-[10px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1">Across the constituency</p>
+              <p className="text-[12px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1 col-start-1 row-start-2">Across the constituency</p>
             </div>
             <ArrowRight className="w-4 h-4 text-gray-300 hidden sm:block" />
           </div>
