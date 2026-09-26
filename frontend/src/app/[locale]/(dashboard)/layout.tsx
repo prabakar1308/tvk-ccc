@@ -28,6 +28,8 @@ export default function DashboardLayout({
 }) {
   const t = useTranslations('Index');
   const tSidebar = useTranslations('Sidebar');
+  const tHeader = useTranslations('Header');
+  const tFooter = useTranslations('Footer');
   const pathname = usePathname();
   const { user, activeUnionId, setActiveUnionId, logout } = useUser();
   const { data: unions } = useUnions();
@@ -54,7 +56,7 @@ export default function DashboardLayout({
               <Image src="/CCC logo.png" alt="CCC Logo" width={64} height={64} className="object-cover" />
             </div>
           </div>
-          <p className="text-[12px] uppercase tracking-[0.05em] font-bold text-white mt-2 text-center w-full border-b border-white/20 pb-4">CADRE COMMAND CENTRE</p>
+          <p className="text-[12px] uppercase tracking-[0.05em] font-bold text-white mt-2 text-center w-full border-b border-white/20 pb-4">{tSidebar('cadreCommandCentre')}</p>
         </div>
 
         <nav className="flex-1 overflow-y-auto py-4 px-4 space-y-1 custom-scrollbar">
@@ -80,11 +82,11 @@ export default function DashboardLayout({
         </nav>
 
         <div className="p-6 flex flex-col items-center mt-auto border-t border-white/10">
-          <p className="text-white/60 text-[11px] uppercase tracking-wider mb-1">Developed By</p>
+          <p className="text-white/60 text-[11px] uppercase tracking-wider mb-1">{tSidebar('developedBy')}</p>
           <h3 className="text-[#FFD700] font-bold text-[15px] text-center mb-1">Prabakaran</h3>
           <p className="text-white/80 text-[12px] text-center leading-relaxed">
-            Treasurer<br/>
-            South-East Union
+            {tSidebar('treasurer')}<br/>
+            {tSidebar('southEastUnion')}
           </p>
         </div>
     </>
@@ -125,7 +127,7 @@ export default function DashboardLayout({
             <button className="text-gray-700 hover:text-black hidden md:block" onClick={() => setIsDesktopSidebarOpen(!isDesktopSidebarOpen)}>
               <Menu className="w-6 h-6" />
             </button>
-            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-[#8F0A1B] truncate">Kurunjipadi Constituency</h1>
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-[#8F0A1B] truncate">{tHeader('constituencyName')}</h1>
           </div>
           
           <div className="flex items-center gap-4 md:gap-6">
@@ -149,23 +151,23 @@ export default function DashboardLayout({
                 </div>
                 <div className="flex-col hidden sm:flex text-left">
                   <span className="text-[16px] font-bold text-gray-900 leading-tight">{(user as any)?.name || 'Rajkumar RKD'}</span>
-                  <span className="text-[14px] text-[#8F0A1B] font-semibold">{user?.role === 'SUPER_ADMIN' ? 'Admin' : 'Secretary'}</span>
+                  <span className="text-[14px] text-[#8F0A1B] font-semibold">{user?.role === 'SUPER_ADMIN' ? tHeader('admin') : tHeader('secretary')}</span>
                 </div>
                 <ChevronDown className="w-4 h-4 text-gray-500 hidden sm:block" />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56 mt-2">
                 <DropdownMenuGroup>
-                  <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                  <DropdownMenuLabel>{tHeader('myAccount')}</DropdownMenuLabel>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
                 
                 <div className="md:hidden flex items-center justify-between px-2 py-2 border-b mb-1">
-                  <span className="text-sm font-medium">Language</span>
+                  <span className="text-sm font-medium">{tHeader('language')}</span>
                   <LanguageSwitcher />
                 </div>
 
                 <DropdownMenuItem onClick={() => { logout(); window.location.href = '/en/login'; }} className="text-red-600 cursor-pointer font-medium hover:bg-red-50 focus:bg-red-50 focus:text-red-700 mt-1">
-                  Sign Out
+                  {tHeader('signOut')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -185,10 +187,10 @@ export default function DashboardLayout({
             <div className="w-5 h-5 md:w-6 md:h-6 bg-gradient-to-r from-red-600 via-yellow-500 to-red-600 rounded-full flex items-center justify-center border border-white/20">
               <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-black rounded-full" />
             </div>
-            <span className="font-medium text-center md:text-left">Tamizhaga Vetri Kazhagam</span>
+            <span className="font-medium text-center md:text-left">{tFooter('partyName')}</span>
           </div>
           <div className="text-white/90 text-center md:text-right text-[12px] md:text-[15px]">
-             Kurinjipadi Assembly Constituency &nbsp;|&nbsp; Cuddalore East District
+             {tFooter('regionDetails')}
           </div>
         </footer>
       </div>

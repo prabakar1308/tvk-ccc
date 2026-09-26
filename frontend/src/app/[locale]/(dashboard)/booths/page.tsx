@@ -31,6 +31,7 @@ import { useBooths, useCreateBooth, useUpdateBooth, useDeleteBooth } from '@/hoo
 import { useKilais } from '@/hooks/use-kilais';
 import { useCadres } from '@/hooks/use-cadres';
 import { shortenBoothName } from '@/lib/booth-utils';
+import { useTranslations } from 'next-intl';
 
 // Custom MultiSelect Dropdown
 function MultiSelectDropdown({ 
@@ -127,6 +128,8 @@ function MultiSelectDropdown({
 }
 
 export default function BoothsPage() {
+  const t = useTranslations('Booths');
+  const tCommon = useTranslations('Common');
   const { data: booths, isLoading } = useBooths();
   const { data: kilais } = useKilais();
   const { data: cadres } = useCadres();
@@ -196,17 +199,17 @@ export default function BoothsPage() {
       setFormData(initialFormState);
     } catch (error) {
       console.error('Failed to save booth', error);
-      alert('Error saving booth');
+      alert(t('errorSaving'));
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (window.confirm('Are you sure you want to delete this booth?')) {
+    if (window.confirm(t('deleteConfirm'))) {
       try {
         await deleteBooth.mutateAsync(id);
       } catch (error) {
         console.error('Failed to delete', error);
-        alert('Error deleting booth');
+        alert(t('errorDeleting'));
       }
     }
   };
@@ -227,53 +230,53 @@ export default function BoothsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold uppercase tracking-wide text-primary">Booths</h1>
-          <p className="text-muted-foreground mt-1 text-lg font-medium">Manage voting booths, agents, and voter demographics.</p>
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold uppercase tracking-wide text-primary">{t('title')}</h1>
+          <p className="text-muted-foreground mt-1 text-lg font-medium">{t('description')}</p>
         </div>
         <Button onClick={() => handleOpenDialog()} className="bg-primary hover:bg-primary/90 text-white font-semibold shadow-md h-11 px-6 rounded-lg transition-transform active:scale-95">
-          <Plus className="mr-2 h-5 w-5" /> Add Booth
+          <Plus className="mr-2 h-5 w-5" /> {t('addBooth')}
         </Button>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{editingBooth ? 'Edit Booth' : 'Add New Booth'}</DialogTitle>
+              <DialogTitle>{editingBooth ? t('editBooth') : t('addNewBooth')}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-6 mt-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="boothNo">Booth Number *</Label>
+                  <Label htmlFor="boothNo">{t('boothNumber')} *</Label>
                   <Input 
                     id="boothNo" 
                     value={formData.boothNo} 
                     onChange={e => setFormData({...formData, boothNo: e.target.value})}
                     required 
-                    placeholder="e.g. B-101"
+                    placeholder={t('egB101')}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="area">Area</Label>
+                  <Label htmlFor="area">{t('area')}</Label>
                   <Input 
                     id="area" 
                     value={formData.area} 
                     onChange={e => setFormData({...formData, area: e.target.value})}
-                    placeholder="e.g. North Zone"
+                    placeholder={t('egNorthZone')}
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="name">Booth Name *</Label>
+                <Label htmlFor="name">{t('boothName')} *</Label>
                 <Input 
                   id="name" 
                   value={formData.name} 
                   onChange={e => setFormData({...formData, name: e.target.value})}
                   required 
-                  placeholder="e.g. Govt School"
+                  placeholder={t('egGovtSchool')}
                 />
               </div>
 
               <div className="space-y-2">
-                <Label>Linked Kilais</Label>
+                <Label>{t('linkedKilais')}</Label>
                 <MultiSelectDropdown 
                   options={kilais || []}
                   selected={formData.kilaiIds}
@@ -283,7 +286,7 @@ export default function BoothsPage() {
               </div>
 
               <div className="space-y-2">
-                <Label>Booth Agents (Cadres)</Label>
+                <Label>{t('boothAgents')}</Label>
                 <MultiSelectDropdown 
                   options={cadres || []}
                   selected={formData.agentIds}
@@ -294,7 +297,7 @@ export default function BoothsPage() {
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="maleCount">Male</Label>
+                  <Label htmlFor="maleCount">{t('male')}</Label>
                   <Input 
                     id="maleCount" 
                     type="number" 
@@ -307,7 +310,7 @@ export default function BoothsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="femaleCount">Female</Label>
+                  <Label htmlFor="femaleCount">{t('female')}</Label>
                   <Input 
                     id="femaleCount" 
                     type="number" 
@@ -320,7 +323,7 @@ export default function BoothsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="thirdGenderCount">3rd Gender</Label>
+                  <Label htmlFor="thirdGenderCount">{t('thirdGender')}</Label>
                   <Input 
                     id="thirdGenderCount" 
                     type="number" 
@@ -333,7 +336,7 @@ export default function BoothsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="totalCount">Total</Label>
+                  <Label htmlFor="totalCount">{t('total')}</Label>
                   <Input 
                     id="totalCount" 
                     type="number" 
@@ -346,9 +349,9 @@ export default function BoothsPage() {
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{tCommon('cancel')}</Button>
                 <Button type="submit" className="bg-primary text-white" disabled={createBooth.isPending || updateBooth.isPending}>
-                  {editingBooth ? 'Update Booth' : 'Save Booth'}
+                  {editingBooth ? t('updateBooth') : t('saveBooth')}
                 </Button>
               </div>
             </form>
@@ -360,27 +363,27 @@ export default function BoothsPage() {
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
               <DialogTitle className="text-2xl text-primary">{viewingBooth?.name}</DialogTitle>
-              <p className="text-muted-foreground font-medium">Booth {viewingBooth?.boothNo} {viewingBooth?.area ? `• ${viewingBooth?.area}` : ''}</p>
+              <p className="text-muted-foreground font-medium">{t('boothHeader')} {viewingBooth?.boothNo} {viewingBooth?.area ? `• ${viewingBooth?.area}` : ''}</p>
             </DialogHeader>
             
             <div className="space-y-6 mt-2">
               {/* Linked Kilais */}
               <div>
-                <h4 className="text-sm font-semibold mb-3 text-foreground/80">Linked Kilais</h4>
+                <h4 className="text-sm font-semibold mb-3 text-foreground/80">{t('linkedKilais')}</h4>
                 <div className="flex flex-wrap gap-2">
                   {viewingBooth?.kilais?.length ? viewingBooth.kilais.map((k: any) => (
                     <span key={k.id} className="inline-flex items-center px-2.5 py-1 rounded-md text-sm font-medium bg-green-100 text-green-800 border border-green-200">
                       {k.name}
                     </span>
                   )) : (
-                    <span className="text-sm text-muted-foreground italic bg-muted px-3 py-1 rounded-md">No kilais linked</span>
+                    <span className="text-sm text-muted-foreground italic bg-muted px-3 py-1 rounded-md">{t('noKilaisLinked')}</span>
                   )}
                 </div>
               </div>
 
               {/* Agents */}
               <div>
-                <h4 className="text-sm font-semibold mb-3 text-foreground/80">Agents (Cadres)</h4>
+                <h4 className="text-sm font-semibold mb-3 text-foreground/80">{t('agentsCadres')}</h4>
                 <div className="flex flex-wrap gap-2">
                   {viewingBooth?.agents?.length ? viewingBooth.agents.map((a: any) => (
                     <span key={a.id} className="inline-flex items-center px-2.5 py-1 rounded-md text-sm font-medium bg-primary/10 text-primary border border-primary/20">
@@ -394,22 +397,22 @@ export default function BoothsPage() {
 
               {/* Demographics */}
               <div>
-                <h4 className="text-sm font-semibold mb-3 text-foreground/80">Demographics</h4>
+                <h4 className="text-sm font-semibold mb-3 text-foreground/80">{t('demographics')}</h4>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <div className="bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900 rounded-lg p-3 text-center transition-all hover:scale-105">
-                    <div className="text-xs text-muted-foreground mb-1 font-medium">Male</div>
+                    <div className="text-xs text-muted-foreground mb-1 font-medium">{t('male')}</div>
                     <div className="text-xl font-bold text-blue-700 dark:text-blue-400">{viewingBooth?.maleCount || 0}</div>
                   </div>
                   <div className="bg-pink-50/50 dark:bg-pink-950/20 border border-pink-100 dark:border-pink-900 rounded-lg p-3 text-center transition-all hover:scale-105">
-                    <div className="text-xs text-muted-foreground mb-1 font-medium">Female</div>
+                    <div className="text-xs text-muted-foreground mb-1 font-medium">{t('female')}</div>
                     <div className="text-xl font-bold text-pink-700 dark:text-pink-400">{viewingBooth?.femaleCount || 0}</div>
                   </div>
                   <div className="bg-purple-50/50 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900 rounded-lg p-3 text-center transition-all hover:scale-105">
-                    <div className="text-xs text-muted-foreground mb-1 font-medium">3rd Gender</div>
+                    <div className="text-xs text-muted-foreground mb-1 font-medium">{t('thirdGender')}</div>
                     <div className="text-xl font-bold text-purple-700 dark:text-purple-400">{viewingBooth?.thirdGenderCount || 0}</div>
                   </div>
                   <div className="bg-muted/50 border rounded-lg p-3 text-center transition-all hover:scale-105">
-                    <div className="text-xs text-muted-foreground mb-1 font-medium">Total</div>
+                    <div className="text-xs text-muted-foreground mb-1 font-medium">{t('total')}</div>
                     <div className="text-xl font-bold text-foreground">{viewingBooth?.totalCount || 0}</div>
                   </div>
                 </div>
@@ -417,7 +420,7 @@ export default function BoothsPage() {
             </div>
             
             <div className="flex justify-end pt-6 mt-2 border-t border-border/50">
-              <Button variant="outline" onClick={() => setViewingBooth(null)}>Close</Button>
+              <Button variant="outline" onClick={() => setViewingBooth(null)}>{t('close')}</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -431,7 +434,7 @@ export default function BoothsPage() {
               <Building2 className="w-8 h-8" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Total Booths</p>
+              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t('totalBooths')}</p>
               <h2 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold text-foreground mt-1">{booths?.length || 0}</h2>
             </div>
           </CardContent>
@@ -443,7 +446,7 @@ export default function BoothsPage() {
               <Users className="w-8 h-8" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Total Voters</p>
+              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t('totalVoters')}</p>
               <h2 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold text-foreground mt-1">
                 {booths?.reduce((acc: number, curr: any) => acc + (curr.totalCount || 0), 0) || 0}
               </h2>
@@ -457,7 +460,7 @@ export default function BoothsPage() {
               <CheckCircle2 className="w-8 h-8" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Agent Coverage</p>
+              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t('agentCoverage')}</p>
               <h2 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold text-foreground mt-1">
                 {booths?.length ? Math.round((booths.filter((b: any) => b.agents?.length > 0).length / booths.length) * 100) : 0}%
               </h2>
@@ -471,7 +474,7 @@ export default function BoothsPage() {
         <div className="relative w-full sm:w-96">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input 
-            placeholder="Search booths by name or number..." 
+            placeholder={t('searchPlaceholder')} 
             className="pl-10 h-11 bg-zinc-50 dark:bg-zinc-900 border-primary/20 focus-visible:ring-primary/30 rounded-md transition-all"
             value={search}
             onChange={(e) => {
@@ -481,7 +484,7 @@ export default function BoothsPage() {
           />
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
-          <Button variant="outline" className="h-11 rounded-md px-6 font-medium border-primary/20 text-primary hover:bg-primary/5">Export CSV</Button>
+          <Button variant="outline" className="h-11 rounded-md px-6 font-medium border-primary/20 text-primary hover:bg-primary/5">{tCommon('exportCsv')}</Button>
         </div>
       </div>
 
@@ -490,22 +493,22 @@ export default function BoothsPage() {
         <Table>
           <TableHeader className="bg-primary/5">
             <TableRow className="hover:bg-transparent">
-              <TableHead className="font-semibold text-primary py-4">Booth</TableHead>
-              <TableHead className="font-semibold text-primary py-4">Linked Kilais</TableHead>
-              <TableHead className="font-semibold text-primary py-4">Agents (Cadres)</TableHead>
-              <TableHead className="font-semibold text-primary py-4 text-center">M / F / 3rd</TableHead>
-              <TableHead className="font-semibold text-primary py-4 text-center">Total Count</TableHead>
-              <TableHead className="font-semibold text-primary py-4 text-right sticky right-0 z-10 bg-card border-l">Actions</TableHead>
+              <TableHead className="font-semibold text-primary py-4">{t('boothHeader')}</TableHead>
+              <TableHead className="font-semibold text-primary py-4">{t('linkedKilais')}</TableHead>
+              <TableHead className="font-semibold text-primary py-4">{t('agentsCadres')}</TableHead>
+              <TableHead className="font-semibold text-primary py-4 text-center">{t('mf3rd')}</TableHead>
+              <TableHead className="font-semibold text-primary py-4 text-center">{t('totalCount')}</TableHead>
+              <TableHead className="font-semibold text-primary py-4 text-right sticky right-0 z-10 bg-card border-l">{tCommon('actions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Loading booths...</TableCell>
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">{t('loading')}</TableCell>
               </TableRow>
             ) : paginatedBooths.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No booths found.</TableCell>
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">{t('noBooths')}</TableCell>
               </TableRow>
             ) : (
               paginatedBooths.map((booth: any) => (
@@ -523,7 +526,7 @@ export default function BoothsPage() {
                       </TooltipTrigger>
                       <TooltipContent side="right" className="max-w-[350px] whitespace-normal">
                         <p className="font-semibold text-sm mb-1">{booth.name}</p>
-                        <p className="text-xs text-muted-foreground">{booth.area || 'No area specified'}</p>
+                        <p className="text-xs text-muted-foreground">{booth.area || t('noAreaSpecified')}</p>
                       </TooltipContent>
                     </Tooltip>
                   </TableCell>
@@ -543,7 +546,7 @@ export default function BoothsPage() {
                           {agent.name}
                         </span>
                       ))}
-                      {!booth.agents?.length && <span className="text-xs text-muted-foreground italic">None assigned</span>}
+                      {!booth.agents?.length && <span className="text-xs text-muted-foreground italic">{t('noneAssigned')}</span>}
                     </div>
                   </TableCell>
                   <TableCell className="text-center py-4 font-medium text-muted-foreground">
@@ -572,7 +575,7 @@ export default function BoothsPage() {
         {totalPages > 0 && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-4 py-4 border-t border-primary/10 bg-primary/5">
             <div className="text-sm text-muted-foreground font-medium text-center sm:text-left">
-              Showing {((currentPage - 1) * itemsPerPage) + 1} to {Math.min(currentPage * itemsPerPage, filteredBooths.length)} of {filteredBooths.length} entries
+              {t('showing')} {((currentPage - 1) * itemsPerPage) + 1} {t('to')} {Math.min(currentPage * itemsPerPage, filteredBooths.length)} {t('of')} {filteredBooths.length} {t('entries')}
             </div>
             <div className="flex items-center space-x-2">
               <Button
@@ -583,10 +586,10 @@ export default function BoothsPage() {
                 className="bg-card hover:bg-primary hover:text-primary-foreground border-primary/20 transition-colors"
               >
                 <ChevronLeft className="w-4 h-4 mr-1" />
-                Previous
+                {t('previous')}
               </Button>
               <div className="text-sm font-semibold text-primary px-2">
-                Page {currentPage} of {totalPages}
+                {t('page')} {currentPage} {t('of')} {totalPages}
               </div>
               <Button
                 variant="outline"
@@ -595,7 +598,7 @@ export default function BoothsPage() {
                 disabled={currentPage === totalPages}
                 className="bg-card hover:bg-primary hover:text-primary-foreground border-primary/20 transition-colors"
               >
-                Next
+                {t('next')}
                 <ChevronRight className="w-4 h-4 ml-1" />
               </Button>
             </div>

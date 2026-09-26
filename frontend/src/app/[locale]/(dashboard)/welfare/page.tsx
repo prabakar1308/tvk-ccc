@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import {
   Table,
   TableBody,
@@ -14,6 +16,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Search, Plus, Heart, IndianRupee, Users, Eye, Edit2 } from "lucide-react";
 
 export default function WelfarePage() {
+  const t = useTranslations('Welfare');
+  const tCommon = useTranslations('Common');
   const welfarePrograms = [
     { id: 1, title: 'Flood Relief Camp', category: 'Disaster Relief', date: '2026-08-15', amount: 450000, status: 'COMPLETED' },
     { id: 2, title: 'Medical Checkup Drive', category: 'Health', date: '2026-07-22', amount: 120000, status: 'COMPLETED' },
@@ -25,11 +29,11 @@ export default function WelfarePage() {
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'COMPLETED':
-        return <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-primary/10 text-primary border border-primary/20">Completed</span>;
+        return <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-primary/10 text-primary border border-primary/20">{t('completed')}</span>;
       case 'IN_PROGRESS':
-        return <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-yellow-500/20 text-amber-700 dark:text-yellow-400 border border-yellow-500/30">In Progress</span>;
+        return <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-yellow-500/20 text-amber-700 dark:text-yellow-400 border border-yellow-500/30">{t('active')}</span>;
       default:
-        return <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-muted text-muted-foreground border border-border">Planned</span>;
+        return <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-muted text-muted-foreground border border-border">{t('planning')}</span>;
     }
   };
 
@@ -38,11 +42,11 @@ export default function WelfarePage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold uppercase tracking-wide text-primary">Welfare</h1>
-          <p className="text-muted-foreground mt-1 text-lg font-medium">Track social welfare programs, funds, and beneficiaries.</p>
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold uppercase tracking-wide text-primary">{t('title')}</h1>
+          <p className="text-muted-foreground mt-1 text-lg font-medium">{t('description')}</p>
         </div>
         <Button className="bg-primary hover:bg-primary/90 text-white font-semibold shadow-md h-11 px-6 rounded-lg transition-transform active:scale-95">
-          <Plus className="mr-2 h-5 w-5" /> Record Expense
+          <Plus className="mr-2 h-5 w-5" /> {t('newProgram')}
         </Button>
       </div>
 
@@ -54,7 +58,7 @@ export default function WelfarePage() {
               <IndianRupee className="w-8 h-8" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Total Spend (YTD)</p>
+              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t('budget')}</p>
               <h2 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold text-foreground mt-1">₹ 28.5L</h2>
             </div>
           </CardContent>
@@ -66,7 +70,7 @@ export default function WelfarePage() {
               <Users className="w-8 h-8" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Beneficiaries</p>
+              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t('beneficiaries')}</p>
               <h2 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold text-foreground mt-1">45,200</h2>
             </div>
           </CardContent>
@@ -78,7 +82,7 @@ export default function WelfarePage() {
               <Heart className="w-8 h-8" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Welfare Drives</p>
+              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t('title')}</p>
               <h2 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold text-foreground mt-1">128</h2>
             </div>
           </CardContent>
@@ -90,12 +94,12 @@ export default function WelfarePage() {
         <div className="relative w-full sm:w-96">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input 
-            placeholder="Search welfare programs..." 
+            placeholder={t('searchPlaceholder')} 
             className="pl-10 h-11 bg-zinc-50 dark:bg-zinc-900 border-primary/20 focus-visible:ring-primary/30 rounded-md transition-all"
           />
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
-          <Button variant="outline" className="h-11 rounded-md px-6 font-medium border-primary/20 text-primary hover:bg-primary/5">Export CSV</Button>
+          <Button variant="outline" className="h-11 rounded-md px-6 font-medium border-primary/20 text-primary hover:bg-primary/5">{tCommon('exportCsv')}</Button>
         </div>
       </div>
 
@@ -104,12 +108,12 @@ export default function WelfarePage() {
         <Table>
           <TableHeader className="bg-primary/5">
             <TableRow className="hover:bg-transparent">
-              <TableHead className="font-semibold text-primary py-4">Title</TableHead>
-              <TableHead className="font-semibold text-primary py-4">Category</TableHead>
-              <TableHead className="font-semibold text-primary py-4 text-right">Amount (₹)</TableHead>
-              <TableHead className="font-semibold text-primary py-4">Status</TableHead>
-              <TableHead className="font-semibold text-primary py-4">Date</TableHead>
-              <TableHead className="font-semibold text-primary py-4 text-right">Actions</TableHead>
+              <TableHead className="font-semibold text-primary py-4">{t('programName')}</TableHead>
+              <TableHead className="font-semibold text-primary py-4">{t('category')}</TableHead>
+              <TableHead className="font-semibold text-primary py-4 text-right">{t('budget')}</TableHead>
+              <TableHead className="font-semibold text-primary py-4">{t('status')}</TableHead>
+              <TableHead className="font-semibold text-primary py-4">{tCommon('createdAt')}</TableHead>
+              <TableHead className="font-semibold text-primary py-4 text-right">{tCommon('actions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

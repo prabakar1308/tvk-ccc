@@ -22,8 +22,11 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useDistricts, useCreateDistrict, useUpdateDistrict, useDeleteDistrict } from '@/hooks/use-districts';
+import { useTranslations } from 'next-intl';
 
 export default function DistrictsPage() {
+  const t = useTranslations('Districts');
+  const tCommon = useTranslations('Common');
   const { data: districts, isLoading } = useDistricts();
   const createMutation = useCreateDistrict();
   const updateMutation = useUpdateDistrict();
@@ -70,7 +73,7 @@ export default function DistrictsPage() {
   };
 
   const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this district?")) {
+    if (confirm(t('deleteConfirm'))) {
       deleteMutation.mutate(id);
     }
   };
@@ -80,8 +83,8 @@ export default function DistrictsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold uppercase tracking-wide text-primary">Districts</h1>
-          <p className="text-muted-foreground mt-1 text-lg font-medium">Manage all organizational districts.</p>
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold uppercase tracking-wide text-primary">{t('title')}</h1>
+          <p className="text-muted-foreground mt-1 text-lg font-medium">{t('description')}</p>
         </div>
         
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -90,15 +93,15 @@ export default function DistrictsPage() {
               <Button onClick={handleOpenCreate} className="bg-primary hover:bg-primary/90 text-white font-semibold shadow-md h-11 px-6 rounded-lg transition-transform active:scale-95" />
             }
           >
-            <Plus className="mr-2 h-5 w-5" /> Add New District
+            <Plus className="mr-2 h-5 w-5" /> {t('addNew')}
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle>{editingId ? 'Edit District' : 'Add New District'}</DialogTitle>
+              <DialogTitle>{editingId ? t('editDistrict') : t('addNew')}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4 pt-4">
               <div className="space-y-2">
-                <Label htmlFor="name">District Name *</Label>
+                <Label htmlFor="name">{t('districtName')} *</Label>
                 <Input 
                   id="name" 
                   value={formData.name}
@@ -107,7 +110,7 @@ export default function DistrictsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="contactName">Contact Name</Label>
+                <Label htmlFor="contactName">{t('contactName')}</Label>
                 <Input 
                   id="contactName" 
                   value={formData.contactName}
@@ -115,7 +118,7 @@ export default function DistrictsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="contactPhone">Contact Phone</Label>
+                <Label htmlFor="contactPhone">{t('contactPhone')}</Label>
                 <Input 
                   id="contactPhone" 
                   value={formData.contactPhone}
@@ -123,7 +126,7 @@ export default function DistrictsPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="contactEmail">Contact Email</Label>
+                <Label htmlFor="contactEmail">{t('contactEmail')}</Label>
                 <Input 
                   id="contactEmail" 
                   type="email"
@@ -132,9 +135,9 @@ export default function DistrictsPage() {
                 />
               </div>
               <DialogFooter className="pt-4">
-                <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+                <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>{tCommon('cancel')}</Button>
                 <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-                  {editingId ? 'Save Changes' : 'Create District'}
+                  {editingId ? tCommon('saveChanges') : t('createDistrict')}
                 </Button>
               </DialogFooter>
             </form>
@@ -147,7 +150,7 @@ export default function DistrictsPage() {
         <div className="relative w-full sm:w-96">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input 
-            placeholder="Search districts..." 
+            placeholder={t('searchPlaceholder')} 
             className="pl-10 h-11 bg-zinc-50 dark:bg-zinc-900 border-primary/20 focus-visible:ring-primary/30 rounded-md transition-all"
           />
         </div>
@@ -158,21 +161,21 @@ export default function DistrictsPage() {
         <Table>
           <TableHeader className="bg-primary/5">
             <TableRow className="hover:bg-transparent">
-              <TableHead className="font-semibold text-primary py-4">District Name</TableHead>
-              <TableHead className="font-semibold text-primary py-4">Contact Name</TableHead>
-              <TableHead className="font-semibold text-primary py-4">Phone</TableHead>
-              <TableHead className="font-semibold text-primary py-4">Created At</TableHead>
-              <TableHead className="font-semibold text-primary py-4 text-right">Actions</TableHead>
+              <TableHead className="font-semibold text-primary py-4">{t('districtName')}</TableHead>
+              <TableHead className="font-semibold text-primary py-4">{t('contactName')}</TableHead>
+              <TableHead className="font-semibold text-primary py-4">{t('phone')}</TableHead>
+              <TableHead className="font-semibold text-primary py-4">{t('createdAt')}</TableHead>
+              <TableHead className="font-semibold text-primary py-4 text-right">{tCommon('actions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Loading districts...</TableCell>
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">{t('loading')}</TableCell>
               </TableRow>
             ) : districts?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">No districts found.</TableCell>
+                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">{t('noDistricts')}</TableCell>
               </TableRow>
             ) : (
               districts?.map((district) => (

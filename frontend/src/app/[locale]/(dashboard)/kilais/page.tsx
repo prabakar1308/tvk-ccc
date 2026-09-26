@@ -17,6 +17,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { Link } from '@/i18n/routing';
+import { useTranslations } from 'next-intl';
 import {
   Select,
   SelectContent,
@@ -39,6 +40,9 @@ import { useBooths, useBoothAreas } from '@/hooks/use-booths';
 import { CreateKilaiDto } from '@/services/api/kilais';
 
 export default function KilaisPage() {
+  const t = useTranslations('Kilais');
+  const tCommon = useTranslations('Common');
+  const tForms = useTranslations('Forms');
   const { data: kilais, isLoading } = useKilais();
   const { data: unions } = useUnions();
   const { data: booths } = useBooths();
@@ -96,7 +100,7 @@ export default function KilaisPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.unionId) {
-      alert("Please select a union");
+      alert(t('selectUnionAlert'));
       return;
     }
     
@@ -112,7 +116,7 @@ export default function KilaisPage() {
   };
 
   const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this kilai?")) {
+    if (confirm(t('deleteConfirm'))) {
       deleteMutation.mutate(id);
     }
   };
@@ -133,8 +137,8 @@ export default function KilaisPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold uppercase tracking-wide text-primary">Kilais</h1>
-          <p className="text-muted-foreground mt-1 text-lg font-medium">Manage all organizational kilais.</p>
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold uppercase tracking-wide text-primary">{t('title')}</h1>
+          <p className="text-muted-foreground mt-1 text-lg font-medium">{t('description')}</p>
         </div>
         
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -146,15 +150,15 @@ export default function KilaisPage() {
               />
             }
           >
-            <Plus className="mr-2 h-5 w-5" /> Add New Kilai
+            <Plus className="mr-2 h-5 w-5" /> {t('addNew')}
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>{editingId ? 'Edit Kilai' : 'Add New Kilai'}</DialogTitle>
+              <DialogTitle>{editingId ? t('editKilai') : t('addNew')}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4 pt-4">
               <div className="space-y-2">
-                <Label htmlFor="name">Kilai Name *</Label>
+                <Label htmlFor="name">{t('kilaiName')} *</Label>
                 <Input 
                   id="name" 
                   value={formData.name}
@@ -163,16 +167,16 @@ export default function KilaisPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="unionId">Union *</Label>
+                <Label htmlFor="unionId">{t('union')} *</Label>
                 <Select 
                   value={formData.unionId} 
                   onValueChange={(val) => setFormData({...formData, unionId: val || ''})}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select a union">
+                    <SelectValue placeholder={t('selectUnion')}>
                       {formData.unionId 
-                        ? unions?.find((u: any) => String(u.id || u._id) === formData.unionId)?.name || 'Select a union'
-                        : "Select a union"}
+                        ? unions?.find((u: any) => String(u.id || u._id) === formData.unionId)?.name || t('selectUnion')
+                        : t('selectUnion')}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
@@ -185,7 +189,7 @@ export default function KilaisPage() {
                 </Select>
               </div>
               <div className="space-y-2 flex flex-col">
-                <Label>Linked Booths</Label>
+                <Label>{t('linkedBooths')}</Label>
                 <Popover>
                   <PopoverTrigger className="flex h-auto min-h-11 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm hover:bg-accent hover:text-accent-foreground font-normal">
                       <div className="flex flex-wrap gap-1 items-center">
@@ -215,16 +219,16 @@ export default function KilaisPage() {
                             );
                           })
                         ) : (
-                          <span className="text-muted-foreground">Select booths...</span>
+                          <span className="text-muted-foreground">{t('selectBooths')}</span>
                         )}
                       </div>
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </PopoverTrigger>
                   <PopoverContent className="w-[300px] sm:w-[375px] p-0" align="start">
                     <Command>
-                      <CommandInput placeholder="Search booths..." />
+                      <CommandInput placeholder={t('searchBooths')} />
                       <CommandList>
-                        <CommandEmpty>No booth found.</CommandEmpty>
+                        <CommandEmpty>{t('noBoothFound')}</CommandEmpty>
                         <CommandGroup>
                           {booths?.map((booth: any) => {
                             const isSelected = formData.linkedBooths?.includes(String(booth.id || booth._id));
@@ -260,7 +264,7 @@ export default function KilaisPage() {
                 </Popover>
               </div>
               <div className="space-y-2 flex flex-col">
-                <Label>Villages / Areas</Label>
+                <Label>{t('villagesAreas')}</Label>
                 <Popover>
                   <PopoverTrigger className="flex h-auto min-h-11 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm hover:bg-accent hover:text-accent-foreground font-normal">
                       <div className="flex flex-wrap gap-1 items-center">
@@ -287,16 +291,16 @@ export default function KilaisPage() {
                             </div>
                           ))
                         ) : (
-                          <span className="text-muted-foreground">Select areas...</span>
+                          <span className="text-muted-foreground">{t('selectAreas')}</span>
                         )}
                       </div>
                       <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                   </PopoverTrigger>
                   <PopoverContent className="w-[300px] sm:w-[375px] p-0" align="start">
                     <Command>
-                      <CommandInput placeholder="Search areas..." />
+                      <CommandInput placeholder={t('searchAreas')} />
                       <CommandList>
-                        <CommandEmpty>No area found.</CommandEmpty>
+                        <CommandEmpty>{t('noAreaFound')}</CommandEmpty>
                         <CommandGroup>
                           {areas?.map((area: string) => {
                             const isSelected = formData.villages?.includes(area);
@@ -331,23 +335,23 @@ export default function KilaisPage() {
                 </Popover>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="status">Status</Label>
+                <Label htmlFor="status">{t('status')}</Label>
                 <Select 
                   value={formData.status} 
                   onValueChange={(val: any) => setFormData({...formData, status: val})}
                 >
                   <SelectTrigger className="w-full">
-                    <SelectValue placeholder="Select status" />
+                    <SelectValue placeholder={t('selectStatus')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ACTIVE">Active</SelectItem>
-                    <SelectItem value="INACTIVE">Inactive</SelectItem>
-                    <SelectItem value="PENDING">Pending</SelectItem>
+                    <SelectItem value="ACTIVE">{t('active')}</SelectItem>
+                    <SelectItem value="INACTIVE">{t('inactive')}</SelectItem>
+                    <SelectItem value="PENDING">{t('pending')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
+                <Label htmlFor="phone">{tForms('phone')}</Label>
                 <Input 
                   id="phone" 
                   value={formData.phone || ''}
@@ -355,9 +359,9 @@ export default function KilaisPage() {
                 />
               </div>
               <DialogFooter className="pt-4">
-                <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+                <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>{tCommon('cancel')}</Button>
                 <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
-                  {editingId ? 'Save Changes' : 'Create Kilai'}
+                  {editingId ? tCommon('saveChanges') : t('createKilai')}
                 </Button>
               </DialogFooter>
             </form>
@@ -370,7 +374,7 @@ export default function KilaisPage() {
         <div className="relative w-full sm:w-96">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input 
-            placeholder="Search kilais by name..." 
+            placeholder={t('searchPlaceholder')} 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 h-11 bg-zinc-50 dark:bg-zinc-900 border-primary/20 focus-visible:ring-primary/30 rounded-md transition-all"
@@ -380,14 +384,14 @@ export default function KilaisPage() {
         <div className="w-full sm:w-64">
           <Select value={selectedUnion} onValueChange={(value) => setSelectedUnion(value || '')}>
             <SelectTrigger className="h-11 border-primary/20 bg-zinc-50 dark:bg-zinc-900 focus:ring-primary/30 rounded-md w-full">
-              <SelectValue placeholder="Filter by Union">
+              <SelectValue placeholder={t('filterUnion')}>
                 {selectedUnion === 'all' 
-                  ? 'All Unions' 
-                  : unions?.find((u: any) => String(u.id || u._id) === selectedUnion)?.name || 'Filter by Union'}
+                  ? t('allUnions') 
+                  : unions?.find((u: any) => String(u.id || u._id) === selectedUnion)?.name || t('filterUnion')}
               </SelectValue>
             </SelectTrigger>
             <SelectContent align="end">
-              <SelectItem value="all">All Unions</SelectItem>
+              <SelectItem value="all">{t('allUnions')}</SelectItem>
               {unions?.map((union: any) => (
                 <SelectItem key={union.id || union._id} value={String(union.id || union._id)}>
                   {union.name}
@@ -401,18 +405,18 @@ export default function KilaisPage() {
       {/* Data Table */}
       <div className="space-y-8">
         {isLoading ? (
-          <div className="text-center py-8 text-muted-foreground bg-card rounded-lg border border-primary/20 shadow-sm">Loading kilais...</div>
+          <div className="text-center py-8 text-muted-foreground bg-card rounded-lg border border-primary/20 shadow-sm">{t('loading')}</div>
         ) : !filteredKilais || filteredKilais.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground bg-card rounded-lg border border-primary/20 shadow-sm">No kilais found.</div>
+          <div className="text-center py-8 text-muted-foreground bg-card rounded-lg border border-primary/20 shadow-sm">{t('noKilais')}</div>
         ) : (
           <div className="rounded-lg border border-primary/20 bg-card shadow-sm overflow-hidden">
             <Table>
               <TableHeader className="bg-primary/5">
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="font-semibold text-primary py-4">Kilai Name</TableHead>
-                  <TableHead className="font-semibold text-primary py-4">Union</TableHead>
-                  <TableHead className="font-semibold text-primary py-4">Status</TableHead>
-                  <TableHead className="font-semibold text-primary py-4 text-right">Actions</TableHead>
+                  <TableHead className="font-semibold text-primary py-4">{t('kilaiName')}</TableHead>
+                  <TableHead className="font-semibold text-primary py-4">{t('union')}</TableHead>
+                  <TableHead className="font-semibold text-primary py-4">{t('status')}</TableHead>
+                  <TableHead className="font-semibold text-primary py-4 text-right">{tCommon('actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -438,7 +442,7 @@ export default function KilaisPage() {
                           kilai.status === 'INACTIVE' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
                           'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
                         }`}>
-                          {kilai.status || 'PENDING'}
+                          {kilai.status ? t(kilai.status.toLowerCase()) : t('pending')}
                         </span>
                       </TableCell>
                       <TableCell className="text-right py-4">

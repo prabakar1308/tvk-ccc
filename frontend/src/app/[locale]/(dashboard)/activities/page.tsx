@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import {
   Table,
   TableBody,
@@ -14,6 +16,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Search, Plus, Calendar, Zap, AlertTriangle, Eye, Edit2, Users, Megaphone } from "lucide-react";
 
 export default function ActivitiesPage() {
+  const t = useTranslations('Activities');
+  const tCommon = useTranslations('Common');
   const activities = [
     { id: 1, title: 'Monthly Strategy Meeting', type: 'MEETING', date: '2026-08-01', organizedBy: 'South Chennai Union', participants: 45 },
     { id: 2, title: 'Membership Drive', type: 'CAMPAIGN', date: '2026-08-05', organizedBy: 'North Chennai Union', participants: 120 },
@@ -25,11 +29,11 @@ export default function ActivitiesPage() {
   const getTypeBadge = (type: string) => {
     switch (type) {
       case 'WELFARE':
-        return <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-primary/10 text-primary border border-primary/20">Welfare</span>;
+        return <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-primary/10 text-primary border border-primary/20">{t('reliefWork')}</span>;
       case 'MEETING':
-        return <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-manjal text-black border border-manjal/20">Meeting</span>;
+        return <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-manjal text-black border border-manjal/20">{t('meeting')}</span>;
       default:
-        return <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-muted text-muted-foreground border border-border">Campaign</span>;
+        return <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-muted text-muted-foreground border border-border">{t('campaign')}</span>;
     }
   };
 
@@ -38,11 +42,11 @@ export default function ActivitiesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold uppercase tracking-wide text-primary">Activities</h1>
-          <p className="text-muted-foreground mt-1 text-lg font-medium">Track grassroots initiatives, meetings, and campaigns.</p>
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold uppercase tracking-wide text-primary">{t('title')}</h1>
+          <p className="text-muted-foreground mt-1 text-lg font-medium">{t('description')}</p>
         </div>
         <Button className="bg-primary hover:bg-primary/90 text-white font-semibold shadow-md h-11 px-6 rounded-lg transition-transform active:scale-95">
-          <Plus className="mr-2 h-5 w-5" /> Log Activity
+          <Plus className="mr-2 h-5 w-5" /> {t('newActivity')}
         </Button>
       </div>
 
@@ -90,12 +94,12 @@ export default function ActivitiesPage() {
         <div className="relative w-full sm:w-96">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input 
-            placeholder="Search activities..." 
+            placeholder={t('searchPlaceholder')} 
             className="pl-10 h-11 bg-zinc-50 dark:bg-zinc-900 border-primary/20 focus-visible:ring-primary/30 rounded-md transition-all"
           />
         </div>
         <div className="flex gap-2 w-full sm:w-auto">
-          <Button variant="outline" className="h-11 rounded-md px-6 font-medium border-primary/20 text-primary hover:bg-primary/5">Export CSV</Button>
+          <Button variant="outline" className="h-11 rounded-md px-6 font-medium border-primary/20 text-primary hover:bg-primary/5">{tCommon('exportCsv')}</Button>
         </div>
       </div>
 
@@ -104,12 +108,12 @@ export default function ActivitiesPage() {
         <Table>
           <TableHeader className="bg-primary/5">
             <TableRow className="hover:bg-transparent">
-              <TableHead className="font-semibold text-primary py-4">Title</TableHead>
-              <TableHead className="font-semibold text-primary py-4">Type</TableHead>
+              <TableHead className="font-semibold text-primary py-4">{t('activityTitle')}</TableHead>
+              <TableHead className="font-semibold text-primary py-4">{t('type')}</TableHead>
               <TableHead className="font-semibold text-primary py-4">Organized By</TableHead>
-              <TableHead className="font-semibold text-primary py-4 text-right">Participants</TableHead>
-              <TableHead className="font-semibold text-primary py-4">Date</TableHead>
-              <TableHead className="font-semibold text-primary py-4 text-right">Actions</TableHead>
+              <TableHead className="font-semibold text-primary py-4 text-right">{t('participants')}</TableHead>
+              <TableHead className="font-semibold text-primary py-4">{t('date')}</TableHead>
+              <TableHead className="font-semibold text-primary py-4 text-right">{tCommon('actions')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

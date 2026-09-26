@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Search, Plus, UserCheck, UserPlus, Trophy, Edit2, Trash2, UploadCloud, AlertCircle } from "lucide-react";
 import { Link } from '@/i18n/routing';
+import { useTranslations } from 'next-intl';
 import { useCadres, useDeleteCadre } from '@/hooks/use-cadres';
 import { useUnions } from '@/hooks/use-unions';
 import { useKilais } from '@/hooks/use-kilais';
@@ -30,6 +31,9 @@ import { CreateCadreDto } from '@/services/api/cadres';
 import { CadreFormDialog } from '@/components/cadre-form-dialog';
 
 export default function CadresPage() {
+  const t = useTranslations('Cadres');
+  const tCommon = useTranslations('Common');
+  const tForms = useTranslations('Forms');
   const [levelFilter, setLevelFilter] = useState<string>('ALL');
   const [filterLevel, setFilterLevel] = useState<string>('ALL');
   const [filterUnionId, setFilterUnionId] = useState<string>('');
@@ -57,7 +61,7 @@ export default function CadresPage() {
   
 
   const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this cadre?")) {
+    if (confirm(t('deleteConfirm'))) {
       deleteMutation.mutate(id);
     }
   };
@@ -92,12 +96,12 @@ export default function CadresPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold uppercase tracking-wide text-primary">Cadres</h1>
-          <p className="text-muted-foreground mt-1 text-lg font-medium">Manage party members, roles, and grassroots engagement.</p>
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold uppercase tracking-wide text-primary">{t('title')}</h1>
+          <p className="text-muted-foreground mt-1 text-lg font-medium">{t('description')}</p>
         </div>
         
         <Button onClick={handleOpenCreate} className="bg-primary hover:bg-primary/90 text-white font-semibold shadow-md h-11 px-6 rounded-lg transition-transform active:scale-95">
-            <Plus className="mr-2 h-5 w-5" /> Register Cadre
+            <Plus className="mr-2 h-5 w-5" /> {t('register')}
           </Button>
       <CadreFormDialog 
         isOpen={isModalOpen}
@@ -116,7 +120,7 @@ export default function CadresPage() {
               <UserCheck className="w-8 h-8" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Total Cadres</p>
+              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t('totalCadres')}</p>
               <h2 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold text-foreground mt-1">{cadres?.length || 0}</h2>
             </div>
           </CardContent>
@@ -128,7 +132,7 @@ export default function CadresPage() {
               <UserPlus className="w-8 h-8" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">New This Month</p>
+              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t('newThisMonth')}</p>
               <h2 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold text-foreground mt-1">+{(cadres?.length || 0) > 0 ? 1 : 0}</h2>
             </div>
           </CardContent>
@@ -140,7 +144,7 @@ export default function CadresPage() {
               <Trophy className="w-8 h-8" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Active Cadres</p>
+              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t('activeCadres')}</p>
               <h2 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold text-foreground mt-1">100%</h2>
             </div>
           </CardContent>
@@ -152,7 +156,7 @@ export default function CadresPage() {
         <div className="relative w-full sm:w-96">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input 
-            placeholder="Search cadres by name, ID, or phone..." 
+            placeholder={t('searchPlaceholder')} 
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10 h-11 bg-zinc-50 dark:bg-zinc-900 border-primary/20 focus-visible:ring-primary/30 rounded-md transition-all"
@@ -161,10 +165,10 @@ export default function CadresPage() {
         <div className="flex gap-2 w-full sm:w-auto">
           <Link href="/cadres/import">
             <Button variant="outline" className="h-11 rounded-md px-6 font-medium border-primary/20 text-primary hover:bg-primary/5">
-              <UploadCloud className="w-4 h-4 mr-2" /> Import Excel
+              <UploadCloud className="w-4 h-4 mr-2" /> {tCommon('importExcel')}
             </Button>
           </Link>
-          <Button variant="outline" className="h-11 rounded-md px-6 font-medium border-primary/20 text-primary hover:bg-primary/5">Export CSV</Button>
+          <Button variant="outline" className="h-11 rounded-md px-6 font-medium border-primary/20 text-primary hover:bg-primary/5">{tCommon('exportCsv')}</Button>
         </div>
       </div>
 
@@ -182,7 +186,7 @@ export default function CadresPage() {
               }}
               className={`px-4 py-2 font-semibold whitespace-nowrap ${levelFilter === level ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground hover:text-primary'}`}
             >
-              {level === 'ALL' ? 'All Cadres' : `${level.charAt(0) + level.slice(1).toLowerCase()} Level`}
+              {level === 'ALL' ? t('allCadres') : `${level.charAt(0) + level.slice(1).toLowerCase()} ${t('levelSuffix')}`}
             </button>
           ))}
         </div>
@@ -193,15 +197,15 @@ export default function CadresPage() {
              <div className="w-48">
                <Select value={filterLevel} onValueChange={(v) => { setFilterLevel(v || 'ALL'); setFilterUnionId(''); setFilterKilaiId(''); }}>
                   <SelectTrigger>
-                    <SelectValue placeholder="All Levels">
-                      {filterLevel === 'DISTRICT' ? 'District Level' : filterLevel === 'UNION' ? 'Union Level' : filterLevel === 'KILAI' ? 'Kilai Level' : 'All Levels'}
+                    <SelectValue placeholder={t('allLevels')}>
+                      {filterLevel === 'DISTRICT' ? t('districtLevel') : filterLevel === 'UNION' ? t('unionLevel') : filterLevel === 'KILAI' ? t('kilaiLevel') : t('allLevels')}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                     <SelectItem value="ALL">All Levels</SelectItem>
-                     <SelectItem value="DISTRICT">District Level</SelectItem>
-                     <SelectItem value="UNION">Union Level</SelectItem>
-                     <SelectItem value="KILAI">Kilai Level</SelectItem>
+                     <SelectItem value="ALL">{t('allLevels')}</SelectItem>
+                     <SelectItem value="DISTRICT">{t('districtLevel')}</SelectItem>
+                     <SelectItem value="UNION">{t('unionLevel')}</SelectItem>
+                     <SelectItem value="KILAI">{t('kilaiLevel')}</SelectItem>
                   </SelectContent>
                </Select>
              </div>
@@ -211,7 +215,7 @@ export default function CadresPage() {
              <div className="w-56">
                <Select value={filterUnionId} onValueChange={(v) => { setFilterUnionId(v || ''); setFilterKilaiId(''); }}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select Union">
+                    <SelectValue placeholder={t('selectUnion')}>
                       {filterUnionId ? unions.find((u: any) => String(u.id || u._id) === filterUnionId)?.name : undefined}
                     </SelectValue>
                   </SelectTrigger>
@@ -228,7 +232,7 @@ export default function CadresPage() {
              <div className="w-56">
                <Select value={filterKilaiId} onValueChange={(v) => setFilterKilaiId(v || '')} disabled={!filterUnionId}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select Kilai">
+                    <SelectValue placeholder={t('selectKilai')}>
                       {filterKilaiId ? kilais.find((k: any) => String(k.id || k._id) === filterKilaiId)?.name : undefined}
                     </SelectValue>
                   </SelectTrigger>
@@ -243,19 +247,19 @@ export default function CadresPage() {
         </div>
         <div className="overflow-x-auto">
           {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">Loading cadres...</div>
+            <div className="text-center py-8 text-muted-foreground">{t('loading')}</div>
           ) : filteredCadres.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">No cadres found.</div>
+            <div className="text-center py-8 text-muted-foreground">{t('noCadres')}</div>
           ) : (
             <Table>
               <TableHeader className="bg-primary/5">
                 <TableRow className="hover:bg-transparent">
-                  <TableHead className="font-semibold text-primary py-4">Member ID</TableHead>
-                  <TableHead className="font-semibold text-primary py-4">Name</TableHead>
-                  <TableHead className="font-semibold text-primary py-4">Level</TableHead>
-                  <TableHead className="font-semibold text-primary py-4">Designation</TableHead>
-                  <TableHead className="font-semibold text-primary py-4">Phone</TableHead>
-                  <TableHead className="font-semibold text-primary py-4 text-right">Actions</TableHead>
+                  <TableHead className="font-semibold text-primary py-4">{t('memberId')}</TableHead>
+                  <TableHead className="font-semibold text-primary py-4">{tForms('name')}</TableHead>
+                  <TableHead className="font-semibold text-primary py-4">{t('level')}</TableHead>
+                  <TableHead className="font-semibold text-primary py-4">{t('designation')}</TableHead>
+                  <TableHead className="font-semibold text-primary py-4">{tForms('phone')}</TableHead>
+                  <TableHead className="font-semibold text-primary py-4 text-right">{tCommon('actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

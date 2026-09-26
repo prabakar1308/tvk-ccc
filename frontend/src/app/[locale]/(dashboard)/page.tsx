@@ -10,10 +10,12 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { Link } from '@/i18n/routing';
+import { useTranslations } from 'next-intl';
 import { useDashboardStats } from '@/hooks/use-dashboard';
 import { useCadres } from '@/hooks/use-cadres';
 
 export default function DashboardPage() {
+  const t = useTranslations('Dashboard');
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: districtCadres, isLoading: cadresLoading } = useCadres({ level: 'DISTRICT' });
   
@@ -41,11 +43,11 @@ export default function DashboardPage() {
               <Users className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
             </div>
             <div className="flex-1 grid grid-cols-[1fr_auto] items-center sm:block">
-              <p className="text-[16px] sm:text-[16px] font-semibold text-gray-800 col-start-1 row-start-1">Total Unions</p>
+              <p className="text-[16px] sm:text-[16px] font-semibold text-gray-800 col-start-1 row-start-1">{t('totalUnions')}</p>
               <h3 className="text-[22px] sm:text-[28px] font-bold text-gray-900 leading-tight col-start-2 row-start-1 row-span-2 text-right sm:text-left">
                 {statsLoading ? '...' : stats?.totalUnions || 0}
               </h3>
-              <p className="text-[12px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1 col-start-1 row-start-2">Across the constituency</p>
+              <p className="text-[12px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1 col-start-1 row-start-2">{t('acrossConstituency')}</p>
             </div>
             <ArrowRight className="w-4 h-4 text-gray-300 hidden sm:block" />
           </div>
@@ -58,11 +60,11 @@ export default function DashboardPage() {
               <Store className="w-6 h-6 sm:w-8 sm:h-8 text-green-500" />
             </div>
             <div className="flex-1 grid grid-cols-[1fr_auto] items-center sm:block">
-              <p className="text-[16px] sm:text-[16px] font-semibold text-gray-800 col-start-1 row-start-1">Total Kilais</p>
+              <p className="text-[16px] sm:text-[16px] font-semibold text-gray-800 col-start-1 row-start-1">{t('totalKilais')}</p>
               <h3 className="text-[22px] sm:text-[28px] font-bold text-gray-900 leading-tight col-start-2 row-start-1 row-span-2 text-right sm:text-left">
                 {statsLoading ? '...' : stats?.totalKilais || 0}
               </h3>
-              <p className="text-[12px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1 col-start-1 row-start-2">Registered kilais</p>
+              <p className="text-[12px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1 col-start-1 row-start-2">{t('registeredKilais')}</p>
             </div>
             <ArrowRight className="w-4 h-4 text-gray-300 hidden sm:block" />
           </div>
@@ -75,11 +77,11 @@ export default function DashboardPage() {
               <UserCog className="w-6 h-6 sm:w-8 sm:h-8 text-purple-500" />
             </div>
             <div className="flex-1 grid grid-cols-[1fr_auto] items-center sm:block">
-              <p className="text-[16px] sm:text-[16px] font-semibold text-gray-800 col-start-1 row-start-1">Total Cadres</p>
+              <p className="text-[16px] sm:text-[16px] font-semibold text-gray-800 col-start-1 row-start-1">{t('totalCadres')}</p>
               <h3 className="text-[22px] sm:text-[28px] font-bold text-gray-900 leading-tight col-start-2 row-start-1 row-span-2 text-right sm:text-left">
                 {statsLoading ? '...' : stats?.totalCadres || 0}
               </h3>
-              <p className="text-[12px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1 col-start-1 row-start-2">Active cadres</p>
+              <p className="text-[12px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1 col-start-1 row-start-2">{t('activeCadres')}</p>
             </div>
             <ArrowRight className="w-4 h-4 text-gray-300 hidden sm:block" />
           </div>
@@ -92,11 +94,11 @@ export default function DashboardPage() {
               <Building2 className="w-6 h-6 sm:w-8 sm:h-8 text-orange-500" />
             </div>
             <div className="flex-1 grid grid-cols-[1fr_auto] items-center sm:block">
-              <p className="text-[16px] sm:text-[16px] font-semibold text-gray-800 col-start-1 row-start-1">Total Booths</p>
+              <p className="text-[16px] sm:text-[16px] font-semibold text-gray-800 col-start-1 row-start-1">{t('totalBooths')}</p>
               <h3 className="text-[22px] sm:text-[28px] font-bold text-gray-900 leading-tight col-start-2 row-start-1 row-span-2 text-right sm:text-left">
                 {statsLoading ? '...' : stats?.totalBooths || 0}
               </h3>
-              <p className="text-[12px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1 col-start-1 row-start-2">Across the constituency</p>
+              <p className="text-[12px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1 col-start-1 row-start-2">{t('acrossConstituency')}</p>
             </div>
             <ArrowRight className="w-4 h-4 text-gray-300 hidden sm:block" />
           </div>
@@ -178,7 +180,7 @@ export default function DashboardPage() {
         {/* District Cadres Section */}
         <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-8 shadow-sm border border-gray-100 flex flex-col justify-center">
           <div className="flex items-center justify-between mb-4 sm:mb-6">
-             <h2 className="text-[16px] sm:text-[18px] font-bold text-gray-900 tracking-wide">District Cadres</h2>
+             <h2 className="text-[16px] sm:text-[18px] font-bold text-gray-900 tracking-wide">{t('districtCadres')}</h2>
           </div>
           
           <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
@@ -194,11 +196,11 @@ export default function DashboardPage() {
                     <img src={secretary.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(secretary.name)}&background=8F0A1B&color=fff&size=128`} alt={secretary.name} className="w-full h-full object-cover" />
                   </div>
                   <h3 className="font-bold text-[14px] sm:text-[16px] text-gray-900 text-center leading-tight mb-1">{secretary.name}</h3>
-                  <p className="text-[11px] sm:text-[12px] font-bold text-[#8F0A1B] bg-[#8F0A1B]/10 px-3 py-1 rounded-full mt-1">{secretary.role || 'Secretary'}</p>
+                  <p className="text-[11px] sm:text-[12px] font-bold text-[#8F0A1B] bg-[#8F0A1B]/10 px-3 py-1 rounded-full mt-1">{secretary.role || t('roleSecretary')}</p>
                 </div>
               ) : (
                 <div className="flex flex-col items-center justify-center p-5 sm:p-6 rounded-xl border border-dashed border-gray-300 h-full text-center">
-                  <p className="text-gray-500 font-medium">No district cadres found.</p>
+                  <p className="text-gray-500 font-medium">{t('noDistrictCadres')}</p>
                 </div>
               )}
             </div>
@@ -222,7 +224,7 @@ export default function DashboardPage() {
                               <img src={cadre.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(cadre.name)}&background=8F0A1B&color=fff&size=128`} alt={cadre.name} className="w-full h-full object-cover" />
                             </div>
                             <h3 className="font-bold text-[14px] sm:text-[15px] text-gray-900 text-center leading-tight mb-1">{cadre.name}</h3>
-                            <p className="text-[11px] sm:text-[12px] font-semibold text-[#8F0A1B] text-center">{cadre.role || 'Cadre'}</p>
+                            <p className="text-[11px] sm:text-[12px] font-semibold text-[#8F0A1B] text-center">{cadre.role || t('roleCadre')}</p>
                           </div>
                         </div>
                       </CarouselItem>

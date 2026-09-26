@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import {
   Table,
   TableBody,
@@ -14,6 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Search, ShieldAlert, History, UserCog, Download, Fingerprint, Clock, Activity } from "lucide-react";
 
 export default function AuditPage() {
+  const t = useTranslations('Audit');
   const auditLogs = [
     { id: 'AL-1001', timestamp: '2026-08-15 10:23 AM', userId: 'admin', action: 'CREATE', entity: 'User', details: 'Created new user TVK-26-4552' },
     { id: 'AL-1002', timestamp: '2026-08-15 11:05 AM', userId: 'ramesh_k', action: 'UPDATE', entity: 'Activity', details: 'Updated location for Water Protest' },
@@ -25,11 +28,11 @@ export default function AuditPage() {
   const getActionBadge = (action: string) => {
     switch (action) {
       case 'CREATE':
-        return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-primary/10 text-primary border border-primary/20">CREATE</span>;
+        return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-primary/10 text-primary border border-primary/20">{t('create')}</span>;
       case 'UPDATE':
-        return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-manjal/20 text-amber-700 dark:text-manjal border border-manjal/20">UPDATE</span>;
+        return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-manjal/20 text-amber-700 dark:text-manjal border border-manjal/20">{t('update')}</span>;
       case 'DELETE':
-        return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-destructive/10 text-destructive border border-destructive/20">DELETE</span>;
+        return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-destructive/10 text-destructive border border-destructive/20">{t('delete')}</span>;
       default:
         return <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-muted text-muted-foreground border border-border">{action}</span>;
     }
@@ -40,11 +43,11 @@ export default function AuditPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold uppercase tracking-wide text-primary">Audit Logs</h1>
-          <p className="text-muted-foreground mt-1 text-lg font-medium">Monitor system activities, changes, and access records.</p>
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold uppercase tracking-wide text-primary">{t('title')}</h1>
+          <p className="text-muted-foreground mt-1 text-lg font-medium">{t('description')}</p>
         </div>
         <Button variant="outline" className="h-11 px-6 border-primary/30 text-primary hover:bg-primary/5 font-semibold rounded-lg">
-          <Download className="mr-2 h-5 w-5" /> Export Logs
+          <Download className="mr-2 h-5 w-5" /> {t('exportLogs')}
         </Button>
       </div>
 
@@ -92,7 +95,7 @@ export default function AuditPage() {
         <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input 
-            placeholder="Search by User ID, Entity, or Action..." 
+            placeholder={t('searchPlaceholder')} 
             className="pl-10 h-11 bg-zinc-50 dark:bg-zinc-900 border-primary/20 focus-visible:ring-primary/30 rounded-md transition-all"
           />
         </div>
@@ -103,11 +106,11 @@ export default function AuditPage() {
         <Table>
           <TableHeader className="bg-primary/5">
             <TableRow className="hover:bg-transparent">
-              <TableHead className="font-semibold text-primary py-4 w-[200px]">Timestamp</TableHead>
-              <TableHead className="font-semibold text-primary py-4">User ID</TableHead>
-              <TableHead className="font-semibold text-primary py-4">Action</TableHead>
-              <TableHead className="font-semibold text-primary py-4">Entity</TableHead>
-              <TableHead className="font-semibold text-primary py-4 w-1/3">Details</TableHead>
+              <TableHead className="font-semibold text-primary py-4 w-[200px]">{t('timestamp')}</TableHead>
+              <TableHead className="font-semibold text-primary py-4">{t('user')}</TableHead>
+              <TableHead className="font-semibold text-primary py-4">{t('action')}</TableHead>
+              <TableHead className="font-semibold text-primary py-4">{t('module')}</TableHead>
+              <TableHead className="font-semibold text-primary py-4 w-1/3">{t('details')}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
