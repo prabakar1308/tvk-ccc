@@ -15,16 +15,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UploadCloud, AlertCircle, ArrowLeft, Edit2, Trash2, CheckCircle2, ChevronsUpDown, Check } from "lucide-react";
+import { UploadCloud, AlertCircle, ArrowLeft, Edit2, Trash2, CheckCircle2, ChevronsUpDown, Check, X } from "lucide-react";
 import { useCreateBulkCadres } from '@/hooks/use-cadres';
 import { useUnions } from '@/hooks/use-unions';
 import { useKilais } from '@/hooks/use-kilais';
 import { useBooths, useBoothAreas } from '@/hooks/use-booths';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { cn } from "@/lib/utils";
+import { cn, cleanRomanize } from "@/lib/utils";
 import * as XLSX from 'xlsx';
-import { romanize } from 'tamil-romanizer';
 import { CreateCadreDto } from '@/services/api/cadres';
 import {
   Dialog,
@@ -42,6 +41,12 @@ export default function ImportCadresPage() {
   const [parsedCadres, setParsedCadres] = useState<CreateCadreDto[]>([]);
   const [importError, setImportError] = useState<string | null>(null);
   const [duplicateErrors, setDuplicateErrors] = useState<any[]>([]);
+
+  // Bulk Overrides
+  const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
+  const [selectedBooths, setSelectedBooths] = useState<string[]>([]);
+  const [bulkAreaOpen, setBulkAreaOpen] = useState(false);
+  const [bulkBoothOpen, setBulkBoothOpen] = useState(false);
   
   // Dialog Edit State
   const [editingRow, setEditingRow] = useState<(CreateCadreDto & { index: number }) | null>(null);
@@ -54,6 +59,112 @@ export default function ImportCadresPage() {
   const [boothOpen, setBoothOpen] = useState(false);
   const [areaOpen, setAreaOpen] = useState(false);
   const { data: allAreas = [] } = useBoothAreas();
+
+  const processCadreData = (data: any[][], isPaste = false) => {
+    try {
+      // Filter out empty rows and header rows
+      const rows = data.filter(row => {
+        if (!row || row.length === 0 || !row[1]) return false;
+        const nameCol = String(row[1]).trim();
+        if (nameCol === 'பெயர்' || nameCol === 'Name') return false;
+        return true;
+      });
+      
+      const translateRole = (role: string) => {
+        if (!role) return '';
+        const lower = role.trim().toLowerCase();
+        if (lower.includes('செயலாளர்') && lower.includes('இணை')) return 'Joint Secretary';
+        if (lower.includes('செயலாளர்') && lower.includes('துணை')) return 'Deputy Secretary';
+        if (lower.includes('செயலாளர்')) return 'Secretary';
+        if (lower.includes('பொருளாளர்')) return 'Treasurer';
+        if (lower.includes('செயற்குழு')) return 'Executive Committee Member';
+        if (lower.includes('உறுப்பினர்')) return 'Executive Committee Member';
+        return role;
+      };
+
+
+
+      const mapArea = (rawArea: string) => {
+        if (!rawArea) return '';
+        const enArea = cleanRomanize(rawArea);
+        const cleanEn = enArea.toLowerCase().replace(/[^a-z0-9]/g, '');
+        
+        if (!cleanEn) return enArea;
+
+        const found = allAreas.find((a: string) => {
+           const cleanA = a.toLowerCase().replace(/[^a-z0-9]/g, '');
+           return cleanA === cleanEn;
+        });
+        if (found) return found;
+        
+        const fuzzyFound = allAreas.find((a: string) => {
+           const cleanA = a.toLowerCase().replace(/[^a-z0-9]/g, '');
+           return cleanA.includes(cleanEn) || cleanEn.includes(cleanA);
+        });
+        
+        return fuzzyFound || enArea;
+      };
+
+      const mappedCadres: CreateCadreDto[] = rows.map((row) => {
+        let colIndex = 3;
+
+        let finalArea = '';
+        if (selectedAreas.length > 0) {
+          finalArea = selectedAreas.join(', ');
+        } else {
+          finalArea = mapArea(row[colIndex]?.toString() || '');
+          colIndex++;
+        }
+
+        let matchedBoothNo = '';
+        if (selectedBooths.length > 0) {
+          matchedBoothNo = selectedBooths.join(', ');
+        } else {
+          const rawBoothNo = row[colIndex]?.toString() || '';
+          colIndex++;
+          matchedBoothNo = rawBoothNo;
+          if (rawBoothNo) {
+            const cleanRaw = rawBoothNo.replace(/\s+/g, '').toLowerCase();
+            const found = booths.find((b: any) => b.boothNo.replace(/\s+/g, '').toLowerCase() === cleanRaw);
+            if (found) {
+              matchedBoothNo = found.boothNo;
+            }
+          }
+        }
+
+        const phone = row[colIndex]?.toString() || '';
+        colIndex++;
+        const aadhaarNumber = row[colIndex]?.toString() || '';
+        colIndex++;
+        const memberId = row[colIndex]?.toString() || '';
+        const voterId = row[colIndex]?.toString() || '';
+
+        return {
+          name: cleanRomanize(row[1]?.toString() || ''),
+          role: translateRole(row[2]?.toString() || ''),
+          area: finalArea,
+          boothNo: matchedBoothNo,
+          phone: phone,
+          aadhaarNumber: aadhaarNumber,
+          memberId: memberId,
+          voterId: voterId,
+          level: importLevel as any,
+          unionId: importUnionId || undefined,
+          homeKilaiId: importKilaiId || undefined,
+        };
+      });
+
+      if (isPaste) {
+        setParsedCadres((prev) => [...prev, ...mappedCadres]);
+      } else {
+        setParsedCadres(mappedCadres);
+      }
+      setImportError(null);
+    } catch (error) {
+      console.error(error);
+      setImportError("Failed to parse data. Ensure it matches the template format.");
+    }
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -68,109 +179,25 @@ export default function ImportCadresPage() {
         const ws = wb.Sheets[wsname];
         const data = XLSX.utils.sheet_to_json(ws, { header: 1 }) as any[][];
         
-        // Filter out empty rows and header rows
-        const rows = data.filter(row => {
-          if (!row || row.length === 0 || !row[1]) return false;
-          const nameCol = String(row[1]).trim();
-          if (nameCol === 'பெயர்' || nameCol === 'Name') return false;
-          return true;
-        });
-        
-        const translateRole = (role: string) => {
-          if (!role) return '';
-          const lower = role.trim().toLowerCase();
-          if (lower.includes('செயலாளர்') && lower.includes('இணை')) return 'Joint Secretary';
-          if (lower.includes('செயலாளர்') && lower.includes('துணை')) return 'Deputy Secretary';
-          if (lower.includes('செயலாளர்')) return 'Secretary';
-          if (lower.includes('பொருளாளர்')) return 'Treasurer';
-          if (lower.includes('செயற்குழு')) return 'Executive Committee Member';
-          if (lower.includes('உறுப்பினர்')) return 'Executive Committee Member';
-          return role;
-        };
-
-        const cleanRomanize = (text: string) => {
-          if (!text) return '';
-          try {
-            const tamilRegex = /[\u0B80-\u0BFF]/;
-            if (tamilRegex.test(text)) {
-              let res = romanize(text);
-              res = res.replace(/pira/g, 'pra')
-                       .replace(/thira/g, 'thra')
-                       .replace(/kira/g, 'kra')
-                       .replace(/sira/g, 'sra')
-                       .replace(/kiru/g, 'kri')
-                       .replace(/bha/g, 'ba')
-                       .replace(/dha/g, 'da')
-                       .replace(/gha/g, 'ga');
-              res = res.replace(/aa/g, 'a')
-                       .replace(/ee/g, 'e')
-                       .replace(/oo/g, 'o')
-                       .replace(/ii/g, 'i')
-                       .replace(/uu/g, 'u');
-              res = res.split(' ').map((w: any) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-              return res;
-            }
-            return text;
-          } catch (e) {
-            return text;
-          }
-        };
-
-        const mapArea = (rawArea: string) => {
-          if (!rawArea) return '';
-          const enArea = cleanRomanize(rawArea);
-          const cleanEn = enArea.toLowerCase().replace(/[^a-z0-9]/g, '');
-          
-          if (!cleanEn) return enArea;
-
-          const found = allAreas.find((a: string) => {
-             const cleanA = a.toLowerCase().replace(/[^a-z0-9]/g, '');
-             return cleanA === cleanEn;
-          });
-          if (found) return found;
-          
-          const fuzzyFound = allAreas.find((a: string) => {
-             const cleanA = a.toLowerCase().replace(/[^a-z0-9]/g, '');
-             return cleanA.includes(cleanEn) || cleanEn.includes(cleanA);
-          });
-          
-          return fuzzyFound || enArea;
-        };
-
-        const mappedCadres: CreateCadreDto[] = rows.map((row) => {
-          let rawBoothNo = row[4]?.toString() || '';
-          let matchedBoothNo = rawBoothNo;
-          if (rawBoothNo) {
-            const cleanRaw = rawBoothNo.replace(/\s+/g, '').toLowerCase();
-            const found = booths.find((b: any) => b.boothNo.replace(/\s+/g, '').toLowerCase() === cleanRaw);
-            if (found) {
-              matchedBoothNo = found.boothNo;
-            }
-          }
-
-          return {
-            name: cleanRomanize(row[1]?.toString() || ''),
-            role: translateRole(row[2]?.toString() || ''),
-            area: mapArea(row[3]?.toString() || ''),
-            boothNo: matchedBoothNo,
-          phone: row[5]?.toString() || '',
-          aadhaarNumber: row[6]?.toString() || '',
-          memberId: row[7]?.toString() || '',
-          voterId: row[7]?.toString() || '',
-            level: importLevel as any,
-            unionId: importUnionId || undefined,
-            homeKilaiId: importKilaiId || undefined,
-          };
-        });
-        setParsedCadres(mappedCadres);
-        setImportError(null);
+        processCadreData(data, false);
       } catch (error) {
         console.error(error);
-        setImportError("Failed to parse Excel file. Ensure it matches the template format.");
+        setImportError("Failed to parse Excel file.");
       }
     };
     reader.readAsBinaryString(file);
     e.target.value = ''; // reset input
+  };
+
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    e.preventDefault();
+    const clipboardData = e.clipboardData.getData('text');
+    if (!clipboardData) return;
+
+    const rows = clipboardData.split('\n').filter(row => row.trim() !== '');
+    const dataArray = rows.map(row => row.split('\t'));
+    
+    processCadreData(dataArray, true);
   };
 
   const handleBulkSubmit = async () => {
@@ -201,7 +228,7 @@ export default function ImportCadresPage() {
         setDuplicateErrors(data.duplicates);
         setImportError("Duplicate records found for the below names:");
       } else {
-        setImportError(data?.message || error.message || "Failed to import cadres");
+        setImportError(data?.message || error.message || "Failed to Import Administrators");
       }
     }
   };
@@ -215,6 +242,31 @@ export default function ImportCadresPage() {
     setEditingRow(null);
   };
 
+  const applyOverrides = (areas: string[], boothNos: string[]) => {
+    if (parsedCadres.length === 0) return;
+    setParsedCadres(prev => prev.map(c => ({
+      ...c,
+      area: areas.length > 0 ? areas.join(', ') : c.area,
+      boothNo: boothNos.length > 0 ? boothNos.join(', ') : c.boothNo,
+    })));
+  };
+
+  const handleAreaSelect = (area: string) => {
+    setSelectedAreas(prev => {
+      const newAreas = prev.includes(area) ? prev.filter(a => a !== area) : [...prev, area];
+      applyOverrides(newAreas, selectedBooths);
+      return newAreas;
+    });
+  };
+
+  const handleBoothSelect = (boothNo: string) => {
+    setSelectedBooths(prev => {
+      const newBooths = prev.includes(boothNo) ? prev.filter(b => b !== boothNo) : [...prev, boothNo];
+      applyOverrides(selectedAreas, newBooths);
+      return newBooths;
+    });
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both pb-12">
       {/* Header */}
@@ -224,53 +276,53 @@ export default function ImportCadresPage() {
             <ArrowLeft className="w-5 h-5 text-gray-700" />
           </Link>
           <div>
-            <h1 className="text-2xl sm:text-xl md:text-2xl lg:text-3xl font-heading font-bold text-gray-900">Import Cadres</h1>
+            <h1 className="text-2xl sm:text-xl md:text-2xl lg:text-3xl font-heading font-bold text-gray-900">Import Administrators</h1>
             <p className="text-muted-foreground font-medium mt-1">
-              Upload an Excel/CSV file to bulk import cadres
+              Upload an Excel/CSV file to bulk Import Administrators
             </p>
           </div>
         </div>
       </div>
 
       <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-8 shadow-sm border border-gray-100 space-y-6">
+        {/* Form Fields Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Level Selection */}
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Import Level</Label>
-              <Select value={importLevel} onValueChange={(value) => setImportLevel(value || '')}>
+          <div className="space-y-2">
+            <Label>Import Level</Label>
+            <Select value={importLevel} onValueChange={(value) => setImportLevel(value || '')}>
+              <SelectTrigger className="w-full text-base">
+                <SelectValue placeholder="Select level">
+                  {importLevel === 'DISTRICT' ? 'District' : importLevel === 'UNION' ? 'Union' : importLevel === 'KILAI' ? 'Kilai' : ''}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="DISTRICT">District</SelectItem>
+                <SelectItem value="UNION">Union</SelectItem>
+                <SelectItem value="KILAI">Kilai</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {importLevel === 'UNION' && (
+            <div className="space-y-2 animate-in fade-in zoom-in-95 duration-200">
+              <Label>Select Union</Label>
+              <Select value={importUnionId} onValueChange={(value) => setImportUnionId(value || '')}>
                 <SelectTrigger className="w-full text-base">
-                  <SelectValue placeholder="Select level">
-                    {importLevel === 'DISTRICT' ? 'District' : importLevel === 'UNION' ? 'Union' : importLevel === 'KILAI' ? 'Kilai' : ''}
+                  <SelectValue placeholder="Select Union">
+                    {importUnionId ? unions.find((u: any) => String(u.id) === importUnionId)?.name : undefined}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="DISTRICT">District</SelectItem>
-                  <SelectItem value="UNION">Union</SelectItem>
-                  <SelectItem value="KILAI">Kilai</SelectItem>
+                  {unions.map((u: any) => (
+                    <SelectItem key={String(u.id)} value={String(u.id)}>{u.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
+          )}
 
-            {importLevel === 'UNION' && (
-              <div className="space-y-2 animate-in fade-in zoom-in-95 duration-200">
-                <Label>Select Union</Label>
-                <Select value={importUnionId} onValueChange={(value) => setImportUnionId(value || '')}>
-                  <SelectTrigger className="w-full text-base">
-                    <SelectValue placeholder="Select Union">
-                      {importUnionId ? unions.find((u: any) => String(u.id) === importUnionId)?.name : undefined}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {unions.map((u: any) => (
-                      <SelectItem key={String(u.id)} value={String(u.id)}>{u.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {importLevel === 'KILAI' && (
+          {importLevel === 'KILAI' && (
+            <>
               <div className="space-y-2 animate-in fade-in zoom-in-95 duration-200">
                 <Label>Select Kilai</Label>
                 <Select value={importKilaiId} onValueChange={(value) => setImportKilaiId(value || '')}>
@@ -286,20 +338,108 @@ export default function ImportCadresPage() {
                   </SelectContent>
                 </Select>
               </div>
-            )}
-          </div>
 
-          {/* Upload Area */}
+              <div className="space-y-2 animate-in fade-in zoom-in-95 duration-200 flex flex-col">
+                <Label>Area (Optional)</Label>
+                <Popover open={bulkAreaOpen} onOpenChange={setBulkAreaOpen}>
+                  <PopoverTrigger render={<Button variant="outline" role="combobox" aria-expanded={bulkAreaOpen} className={cn("w-full justify-between font-normal h-auto min-h-10", selectedAreas.length === 0 && "text-muted-foreground")} />}>
+                    <div className="flex flex-wrap gap-1 items-center max-w-[calc(100%-2rem)]">
+                      {selectedAreas.length > 0 ? (
+                        selectedAreas.map((area) => (
+                          <span key={area} className="inline-flex items-center gap-1 rounded bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleAreaSelect(area); }}>
+                            {area}
+                            <X className="h-3 w-3 hover:text-destructive cursor-pointer" />
+                          </span>
+                        ))
+                      ) : (
+                        "Select area(s)"
+                      )}
+                    </div>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[var(--anchor-width)] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search area..." />
+                      <CommandList>
+                        <CommandEmpty>No area found.</CommandEmpty>
+                        <CommandGroup>
+                          {allAreas.map((area: string) => (
+                            <CommandItem key={area} onSelect={() => handleAreaSelect(area)}>
+                              <Check className={cn("mr-2 h-4 w-4", selectedAreas.includes(area) ? "opacity-100" : "opacity-0")} />
+                              {area}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="space-y-2 animate-in fade-in zoom-in-95 duration-200 flex flex-col">
+                <Label>Booth (Optional)</Label>
+                <Popover open={bulkBoothOpen} onOpenChange={setBulkBoothOpen}>
+                  <PopoverTrigger render={<Button variant="outline" role="combobox" aria-expanded={bulkBoothOpen} className={cn("w-full justify-between font-normal h-auto min-h-10", selectedBooths.length === 0 && "text-muted-foreground")} />}>
+                    <div className="flex flex-wrap gap-1 items-center max-w-[calc(100%-2rem)]">
+                      {selectedBooths.length > 0 ? (
+                        selectedBooths.map((boothId) => {
+                          const booth = booths.find((b: any) => b.boothNo === boothId);
+                          return (
+                            <span key={boothId} className="inline-flex items-center gap-1 rounded bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleBoothSelect(boothId); }}>
+                              {boothId} {booth ? `- ${booth.area || booth.name}` : ''}
+                              <X className="h-3 w-3 hover:text-destructive cursor-pointer" />
+                            </span>
+                          );
+                        })
+                      ) : (
+                        "Select booth(s)"
+                      )}
+                    </div>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[var(--anchor-width)] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Search booth..." />
+                      <CommandList>
+                        <CommandEmpty>No booth found.</CommandEmpty>
+                        <CommandGroup>
+                          {booths.map((booth: any) => (
+                            <CommandItem key={booth.id} onSelect={() => handleBoothSelect(booth.boothNo)}>
+                              <Check className={cn("mr-2 h-4 w-4", selectedBooths.includes(booth.boothNo) ? "opacity-100" : "opacity-0")} />
+                              {booth.boothNo} - {booth.area || booth.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Upload and Paste Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-6 border-t border-gray-100">
           <div className="space-y-2">
             <Label>Upload Excel File</Label>
-            <label className="flex flex-col items-center justify-center w-full min-h-[100px] border-2 border-dashed border-primary/30 rounded-lg cursor-pointer bg-primary/5 hover:bg-primary/10 transition-colors">
-              <div className="flex flex-col items-center justify-center ">
-                <UploadCloud className="w-8 text-primary/60" />
-                <p className=" text-sm text-foreground font-semibold"><span className="text-primary">Click to upload</span> or drag and drop</p>
+            <label className="flex flex-col items-center justify-center w-full min-h-[120px] border-2 border-dashed border-primary/30 rounded-lg cursor-pointer bg-primary/5 hover:bg-primary/10 transition-colors">
+              <div className="flex flex-col items-center justify-center py-4">
+                <UploadCloud className="w-8 h-8 text-primary/60 mb-2" />
+                <p className="text-sm text-foreground font-semibold"><span className="text-primary">Click to upload</span> or drag and drop</p>
                 <p className="text-xs text-muted-foreground">.xlsx or .xls files only</p>
               </div>
-              <input type="file" accept=".xlsx, .xls" onChange={handleFileUpload} className="hidden" />
+              <input id="cadre-file-upload" type="file" accept=".xlsx, .xls" onChange={handleFileUpload} className="hidden" />
             </label>
+          </div>
+          
+          <div className="space-y-2">
+            <Label>Paste Data from Excel</Label>
+            <textarea 
+              onPaste={handlePaste}
+              placeholder="Click here and press Ctrl+V to paste cells directly from Excel..."
+              className="w-full min-h-[120px] p-4 text-sm bg-primary/5 border-2 border-dashed border-primary/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none placeholder:text-center placeholder:pt-8"
+            />
           </div>
         </div>
 
@@ -324,10 +464,25 @@ export default function ImportCadresPage() {
       {parsedCadres.length > 0 && (
         <div className="space-y-4 animate-in fade-in duration-500">
           <div className="flex justify-between items-end">
-            <h3 className="font-bold text-lg text-gray-900">Preview ({parsedCadres.length} cadres)</h3>
-            <Button onClick={handleBulkSubmit} disabled={bulkCreateMutation.isPending} className="bg-primary hover:bg-primary/90 text-white">
-              {bulkCreateMutation.isPending ? 'Importing...' : 'Submit Cadres'}
-            </Button>
+            <h3 className="font-bold text-lg text-gray-900">Preview ({parsedCadres.length} administrators)</h3>
+            <div className="flex items-center gap-3">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setParsedCadres([]);
+                  setImportError(null);
+                  setDuplicateErrors([]);
+                  const fileInput = document.getElementById('cadre-file-upload') as HTMLInputElement;
+                  if (fileInput) fileInput.value = '';
+                }}
+                disabled={bulkCreateMutation.isPending}
+              >
+                Clear Data
+              </Button>
+              <Button onClick={handleBulkSubmit} disabled={bulkCreateMutation.isPending} className="bg-primary hover:bg-primary/90 text-white">
+                {bulkCreateMutation.isPending ? 'Importing...' : 'Submit Administrators'}
+              </Button>
+            </div>
           </div>
 
           <div className="rounded-lg border border-primary/20 bg-card shadow-sm overflow-hidden">
@@ -377,11 +532,11 @@ export default function ImportCadresPage() {
         </div>
       )}
 
-      {/* Edit Cadre Dialog */}
+      {/* Edit Administrator Dialog */}
       <Dialog open={!!editingRow} onOpenChange={(open) => !open && setEditingRow(null)}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Edit Cadre</DialogTitle>
+            <DialogTitle>Edit Administrator</DialogTitle>
           </DialogHeader>
           {editingRow && (
             <div className="grid gap-4 py-4">

@@ -70,7 +70,7 @@ export default function DashboardPage() {
           </div>
         </Link>
 
-        {/* Card 3: Total Cadres */}
+        {/* Card 3: Total Administrators */}
         <Link href="/cadres" className="block">
           <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-gray-100 flex items-center gap-3 sm:gap-4 hover:scale-[1.02] transition-transform cursor-pointer">
             <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-purple-50 flex items-center justify-center shrink-0">
@@ -137,7 +137,7 @@ export default function DashboardPage() {
               <div className="flex justify-between items-center py-2 border-b border-black/5">
                 <div className="flex items-center gap-3 text-gray-600">
                   <UserCog className="w-5 h-5 text-[#8F0A1B]" />
-                  <span className="text-[14px] font-medium">Total Cadres</span>
+                  <span className="text-[14px] font-medium">Total Administrators</span>
                 </div>
                 <span className="font-bold text-gray-900 text-[15px]">2,45,678</span>
               </div>

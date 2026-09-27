@@ -104,7 +104,7 @@ export default function KilaisListPage() {
                   <th className="px-6 py-4">Kilai Name</th>
                   <th className="px-6 py-4">Secretary</th>
                   <th className="px-6 py-4">Booths</th>
-                  <th className="px-6 py-4">Cadres</th>
+                  <th className="px-6 py-4">Administrators</th>
                   <th className="px-6 py-4">Health Score</th>
                   <th className="px-6 py-4">Status</th>
                 </tr>

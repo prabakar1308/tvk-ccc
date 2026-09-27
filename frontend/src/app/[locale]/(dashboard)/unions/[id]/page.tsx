@@ -44,7 +44,7 @@ export default function UnionDetailsPage() {
           </div>
         </div>
         <Button onClick={() => setIsModalOpen(true)} className="bg-primary hover:bg-primary/90 text-white font-semibold shadow-md h-11 px-6 rounded-lg transition-transform active:scale-95">
-          <Plus className="mr-2 h-5 w-5" /> Register Cadre
+          <Plus className="mr-2 h-5 w-5" /> Register Administrator
         </Button>
       </div>
 
@@ -77,13 +77,13 @@ export default function UnionDetailsPage() {
           </div>
         </div>
 
-        {/* Total Cadres */}
+        {/* Total Administrators */}
         <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-gray-100 flex items-center gap-3 sm:gap-4">
           <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-purple-50 flex items-center justify-center shrink-0">
             <Users className="w-6 h-6 sm:w-8 sm:h-8 text-purple-500" />
           </div>
           <div className="flex-1">
-            <p className="text-[12px] sm:text-[13px] font-semibold text-gray-800">Total Cadres</p>
+            <p className="text-[12px] sm:text-[13px] font-semibold text-gray-800">Total Administrators</p>
             <h3 className="text-[22px] sm:text-[28px] font-bold text-gray-900 leading-tight">{(union._count?.cadres || 0).toLocaleString()}</h3>
             <p className="text-[10px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1">Active in this union</p>
           </div>
@@ -92,7 +92,7 @@ export default function UnionDetailsPage() {
 
       {/* Cadres Grid */}
       <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-8 shadow-sm border border-gray-100">
-        <h2 className="text-lg font-bold text-gray-900 tracking-wide mb-6">Union Cadres</h2>
+        <h2 className="text-lg font-bold text-gray-900 tracking-wide mb-6">Union Administrators</h2>
         
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
           {(union.unionCadres || []).map((cadre, index) => {

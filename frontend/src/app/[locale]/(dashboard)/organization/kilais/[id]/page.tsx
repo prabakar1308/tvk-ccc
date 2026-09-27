@@ -53,7 +53,7 @@ export default function KilaiDetailPage() {
   const tabs = [
     { value: 'overview', label: 'Overview', component: OverviewTab },
     { value: 'office-bearers', label: 'Office Bearers', component: OfficeBearersTab },
-    { value: 'cadres', label: 'Cadres', component: CadresTab },
+    { value: 'cadres', label: 'Administrators', component: CadresTab },
     { value: 'activities', label: 'Activities', component: ActivitiesTab },
     { value: 'meetings', label: 'Meetings', component: MeetingsTab },
     { value: 'welfare', label: 'Welfare', component: WelfareTab },

@@ -81,7 +81,7 @@ export default function CadresPage() {
   }) || [];
 
   const getRoleBadge = (role: string | undefined, level: string) => {
-    const displayRole = role || 'Cadre';
+    const displayRole = role || 'Administrator';
     if (level === 'DISTRICT') {
       return <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-[#8F0A1B] text-white border border-[#8F0A1B]/20 shadow-sm">{displayRole}</span>;
     }

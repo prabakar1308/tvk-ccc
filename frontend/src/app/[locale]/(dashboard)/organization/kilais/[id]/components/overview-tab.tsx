@@ -5,7 +5,7 @@ import { Users, FileText, CheckCircle2, TrendingUp, AlertTriangle } from 'lucide
 
 export function OverviewTab({ kilaiId }: { kilaiId: string }) {
   const stats = [
-    { title: 'Total Cadres', value: '1,250', icon: Users, color: 'text-primary' },
+    { title: 'Total Administrators', value: '1,250', icon: Users, color: 'text-primary' },
     { title: 'Booth Count', value: '15', icon: FileText, color: 'text-blue-500' },
     { title: 'Completed Tasks', value: '84', icon: CheckCircle2, color: 'text-green-500' },
     { title: 'Pending Issues', value: '3', icon: AlertTriangle, color: 'text-yellow-500' },

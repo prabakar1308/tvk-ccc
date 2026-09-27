@@ -216,7 +216,7 @@ export function CadreFormDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{editingId ? 'Edit Cadre' : 'Register New Cadre'}</DialogTitle>
+          <DialogTitle>{editingId ? 'Edit Administrator' : 'Register New Administrator'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-4">
           <div className="grid grid-cols-2 gap-4">
@@ -445,13 +445,13 @@ export function CadreFormDialog({
           <div className="pt-4 border-t space-y-4">
             <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Photo Uploads</h3>
             <div className="grid grid-cols-3 gap-4">
-              {/* Cadre Photo */}
+              {/* Administrator Photo */}
               <div className="space-y-2">
-                <Label className="text-center block w-full text-xs font-semibold">Cadre Photo</Label>
+                <Label className="text-center block w-full text-xs font-semibold">Administrator Photo</Label>
                 <label htmlFor="photo" className="relative flex flex-col items-center justify-center w-full aspect-square border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-primary hover:bg-primary/5 transition-all group overflow-hidden bg-gray-50">
                   {formData.photoUrl ? (
                     <>
-                      <img src={formData.photoUrl} alt="Cadre Photo" className="w-full h-full object-cover" />
+                      <img src={formData.photoUrl} alt="Administrator Photo" className="w-full h-full object-cover" />
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                         <Upload className="w-6 h-6 text-white drop-shadow-md" />
                       </div>
@@ -563,7 +563,7 @@ export function CadreFormDialog({
           <DialogFooter className="pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
             <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending || isUploading}>
-              {isUploading ? 'Uploading...' : editingId ? 'Save Changes' : 'Register Cadre'}
+              {isUploading ? 'Uploading...' : editingId ? 'Save Changes' : 'Register Administrator'}
             </Button>
           </DialogFooter>
         </form>

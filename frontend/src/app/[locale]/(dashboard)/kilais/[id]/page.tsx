@@ -47,7 +47,7 @@ export default function KilaiDetailsPage() {
           </div>
         </div>
         <Button onClick={() => setIsModalOpen(true)} className="bg-primary hover:bg-primary/90 text-white font-semibold shadow-md h-11 px-6 rounded-lg transition-transform active:scale-95">
-          <Plus className="mr-2 h-5 w-5" /> Register Cadre
+          <Plus className="mr-2 h-5 w-5" /> Register Administrator
         </Button>
       </div>
 
@@ -95,13 +95,13 @@ export default function KilaiDetailsPage() {
           </div>
         </div>
 
-        {/* Total Cadres */}
+        {/* Total Administrators */}
         <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-gray-100 flex items-center gap-3 sm:gap-4">
           <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-purple-50 flex items-center justify-center shrink-0">
             <Users className="w-6 h-6 sm:w-8 sm:h-8 text-purple-500" />
           </div>
           <div className="flex-1">
-            <p className="text-[12px] sm:text-[13px] font-semibold text-gray-800">Total Cadres</p>
+            <p className="text-[12px] sm:text-[13px] font-semibold text-gray-800">Total Administrators</p>
             <h3 className="text-[22px] sm:text-[28px] font-bold text-gray-900 leading-tight">{(kilaiData.kilaiCadres?.length || 0).toLocaleString()}</h3>
             <p className="text-[10px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1">Active in this kilai</p>
           </div>
@@ -113,7 +113,7 @@ export default function KilaiDetailsPage() {
         <h2 className="text-lg font-bold text-gray-900 tracking-wide mb-6">Kilai Cadres (Office Bearers)</h2>
         
         {!kilaiData.kilaiCadres || kilaiData.kilaiCadres.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">No cadres registered for this Kilai yet.</div>
+          <div className="text-center py-8 text-gray-500">No administrators registered for this Kilai yet.</div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
             {kilaiData.kilaiCadres.map((cadre: any, index: number) => {
@@ -136,7 +136,7 @@ export default function KilaiDetailsPage() {
                   <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden mb-3 sm:mb-4 border-2 shadow-sm transition-colors ${
                     highlight ? "border-[#8F0A1B]" : "border-white group-hover:border-[#8F0A1B]"
                   }`}>
-                    <img src={photoUrl} alt={cadre.name || 'Cadre'} className="w-full h-full object-cover" />
+                    <img src={photoUrl} alt={cadre.name || 'Administrator'} className="w-full h-full object-cover" />
                   </div>
                   <h3 className="font-bold text-[14px] sm:text-[15px] text-gray-900 text-center leading-tight mb-1">{cadre.name || 'Unknown Name'}</h3>
                   {cadre.phone && (
