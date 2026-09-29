@@ -4,7 +4,7 @@
   },
   "Sidebar": {
     "home": "Home",
-    "unions": "Unions",
+    "unions": "Organizational Units",
     "kilais": "Kilais",
     "cadres": "Administrators",
     "booths": "Booths",
@@ -12,10 +12,10 @@
     "analytics": "Analytics",
     "reports": "Reports",
     "settings": "Settings",
-    "cadreCommandCentre": "CADRE COMMAND CENTRE",
+    "cadreCommandCentre": "Organisation & Administration",
     "developedBy": "Developed By",
     "treasurer": "Treasurer",
-    "southEastUnion": "South-East Union"
+    "southEastUnion": "South-East Org Unit"
   },
   "Header": {
     "constituencyName": "Kurunjipadi Constituency",
@@ -30,7 +30,7 @@
     "regionDetails": "Kurinjipadi Assembly Constituency | Cuddalore East District"
   },
   "Dashboard": {
-    "totalUnions": "Total Unions",
+    "totalUnions": "Total Org Units",
     "acrossConstituency": "Across the constituency",
     "totalKilais": "Total Kilais",
     "registeredKilais": "Registered kilais",
@@ -60,7 +60,7 @@
   "Forms": {
     "name": "Name",
     "phone": "Phone",
-    "contactName": "Contact Name",
+    "contactName": "Secretary Name",
     "contactPhone": "Contact Phone",
     "district": "District",
     "selectDistrict": "Select a district",
@@ -70,16 +70,16 @@
     "selectUnitType": "Select an Unit Type"
   },
   "Unions": {
-    "title": "Unions",
-    "description": "Manage all organizational unions.",
-    "addNew": "Add New Union",
-    "editUnion": "Edit Union",
-    "unionName": "Union Name",
-    "searchPlaceholder": "Search unions by name...",
-    "loading": "Loading unions...",
-    "noUnions": "No unions found.",
-    "createUnion": "Create Union",
-    "deleteConfirm": "Are you sure you want to delete this union?",
+    "title": "Organizational Units",
+    "description": "Manage all organizational units.",
+    "addNew": "Add New Org Unit",
+    "editUnion": "Edit Org Unit",
+    "unionName": "Org Unit Name",
+    "searchPlaceholder": "Search organizational units by name...",
+    "loading": "Loading organizational units...",
+    "noUnions": "No organizational units found.",
+    "createUnion": "Create Org Unit",
+    "deleteConfirm": "Are you sure you want to delete this organizational unit?",
     "selectDistrictAlert": "Please select a district"
   },
   "Cadres": {
@@ -94,9 +94,9 @@
     "levelSuffix": "Level",
     "allLevels": "All Levels",
     "districtLevel": "District Level",
-    "unionLevel": "Union Level",
+    "unionLevel": "Org Unit Level",
     "kilaiLevel": "Kilai Level",
-    "selectUnion": "Select Union",
+    "selectUnion": "Select Org Unit",
     "selectKilai": "Select Kilai",
     "loading": "Loading administrators...",
     "noCadres": "No administrators found.",
@@ -111,8 +111,8 @@
     "addNew": "Add New Kilai",
     "editKilai": "Edit Kilai",
     "kilaiName": "Kilai Name",
-    "union": "Union",
-    "selectUnion": "Select a union",
+    "union": "Org Unit",
+    "selectUnion": "Select an org unit",
     "linkedBooths": "Linked Booths",
     "selectBooths": "Select booths...",
     "searchBooths": "Search booths...",
@@ -128,11 +128,11 @@
     "pending": "Pending",
     "createKilai": "Create Kilai",
     "searchPlaceholder": "Search kilais by name...",
-    "filterUnion": "Filter by Union",
-    "allUnions": "All Unions",
+    "filterUnion": "Filter by Org Unit",
+    "allUnions": "All Org Units",
     "loading": "Loading kilais...",
     "noKilais": "No kilais found.",
-    "selectUnionAlert": "Please select a union",
+    "selectUnionAlert": "Please select an org unit",
     "deleteConfirm": "Are you sure you want to delete this kilai?"
   },
   "Booths": {

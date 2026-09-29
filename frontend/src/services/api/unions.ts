@@ -5,7 +5,7 @@ import { Cadre } from './cadres';
 export interface Union {
   id: string;
   name: string;
-  districtId: string;
+  districtId?: string;
   group: string;
   unitType?: string;
   contactName?: string;
@@ -25,7 +25,7 @@ export interface Union {
 
 export interface CreateUnionDto {
   name: string;
-  districtId: string;
+  districtId?: string;
   group: string;
   unitType?: string;
   contactName?: string;

@@ -64,8 +64,8 @@ model Union {
   id           String             @id @default(uuid())
   name         String             @unique
   
-  districtId   String
-  district     District           @relation(fields: [districtId], references: [id])
+  districtId   String?
+  district     District?          @relation(fields: [districtId], references: [id])
   
   group        DistrictGroupEnum  @default(KURINJIPADI)
   unitType     UnitTypeEnum       @default(UNION)

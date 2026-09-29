@@ -53,7 +53,7 @@ export default function DashboardLayout({
         <div className="flex flex-col items-center justify-center py-6">
           <div className="flex items-center gap-3">
             <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center overflow-hidden">
-              <Image src="/CCC logo.png" alt="CCC Logo" width={64} height={64} className="object-cover" />
+              <Image src="/TVK Connect1.png" alt="CCC Logo" width={64} height={64} className="object-cover" />
             </div>
           </div>
           <p className="text-[12px] uppercase tracking-[0.05em] font-bold text-white mt-2 text-center w-full border-b border-white/20 pb-4">{tSidebar('cadreCommandCentre')}</p>

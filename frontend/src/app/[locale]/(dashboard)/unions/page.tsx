@@ -50,7 +50,6 @@ export default function UnionsPage() {
   
   const [formData, setFormData] = useState({
     name: '',
-    districtId: '',
     group: 'KURINJIPADI',
     unitType: 'UNION',
     contactName: '',
@@ -60,7 +59,7 @@ export default function UnionsPage() {
 
   const handleOpenCreate = () => {
     setEditingId(null);
-    setFormData({ name: '', districtId: '', group: 'KURINJIPADI', unitType: 'UNION', contactName: '', contactPhone: '', contactEmail: '' });
+    setFormData({ name: '', group: 'KURINJIPADI', unitType: 'UNION', contactName: '', contactPhone: '', contactEmail: '' });
     setIsModalOpen(true);
   };
 
@@ -68,7 +67,6 @@ export default function UnionsPage() {
     setEditingId(union.id);
     setFormData({
       name: union.name || '',
-      districtId: union.districtId ? String(union.districtId) : '',
       group: union.group || 'KURINJIPADI',
       unitType: union.unitType || 'UNION',
       contactName: union.contactName || '',
@@ -80,10 +78,6 @@ export default function UnionsPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.districtId) {
-      alert(t('selectDistrictAlert'));
-      return;
-    }
     
     if (editingId) {
       updateMutation.mutate({ id: editingId, data: formData }, {
@@ -119,7 +113,7 @@ export default function UnionsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold uppercase tracking-wide text-primary">{t('title')}</h1>
+          <h1 className="text-xl md:text-2xl lg:text-3xl font-heading font-bold uppercase tracking-wide text-primary">{t('title')}</h1>
           <p className="text-muted-foreground mt-1 text-lg font-medium">{t('description')}</p>
         </div>
         
@@ -144,28 +138,6 @@ export default function UnionsPage() {
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
                   required 
                 />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="districtId">{tForms('district')} *</Label>
-                <Select 
-                  value={formData.districtId} 
-                  onValueChange={(val) => setFormData({...formData, districtId: val || ''})}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder={tForms('selectDistrict')}>
-                      {formData.districtId 
-                        ? districts?.find((d: any) => String(d.id || d._id) === formData.districtId)?.name || formData.districtId
-                        : tForms('selectDistrict')}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    {districts?.map((d: any) => (
-                      <SelectItem key={d.id || d._id} value={String(d.id || d._id)} label={d.name}>
-                        {d.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="group">{tForms('group')} *</Label>
@@ -235,17 +207,17 @@ export default function UnionsPage() {
 
       {/* Action Bar */}
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-card p-4 rounded-lg shadow-sm border border-primary/10">
-        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-          <div className="relative w-full sm:w-80">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input 
-              placeholder={t('searchPlaceholder')} 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-11 bg-zinc-50 dark:bg-zinc-900 border-primary/20 focus-visible:ring-primary/30 rounded-md transition-all"
-            />
-          </div>
-          <Select value={unitTypeFilter} onValueChange={setUnitTypeFilter}>
+        <div className="relative w-full sm:w-80">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+          <Input 
+            placeholder={t('searchPlaceholder')} 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 h-11 bg-zinc-50 dark:bg-zinc-900 border-primary/20 focus-visible:ring-primary/30 rounded-md transition-all"
+          />
+        </div>
+        <div className="w-full sm:w-auto">
+          <Select value={unitTypeFilter} onValueChange={(val) => setUnitTypeFilter(val || '')}>
             <SelectTrigger className="w-full sm:w-[200px] h-11 bg-zinc-50 dark:bg-zinc-900 border-primary/20">
               <SelectValue placeholder="All Unit Types" />
             </SelectTrigger>
@@ -273,7 +245,7 @@ export default function UnionsPage() {
               if (!acc[group]) acc[group] = [];
               acc[group].push(union);
               return acc;
-            }, {} as Record<string, typeof unions>)
+            }, {} as Record<string, any[]>) as Record<string, any[]>
           )
           .sort(([groupA], [groupB]) => groupA.localeCompare(groupB))
           .map(([groupKey, groupUnions]) => (
@@ -287,14 +259,13 @@ export default function UnionsPage() {
                   <TableHeader className="bg-primary/5">
                     <TableRow className="hover:bg-transparent">
                       <TableHead className="font-semibold text-primary py-4">{t('unionName')}</TableHead>
-                      <TableHead className="font-semibold text-primary py-4">{tForms('district')}</TableHead>
                       <TableHead className="font-semibold text-primary py-4">{tForms('contactName')}</TableHead>
                       <TableHead className="font-semibold text-primary py-4">{tForms('phone')}</TableHead>
                       <TableHead className="font-semibold text-primary py-4 text-right">{tCommon('actions')}</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {groupUnions.map((union) => (
+                    {groupUnions.map((union: any) => (
                       <TableRow key={union.id} className="hover:bg-primary/5 transition-colors group border-b-primary/10">
                         <TableCell className="font-bold text-base py-4 text-foreground">
                           <Link href={`/unions/${union.id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer group-hover:text-primary">
@@ -322,11 +293,6 @@ export default function UnionsPage() {
                               </span>
                             </div>
                           </Link>
-                        </TableCell>
-                        <TableCell className="py-4">
-                          <span className="inline-flex items-center px-3 py-1 rounded-md text-xs font-bold bg-manjal text-black shadow-sm">
-                            {union.district?.name || '-'}
-                          </span>
                         </TableCell>
                         <TableCell className="py-4 font-medium">{union.contactName || '-'}</TableCell>
                         <TableCell className="py-4 font-medium text-muted-foreground">{union.contactPhone || '-'}</TableCell>

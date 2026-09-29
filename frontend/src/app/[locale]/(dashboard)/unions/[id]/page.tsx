@@ -25,8 +25,8 @@ export default function UnionDetailsPage() {
   const [callConfirmation, setCallConfirmation] = useState<{name: string, phone: string} | null>(null);
   const queryClient = useQueryClient();
 
-  if (isLoading) return <div className="p-8 text-center text-gray-500 font-medium">Loading union details...</div>;
-  if (!union) return <div className="p-8 text-center text-red-500 font-bold">Union not found</div>;
+  if (isLoading) return <div className="p-8 text-center text-gray-500 font-medium">Loading org unit details...</div>;
+  if (!union) return <div className="p-8 text-center text-red-500 font-bold">Org unit not found</div>;
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both">
@@ -37,7 +37,7 @@ export default function UnionDetailsPage() {
             <ArrowLeft className="w-5 h-5 text-gray-700" />
           </Link>
           <div>
-            <h1 className="text-2xl sm:text-xl md:text-2xl lg:text-3xl font-heading font-bold text-gray-900">{union.name}</h1>
+            <h1 className="text-xl sm:text-lg md:text-xl lg:text-2xl font-heading font-bold text-gray-900">{union.name}</h1>
             <p className="text-muted-foreground font-medium mt-1">
               {union.district?.name || 'Unknown'} District • {union.group === 'KURINJIPADI' ? 'Kurinjipadi' : union.group === 'CUDDALORE' ? 'Cuddalore' : union.group} • {union.unitType === 'TOWN_PANCHAYAT' ? 'Town Panchayat' : union.unitType ? union.unitType.charAt(0) + union.unitType.slice(1).toLowerCase() : 'Union'}
             </p>
@@ -61,7 +61,7 @@ export default function UnionDetailsPage() {
           <div className="flex-1">
             <p className="text-[12px] sm:text-[13px] font-semibold text-gray-800">Total Kilais</p>
             <h3 className="text-[22px] sm:text-[28px] font-bold text-gray-900 leading-tight">{union._count?.kilais || 0}</h3>
-            <p className="text-[10px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1">In this union</p>
+            <p className="text-[10px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1">In this org unit</p>
           </div>
         </Link>
 
@@ -73,7 +73,7 @@ export default function UnionDetailsPage() {
           <div className="flex-1">
             <p className="text-[12px] sm:text-[13px] font-semibold text-gray-800">Total Booths</p>
             <h3 className="text-[22px] sm:text-[28px] font-bold text-gray-900 leading-tight">{union.totalBooths || 0}</h3>
-            <p className="text-[10px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1">In this union</p>
+            <p className="text-[10px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1">In this org unit</p>
           </div>
         </div>
 
@@ -85,14 +85,14 @@ export default function UnionDetailsPage() {
           <div className="flex-1">
             <p className="text-[12px] sm:text-[13px] font-semibold text-gray-800">Total Administrators</p>
             <h3 className="text-[22px] sm:text-[28px] font-bold text-gray-900 leading-tight">{(union._count?.cadres || 0).toLocaleString()}</h3>
-            <p className="text-[10px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1">Active in this union</p>
+            <p className="text-[10px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1">Active in this org unit</p>
           </div>
         </div>
       </div>
 
       {/* Cadres Grid */}
       <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-8 shadow-sm border border-gray-100">
-        <h2 className="text-lg font-bold text-gray-900 tracking-wide mb-6">Union Administrators</h2>
+        <h2 className="text-lg font-bold text-gray-900 tracking-wide mb-6">Org Unit Administrators</h2>
         
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
           {(union.unionCadres || []).map((cadre, index) => {
