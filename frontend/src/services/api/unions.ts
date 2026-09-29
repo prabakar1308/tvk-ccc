@@ -7,6 +7,7 @@ export interface Union {
   name: string;
   districtId: string;
   group: string;
+  unitType?: string;
   contactName?: string;
   contactPhone?: string;
   contactEmail?: string;
@@ -26,6 +27,7 @@ export interface CreateUnionDto {
   name: string;
   districtId: string;
   group: string;
+  unitType?: string;
   contactName?: string;
   contactPhone?: string;
   contactEmail?: string;

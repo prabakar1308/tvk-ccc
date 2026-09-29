@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, MapPin, Eye, Edit2, Trash2, Building2 } from "lucide-react";
+import { Search, Plus, MapPin, Eye, Edit2, Trash2, Building2, Building, Store } from "lucide-react";
 import { Link } from '@/i18n/routing';
 import { useTranslations } from 'next-intl';
 import {
@@ -45,11 +45,14 @@ export default function UnionsPage() {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [unitTypeFilter, setUnitTypeFilter] = useState('ALL');
   
   const [formData, setFormData] = useState({
     name: '',
     districtId: '',
     group: 'KURINJIPADI',
+    unitType: 'UNION',
     contactName: '',
     contactPhone: '',
     contactEmail: ''
@@ -57,7 +60,7 @@ export default function UnionsPage() {
 
   const handleOpenCreate = () => {
     setEditingId(null);
-    setFormData({ name: '', districtId: '', group: 'KURINJIPADI', contactName: '', contactPhone: '', contactEmail: '' });
+    setFormData({ name: '', districtId: '', group: 'KURINJIPADI', unitType: 'UNION', contactName: '', contactPhone: '', contactEmail: '' });
     setIsModalOpen(true);
   };
 
@@ -67,6 +70,7 @@ export default function UnionsPage() {
       name: union.name || '',
       districtId: union.districtId ? String(union.districtId) : '',
       group: union.group || 'KURINJIPADI',
+      unitType: union.unitType || 'UNION',
       contactName: union.contactName || '',
       contactPhone: union.contactPhone || '',
       contactEmail: union.contactEmail || ''
@@ -97,6 +101,18 @@ export default function UnionsPage() {
       deleteMutation.mutate(id);
     }
   };
+
+  const filteredUnions = unions?.filter((union: any) => {
+    const matchesSearch = union.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesUnitType = unitTypeFilter === 'ALL' || union.unitType === unitTypeFilter;
+    return matchesSearch && matchesUnitType;
+  }).sort((a: any, b: any) => {
+    const typeOrder: Record<string, number> = { 'UNION': 1, 'TOWN': 2, 'TOWN_PANCHAYAT': 3, 'AREA': 4 };
+    const orderA = typeOrder[a.unitType || 'UNION'] || 99;
+    const orderB = typeOrder[b.unitType || 'UNION'] || 99;
+    if (orderA !== orderB) return orderA - orderB;
+    return (a.name || '').localeCompare(b.name || '');
+  });
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both">
@@ -169,6 +185,28 @@ export default function UnionsPage() {
                 </Select>
               </div>
               <div className="space-y-2">
+                <Label htmlFor="unitType">{tForms('unitType') || 'Unit Type'} *</Label>
+                <Select 
+                  value={formData.unitType} 
+                  onValueChange={(val) => setFormData({...formData, unitType: val || ''})}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={tForms('selectUnitType') || 'Select Unit Type'}>
+                      {formData.unitType === 'UNION' ? 'Union' : 
+                       formData.unitType === 'TOWN' ? 'Town' : 
+                       formData.unitType === 'TOWN_PANCHAYAT' ? 'Town Panchayat' : 
+                       formData.unitType === 'AREA' ? 'Area' : formData.unitType || 'Select Unit Type'}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="UNION">Union</SelectItem>
+                    <SelectItem value="TOWN">Town</SelectItem>
+                    <SelectItem value="TOWN_PANCHAYAT">Town Panchayat</SelectItem>
+                    <SelectItem value="AREA">Area</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="contactName">{tForms('contactName')}</Label>
                 <Input 
                   id="contactName" 
@@ -197,12 +235,28 @@ export default function UnionsPage() {
 
       {/* Action Bar */}
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-card p-4 rounded-lg shadow-sm border border-primary/10">
-        <div className="relative w-full sm:w-96">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-          <Input 
-            placeholder={t('searchPlaceholder')} 
-            className="pl-10 h-11 bg-zinc-50 dark:bg-zinc-900 border-primary/20 focus-visible:ring-primary/30 rounded-md transition-all"
-          />
+        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+          <div className="relative w-full sm:w-80">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Input 
+              placeholder={t('searchPlaceholder')} 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 h-11 bg-zinc-50 dark:bg-zinc-900 border-primary/20 focus-visible:ring-primary/30 rounded-md transition-all"
+            />
+          </div>
+          <Select value={unitTypeFilter} onValueChange={setUnitTypeFilter}>
+            <SelectTrigger className="w-full sm:w-[200px] h-11 bg-zinc-50 dark:bg-zinc-900 border-primary/20">
+              <SelectValue placeholder="All Unit Types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">All Unit Types</SelectItem>
+              <SelectItem value="UNION">Union</SelectItem>
+              <SelectItem value="TOWN">Town</SelectItem>
+              <SelectItem value="TOWN_PANCHAYAT">Town Panchayat</SelectItem>
+              <SelectItem value="AREA">Area</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -210,11 +264,11 @@ export default function UnionsPage() {
       <div className="space-y-8">
         {isLoading ? (
           <div className="text-center py-8 text-muted-foreground bg-card rounded-lg border border-primary/20 shadow-sm">{t('loading')}</div>
-        ) : !unions || unions.length === 0 ? (
+        ) : !filteredUnions || filteredUnions.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground bg-card rounded-lg border border-primary/20 shadow-sm">{t('noUnions')}</div>
         ) : (
           Object.entries(
-            unions.reduce((acc, union) => {
+            filteredUnions.reduce((acc: any, union: any) => {
               const group = union.group || 'OTHER';
               if (!acc[group]) acc[group] = [];
               acc[group].push(union);
@@ -243,9 +297,30 @@ export default function UnionsPage() {
                     {groupUnions.map((union) => (
                       <TableRow key={union.id} className="hover:bg-primary/5 transition-colors group border-b-primary/10">
                         <TableCell className="font-bold text-base py-4 text-foreground">
-                          <Link href={`/unions/${union.id}`} className="flex items-center gap-2 hover:text-[#8F0A1B] transition-colors cursor-pointer">
-                            <Building2 className="h-4 w-4 text-[#8F0A1B]" />
-                            {union.name}
+                          <Link href={`/unions/${union.id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer group-hover:text-primary">
+                            {union.unitType === 'TOWN' ? (
+                              <div className="p-2 rounded-md bg-blue-50 border border-blue-100 shadow-sm">
+                                <Building className="h-4 w-4 text-blue-600" />
+                              </div>
+                            ) : union.unitType === 'TOWN_PANCHAYAT' ? (
+                              <div className="p-2 rounded-md bg-green-50 border border-green-100 shadow-sm">
+                                <Store className="h-4 w-4 text-green-600" />
+                              </div>
+                            ) : union.unitType === 'AREA' ? (
+                              <div className="p-2 rounded-md bg-purple-50 border border-purple-100 shadow-sm">
+                                <MapPin className="h-4 w-4 text-purple-600" />
+                              </div>
+                            ) : (
+                              <div className="p-2 rounded-md bg-orange-50 border border-orange-100 shadow-sm">
+                                <Building2 className="h-4 w-4 text-orange-600" />
+                              </div>
+                            )}
+                            <div className="flex flex-col">
+                              <span>{union.name}</span>
+                              <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mt-0.5">
+                                {union.unitType === 'TOWN_PANCHAYAT' ? 'Town Panchayat' : union.unitType || 'Union'}
+                              </span>
+                            </div>
                           </Link>
                         </TableCell>
                         <TableCell className="py-4">

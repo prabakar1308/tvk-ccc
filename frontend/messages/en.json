@@ -65,7 +65,9 @@
     "district": "District",
     "selectDistrict": "Select a district",
     "group": "Group",
-    "selectGroup": "Select a group"
+    "selectGroup": "Select a group",
+    "unitType": "Unit Type",
+    "selectUnitType": "Select an Unit Type"
   },
   "Unions": {
     "title": "Unions",

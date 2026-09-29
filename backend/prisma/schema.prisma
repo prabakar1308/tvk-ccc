@@ -18,6 +18,13 @@ enum DistrictGroupEnum {
   CUDDALORE
 }
 
+enum UnitTypeEnum {
+  UNION
+  TOWN
+  TOWN_PANCHAYAT
+  AREA
+}
+
 model User {
   id                String       @id @default(uuid())
   userId            String       @unique
@@ -61,6 +68,7 @@ model Union {
   district     District           @relation(fields: [districtId], references: [id])
   
   group        DistrictGroupEnum  @default(KURINJIPADI)
+  unitType     UnitTypeEnum       @default(UNION)
   
   contactName  String?
   contactPhone String?

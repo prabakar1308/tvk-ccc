@@ -39,7 +39,7 @@ export default function UnionDetailsPage() {
           <div>
             <h1 className="text-2xl sm:text-xl md:text-2xl lg:text-3xl font-heading font-bold text-gray-900">{union.name}</h1>
             <p className="text-muted-foreground font-medium mt-1">
-              {union.district?.name || 'Unknown'} District • {union.group === 'KURINJIPADI' ? 'Kurinjipadi' : union.group === 'CUDDALORE' ? 'Cuddalore' : union.group}
+              {union.district?.name || 'Unknown'} District • {union.group === 'KURINJIPADI' ? 'Kurinjipadi' : union.group === 'CUDDALORE' ? 'Cuddalore' : union.group} • {union.unitType === 'TOWN_PANCHAYAT' ? 'Town Panchayat' : union.unitType ? union.unitType.charAt(0) + union.unitType.slice(1).toLowerCase() : 'Union'}
             </p>
           </div>
         </div>
