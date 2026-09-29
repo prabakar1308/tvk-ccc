@@ -11,6 +11,7 @@
   "dependencies": {
     "@base-ui/react": "^1.6.0",
     "@hookform/resolvers": "^5.5.7",
+    "@serwist/next": "^9.5.12",
     "@tanstack/react-query": "^5.101.4",
     "any-ascii": "^0.3.3",
     "class-variance-authority": "^0.7.1",
@@ -26,6 +27,7 @@
     "react-dom": "19.2.4",
     "react-hook-form": "^7.83.0",
     "recharts": "^3.10.1",
+    "serwist": "^9.5.12",
     "shadcn": "^4.16.0",
     "tailwind-merge": "^3.6.0",
     "tamil-romanizer": "^1.0.2",
