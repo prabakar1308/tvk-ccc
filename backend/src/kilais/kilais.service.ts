@@ -17,7 +17,10 @@ export class KilaisService {
     
     if (linkedBooths && linkedBooths.length > 0) {
       createData.booths = {
-        connect: linkedBooths.map((id: string) => ({ id }))
+        connect: linkedBooths.map((identifier: string) => {
+          const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
+          return isUuid ? { id: identifier } : { boothNo: identifier };
+        })
       };
     }
 
@@ -31,6 +34,26 @@ export class KilaisService {
     return this.prisma.kilai.create({
       data: createData,
     });
+  }
+
+  async createBulk(createKilaiDtos: CreateKilaiDto[]) {
+    return this.prisma.$transaction(
+      createKilaiDtos.map(dto => {
+        const { linkedBooths, ...data } = dto;
+        const createData: any = { ...data };
+        
+        if (linkedBooths && linkedBooths.length > 0) {
+          createData.booths = {
+            connect: linkedBooths.map((identifier: string) => {
+              const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
+              return isUuid ? { id: identifier } : { boothNo: identifier };
+            })
+          };
+        }
+
+        return this.prisma.kilai.create({ data: createData });
+      })
+    );
   }
 
   async findAll(unionId?: string) {
@@ -99,7 +122,10 @@ export class KilaisService {
     
     if (linkedBooths !== undefined) {
       updateData.booths = {
-        set: linkedBooths.map((id: string) => ({ id }))
+        set: linkedBooths.map((identifier: string) => {
+          const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
+          return isUuid ? { id: identifier } : { boothNo: identifier };
+        })
       };
     }
 

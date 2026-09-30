@@ -9,14 +9,7 @@ import { CadreFormDialog } from '@/components/cadre-form-dialog';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
 
 export default function KilaiDetailsPage() {
   const { id } = useParams();
@@ -168,29 +161,10 @@ export default function KilaiDetailsPage() {
         }}
       />
 
-      {/* Call Confirmation Dialog */}
-      <Dialog open={!!callConfirmation} onOpenChange={(open) => !open && setCallConfirmation(null)}>
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <DialogTitle>Call Cadre</DialogTitle>
-            <DialogDescription className="pt-2">
-              Are you sure you want to call <strong>{callConfirmation?.name}</strong> at <span className="font-semibold text-blue-600">{callConfirmation?.phone}</span>?
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="mt-4 gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setCallConfirmation(null)}>Cancel</Button>
-            <Button 
-              className="bg-primary text-white hover:bg-primary/90" 
-              onClick={() => {
-                window.location.href = `tel:${callConfirmation?.phone}`;
-                setCallConfirmation(null);
-              }}
-            >
-              Yes, Call Now
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <CallConfirmationDialog 
+        person={callConfirmation} 
+        onOpenChange={(open) => !open && setCallConfirmation(null)} 
+      />
     </div>
   );
 }

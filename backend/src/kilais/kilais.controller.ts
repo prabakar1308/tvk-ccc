@@ -29,6 +29,24 @@ export class KilaisController {
     return this.kilaisService.create(createKilaiDto);
   }
 
+  @Post('bulk')
+  @ApiOperation({ summary: 'Create multiple Kilais' })
+  createBulk(@Req() req: any, @Body() createKilaiDtos: CreateKilaiDto[]) {
+    if (req.user.role !== 'SUPER_ADMIN') {
+      if (!req.user.unionId) throw new ForbiddenException('User is not assigned to a union');
+      createKilaiDtos.forEach(dto => dto.unionId = req.user.unionId);
+    } else {
+      createKilaiDtos.forEach(dto => {
+        if (!dto.unionId) {
+          const headerUnionId = req.headers['x-active-union-id'];
+          if (headerUnionId) dto.unionId = headerUnionId as string;
+          else throw new ForbiddenException('unionId is required for SUPER_ADMIN');
+        }
+      });
+    }
+    return this.kilaisService.createBulk(createKilaiDtos);
+  }
+
   @Get()
   @ApiOperation({ summary: 'Get all Kilais' })
   @ApiQuery({ name: 'unionId', required: false, type: String })

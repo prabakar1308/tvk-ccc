@@ -208,10 +208,11 @@ export default function ImportKilaisPage() {
     setStatus('uploading');
 
     try {
-      // Loop and create Kilais
+      // Prepare list of Kilais
+      const kilaisToCreate: any[] = [];
       for (const row of importedData) {
         if (!row.name) continue; // skip empty
-        await kilaiApi.create({
+        kilaisToCreate.push({
           name: row.name,
           secretaryName: row.secretaryName,
           panchayat: row.panchayat,
@@ -222,6 +223,11 @@ export default function ImportKilaisPage() {
           unionId: selectedUnionId,
           status: 'ACTIVE',
         });
+      }
+      
+      // Bulk create Kilais
+      if (kilaisToCreate.length > 0) {
+        await kilaiApi.createBulk(kilaisToCreate);
       }
       
       setStatus('success');

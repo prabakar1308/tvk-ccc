@@ -63,6 +63,14 @@ export const kilaiApi = {
     return res.json();
   },
 
+  createBulk: async (data: CreateKilaiDto[]): Promise<any> => {
+    const res = await fetchWithAuth('/api/v1/kilais/bulk', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+
   update: async (id: string, data: Partial<CreateKilaiDto>): Promise<Kilai> => {
     const res = await fetchWithAuth(`/api/v1/kilais/${id}`, {
       method: 'PATCH',

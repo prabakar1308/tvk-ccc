@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Eye, Building2, Plus, Edit2, Trash2, Check, ChevronsUpDown, X, Download, Upload } from "lucide-react";
+import { Search, Eye, Building2, Plus, Edit2, Trash2, Check, ChevronsUpDown, X, Download, Upload, PhoneCall } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
@@ -38,6 +38,7 @@ import { useKilais, useCreateKilai, useUpdateKilai, useDeleteKilai } from '@/hoo
 import { useUnions } from '@/hooks/use-unions';
 import { useBooths, useBoothAreas } from '@/hooks/use-booths';
 import { CreateKilaiDto } from '@/services/api/kilais';
+import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
 
 export default function KilaisPage() {
   const t = useTranslations('Kilais');
@@ -58,6 +59,7 @@ export default function KilaisPage() {
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [callConfirmation, setCallConfirmation] = useState<{name: string, phone: string} | null>(null);
 
   const initialFormData: CreateKilaiDto = {
     name: '',
@@ -128,11 +130,23 @@ export default function KilaisPage() {
   const filteredKilais = useMemo(() => {
     if (!kilais) return [];
     
-    return kilais.filter((kilai) => {
+    const filtered = kilais.filter((kilai) => {
       const matchesSearch = kilai.name?.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesUnion = selectedUnion === 'all' || kilai.unionId === selectedUnion;
       
       return matchesSearch && matchesUnion;
+    });
+    
+    return filtered.sort((a, b) => {
+      const pA = (a.panchayat || '').toLowerCase();
+      const pB = (b.panchayat || '').toLowerCase();
+      const panchayatCompare = pA.localeCompare(pB, 'ta');
+      
+      if (panchayatCompare !== 0) return panchayatCompare;
+      
+      const nA = (a.name || '').toLowerCase();
+      const nB = (b.name || '').toLowerCase();
+      return nA.localeCompare(nB, 'ta');
     });
   }, [kilais, searchQuery, selectedUnion]);
 
@@ -441,6 +455,8 @@ export default function KilaisPage() {
               <TableHeader className="bg-primary/5">
                 <TableRow className="hover:bg-transparent">
                   <TableHead className="font-semibold text-primary py-4">{t('kilaiName')}</TableHead>
+                  <TableHead className="font-semibold text-primary py-4">Panchayat</TableHead>
+                  <TableHead className="font-semibold text-primary py-4">Secretary Details</TableHead>
                   <TableHead className="font-semibold text-primary py-4">{t('union')}</TableHead>
                   <TableHead className="font-semibold text-primary py-4">{t('status')}</TableHead>
                   <TableHead className="font-semibold text-primary py-4 text-right">{tCommon('actions')}</TableHead>
@@ -457,6 +473,33 @@ export default function KilaisPage() {
                           <Building2 className="h-4 w-4 text-[#8F0A1B]" />
                           {kilai.name} {kilai.tamilName && <span className="text-sm font-normal text-muted-foreground">({kilai.tamilName})</span>}
                         </Link>
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <span className="inline-flex items-center text-sm font-medium">
+                          {kilai.panchayat || '-'}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-4">
+                        {kilai.secretaryName ? (
+                          <div className="flex flex-col gap-1.5">
+                            <span className="font-medium text-sm text-foreground">{kilai.secretaryName}</span>
+                            {kilai.phone && (
+                              <button 
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  setCallConfirmation({ name: kilai.secretaryName ?? '', phone: kilai.phone ?? '' });
+                                }}
+                                className="text-xs text-primary hover:text-primary/80 cursor-pointer hover:underline text-left flex items-center gap-1.5 transition-colors w-fit focus:outline-none"
+                              >
+                                <PhoneCall className="h-3 w-3" />
+                                {kilai.phone}
+                              </button>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">-</span>
+                        )}
                       </TableCell>
                       <TableCell className="py-4">
                         <span className="inline-flex items-center px-3 py-1 rounded-md text-xs font-bold bg-secondary text-secondary-foreground shadow-sm">
@@ -493,6 +536,11 @@ export default function KilaisPage() {
           </div>
         )}
       </div>
+
+      <CallConfirmationDialog 
+        person={callConfirmation} 
+        onOpenChange={(open) => !open && setCallConfirmation(null)} 
+      />
     </div>
   );
 }
