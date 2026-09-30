@@ -16,6 +16,8 @@ import { useUser } from '@/contexts/user-context';
 const kilaiFormSchema = z.object({
   name: z.string().min(2, 'Name is required'),
   tamilName: z.string().optional(),
+  secretaryName: z.string().optional(),
+  panchayat: z.string().optional(),
   code: z.string().min(2, 'Kilai Code is required'),
   description: z.string().optional(),
   unionId: z.string().optional(),
@@ -53,6 +55,8 @@ export function KilaiForm({ initialData, onSuccess, onCancel }: KilaiFormProps) 
     defaultValues: initialData || {
       name: '',
       tamilName: '',
+      secretaryName: '',
+      panchayat: '',
       code: '',
       description: '',
       unionId: '',
@@ -113,6 +117,16 @@ export function KilaiForm({ initialData, onSuccess, onCancel }: KilaiFormProps) 
           <div className="space-y-2">
             <Label htmlFor="tamilName">Tamil Name</Label>
             <Input id="tamilName" {...register('tamilName')} placeholder="Enter Tamil name" />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="secretaryName">Secretary Name</Label>
+            <Input id="secretaryName" {...register('secretaryName')} placeholder="Enter Secretary Name" />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="panchayat">Panchayat</Label>
+            <Input id="panchayat" {...register('panchayat')} placeholder="Enter Panchayat" />
           </div>
 
           <div className="space-y-2">

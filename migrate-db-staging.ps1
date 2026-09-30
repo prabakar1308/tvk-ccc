@@ -12,8 +12,8 @@ $DbUrl = ""
 if (Test-Path "backend/.env.staging") {
     $envContent = Get-Content "backend/.env.staging"
     foreach ($line in $envContent) {
-        if ($line -match "^DATABASE_URL=`"?(.*?)`"?$") {
-            $DbUrl = $matches[1]
+        if ($line.StartsWith("DATABASE_URL=")) {
+            $DbUrl = $line.Substring("DATABASE_URL=".Length).Trim().Trim('`"').Trim("'")
             break
         }
     }
@@ -27,13 +27,13 @@ if ([string]::IsNullOrWhiteSpace($DbUrl)) {
 
 # Extract Cloud SQL Instance connection name if using /cloudsql/
 $CloudSqlInstance = "tvk-command-centre-uat:asia-south1:tcc-postgres-staging"
-if ($DbUrl -match "/cloudsql/([^/?]+)") {
+if ($DbUrl -match "/cloudsql/([^/?&]+)") {
     $CloudSqlInstance = $matches[1]
 }
 
 # 2. Get the currently deployed Backend Image
 Write-Host "`nFetching the currently deployed backend image..." -ForegroundColor Yellow
-$Image = (gcloud run services describe $ServiceName --region $Region --project $ProjectId --format="value(image.url)")
+$Image = (gcloud run services describe $ServiceName --region $Region --project $ProjectId --format="value(spec.template.spec.containers[0].image)")
 
 if (-not $Image) {
     Write-Host "Error: Could not determine the deployed image for $ServiceName." -ForegroundColor Red
@@ -45,13 +45,13 @@ Write-Host "Using Image: $Image" -ForegroundColor Gray
 Write-Host "`nConfiguring Cloud Run Job ($JobName)..." -ForegroundColor Yellow
 
 # We use 'update' but if it doesn't exist, we fall back to 'create'
-$jobExists = (gcloud run jobs list --region $Region --project $ProjectId --format="value(name)" --filter="name:$JobName")
+$jobExists = (gcloud run jobs list --region $Region --project $ProjectId --format="value(metadata.name)" --filter="metadata.name=$JobName")
 if ($jobExists) {
     gcloud run jobs update $JobName `
         --image $Image `
         --region $Region `
         --project $ProjectId `
-        --command="npx","prisma","migrate","deploy" `
+        --command="npx,prisma,db,execute,--file,prisma/unit_type_migration.sql" `
         --set-env-vars="DATABASE_URL=$DbUrl" `
         --set-cloudsql-instances=$CloudSqlInstance `
         --quiet
@@ -60,10 +60,15 @@ if ($jobExists) {
         --image $Image `
         --region $Region `
         --project $ProjectId `
-        --command="npx","prisma","migrate","deploy" `
+        --command="npx,prisma,db,execute,--file,prisma/unit_type_migration.sql" `
         --set-env-vars="DATABASE_URL=$DbUrl" `
         --set-cloudsql-instances=$CloudSqlInstance `
         --quiet
+}
+
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "Error: Failed to configure Cloud Run Job." -ForegroundColor Red
+    exit 1
 }
 
 

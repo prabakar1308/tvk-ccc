@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Eye, Building2, Plus, Edit2, Trash2, Check, ChevronsUpDown, X } from "lucide-react";
+import { Search, Eye, Building2, Plus, Edit2, Trash2, Check, ChevronsUpDown, X, Download, Upload } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
@@ -61,6 +61,8 @@ export default function KilaisPage() {
 
   const initialFormData: CreateKilaiDto = {
     name: '',
+    secretaryName: '',
+    panchayat: '',
     description: '',
     unionId: '',
     villages: [],
@@ -84,6 +86,8 @@ export default function KilaisPage() {
     setEditingId(kilai.id);
     setFormData({
       name: kilai.name || '',
+      secretaryName: kilai.secretaryName || '',
+      panchayat: kilai.panchayat || '',
       description: kilai.description || '',
       unionId: kilai.unionId ? String(kilai.unionId) : '',
       villages: kilai.villages || [],
@@ -141,17 +145,23 @@ export default function KilaisPage() {
           <p className="text-muted-foreground mt-1 text-lg font-medium">{t('description')}</p>
         </div>
         
-        <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-          <DialogTrigger 
-            render={
-              <Button 
-                onClick={handleOpenCreate} 
-                className="bg-primary hover:bg-primary/90 text-white font-semibold shadow-md h-11 px-6 rounded-lg transition-transform active:scale-95" 
-              />
-            }
-          >
-            <Plus className="mr-2 h-5 w-5" /> {t('addNew')}
-          </DialogTrigger>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button variant="outline" className="border-primary text-primary hover:bg-primary/10 h-11 px-6 rounded-lg" asChild>
+            <Link href="/kilais/import">
+              <Upload className="mr-2 h-4 w-4" /> Import Kilai List
+            </Link>
+          </Button>
+          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+            <DialogTrigger 
+              render={
+                <Button 
+                  onClick={handleOpenCreate} 
+                  className="bg-primary hover:bg-primary/90 text-white font-semibold shadow-md h-11 px-6 rounded-lg transition-transform active:scale-95" 
+                />
+              }
+            >
+              <Plus className="mr-2 h-5 w-5" /> {t('addNew')}
+            </DialogTrigger>
           <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingId ? t('editKilai') : t('addNew')}</DialogTitle>
@@ -164,6 +174,22 @@ export default function KilaisPage() {
                   value={formData.name}
                   onChange={(e) => setFormData({...formData, name: e.target.value})}
                   required 
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="secretaryName">Secretary Name</Label>
+                <Input 
+                  id="secretaryName" 
+                  value={formData.secretaryName || ''}
+                  onChange={(e) => setFormData({...formData, secretaryName: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="panchayat">Panchayat</Label>
+                <Input 
+                  id="panchayat" 
+                  value={formData.panchayat || ''}
+                  onChange={(e) => setFormData({...formData, panchayat: e.target.value})}
                 />
               </div>
               <div className="space-y-2">
@@ -367,6 +393,7 @@ export default function KilaisPage() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
       
       {/* Action Bar */}

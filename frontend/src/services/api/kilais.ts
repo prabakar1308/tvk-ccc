@@ -5,6 +5,8 @@ export interface Kilai {
   code: string;
   name: string;
   tamilName?: string;
+  secretaryName?: string;
+  panchayat?: string;
   description?: string;
   unionId: string;
   villages?: string[];
@@ -24,6 +26,8 @@ export interface Kilai {
 export interface CreateKilaiDto {
   name: string;
   tamilName?: string;
+  secretaryName?: string;
+  panchayat?: string;
   description?: string;
   unionId: string;
   villages?: string[];

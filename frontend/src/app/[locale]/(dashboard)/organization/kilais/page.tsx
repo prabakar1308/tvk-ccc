@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useTranslations } from 'next-intl';
-import { Plus, Download, RefreshCw, Search, LayoutGrid, List as ListIcon } from 'lucide-react';
+import { Plus, Download, RefreshCw, Search, LayoutGrid, List as ListIcon, Upload } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { KilaiForm } from './components/kilai-form';
@@ -24,7 +24,7 @@ export default function KilaisListPage() {
   const kilais = apiKilais?.map((k) => ({
     id: k.id,
     name: k.name,
-    secretary: 'Pending Assignment', // Will come from office-bearers API later
+    secretary: k.secretaryName || 'Pending Assignment',
     booths: 0, // from booths API
     cadres: 0, // from cadres API
     health: k.healthScore > 80 ? 'Excellent' : k.healthScore > 50 ? 'Good' : 'Average',
@@ -43,8 +43,10 @@ export default function KilaisListPage() {
           <Button variant="outline" className="border-primary text-primary hover:bg-primary/10">
             <RefreshCw className="mr-2 h-4 w-4" /> Refresh
           </Button>
-          <Button variant="outline" className="border-primary text-primary hover:bg-primary/10">
-            <Download className="mr-2 h-4 w-4" /> Export
+          <Button variant="outline" className="border-primary text-primary hover:bg-primary/10" asChild>
+            <Link href="/organization/kilais/import">
+              <Upload className="mr-2 h-4 w-4" /> Import Kilai List
+            </Link>
           </Button>
           <Button className="bg-manjal hover:bg-manjal/90 text-black font-semibold shadow-sm" onClick={() => setIsAddOpen(true)}>
             <Plus className="mr-2 h-4 w-4" /> Add Kilai

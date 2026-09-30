@@ -94,6 +94,8 @@ enum KilaiStatus {
 model Kilai {
   id             String         @id @default(uuid())
   name           String
+  secretaryName  String?
+  panchayat      String?
   description    String?
   translations   Json?
   villages       String[]

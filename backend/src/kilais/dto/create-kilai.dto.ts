@@ -8,6 +8,16 @@ export class CreateKilaiDto {
   name: string;
 
   @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  secretaryName?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  panchayat?: string;
+
+  @ApiPropertyOptional()
   @IsOptional()
   translations?: any;
 

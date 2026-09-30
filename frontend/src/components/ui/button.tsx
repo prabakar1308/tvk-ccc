@@ -40,12 +40,29 @@ const buttonVariants = cva(
   }
 )
 
+type ExtendedButtonProps = ButtonPrimitive.Props & VariantProps<typeof buttonVariants> & {
+  asChild?: boolean
+}
+
 function Button({
   className,
   variant = "default",
   size = "default",
+  asChild = false,
   ...props
-}: ButtonPrimitive.Props & VariantProps<typeof buttonVariants>) {
+}: ExtendedButtonProps) {
+  if (asChild) {
+    const { children, ...rest } = props
+    return (
+      <ButtonPrimitive
+        data-slot="button"
+        className={cn(buttonVariants({ variant, size, className }))}
+        render={children as React.ReactElement}
+        {...rest}
+      />
+    )
+  }
+
   return (
     <ButtonPrimitive
       data-slot="button"
