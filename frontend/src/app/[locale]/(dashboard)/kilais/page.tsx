@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Eye, Building2, Plus, Edit2, Trash2, Check, ChevronsUpDown, X, Download, Upload, PhoneCall } from "lucide-react";
+import { Search, Eye, Building2, Plus, Edit2, Trash2, Check, ChevronsUpDown, X, Download, Upload, PhoneCall, LayoutGrid, List } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
@@ -60,6 +60,7 @@ export default function KilaisPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [callConfirmation, setCallConfirmation] = useState<{name: string, phone: string} | null>(null);
+  const [viewMode, setViewMode] = useState<'table' | 'tile'>('table');
 
   const initialFormData: CreateKilaiDto = {
     name: '',
@@ -422,24 +423,43 @@ export default function KilaisPage() {
           />
         </div>
 
-        <div className="w-full sm:w-64">
-          <Select value={selectedUnion} onValueChange={(value) => setSelectedUnion(value || '')}>
-            <SelectTrigger className="h-11 border-primary/20 bg-zinc-50 dark:bg-zinc-900 focus:ring-primary/30 rounded-md w-full">
-              <SelectValue placeholder={t('filterUnion')}>
-                {selectedUnion === 'all' 
-                  ? t('allUnions') 
-                  : unions?.find((u: any) => String(u.id || u._id) === selectedUnion)?.name || t('filterUnion')}
-              </SelectValue>
-            </SelectTrigger>
-            <SelectContent align="end">
-              <SelectItem value="all">{t('allUnions')}</SelectItem>
-              {unions?.map((union: any) => (
-                <SelectItem key={union.id || union._id} value={String(union.id || union._id)}>
-                  {union.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="flex flex-col sm:flex-row items-center w-full sm:w-auto gap-4">
+          <div className="w-full sm:w-64">
+            <Select value={selectedUnion} onValueChange={(value) => setSelectedUnion(value || '')}>
+              <SelectTrigger className="h-11 border-primary/20 bg-zinc-50 dark:bg-zinc-900 focus:ring-primary/30 rounded-md w-full">
+                <SelectValue placeholder={t('filterUnion')}>
+                  {selectedUnion === 'all' 
+                    ? t('allUnions') 
+                    : unions?.find((u: any) => String(u.id || u._id) === selectedUnion)?.name || t('filterUnion')}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent align="end">
+                <SelectItem value="all">{t('allUnions')}</SelectItem>
+                {unions?.map((union: any) => (
+                  <SelectItem key={union.id || union._id} value={String(union.id || union._id)}>
+                    {union.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="flex w-full sm:w-auto justify-center items-center bg-zinc-100 dark:bg-zinc-900 rounded-md p-1 border border-primary/10">
+            <button
+              onClick={() => setViewMode('table')}
+              className={`p-2 rounded-sm transition-all flex items-center justify-center ${viewMode === 'table' ? 'bg-white dark:bg-zinc-800 shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+              title="Table View"
+            >
+              <List className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode('tile')}
+              className={`p-2 rounded-sm transition-all flex items-center justify-center ${viewMode === 'tile' ? 'bg-white dark:bg-zinc-800 shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
+              title="Tile View"
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -450,89 +470,171 @@ export default function KilaisPage() {
         ) : !filteredKilais || filteredKilais.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground bg-card rounded-lg border border-primary/20 shadow-sm">{t('noKilais')}</div>
         ) : (
-          <div className="rounded-lg border border-primary/20 bg-card shadow-sm overflow-hidden">
-            <Table>
-              <TableHeader className="bg-primary/5">
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="font-semibold text-primary py-4">{t('kilaiName')}</TableHead>
-                  <TableHead className="font-semibold text-primary py-4">Panchayat</TableHead>
-                  <TableHead className="font-semibold text-primary py-4">Secretary Details</TableHead>
-                  <TableHead className="font-semibold text-primary py-4">{t('union')}</TableHead>
-                  <TableHead className="font-semibold text-primary py-4">{t('status')}</TableHead>
-                  <TableHead className="font-semibold text-primary py-4 text-right">{tCommon('actions')}</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+          <div className="w-full">
+            {viewMode === 'table' ? (
+              <div className="rounded-lg border border-primary/20 bg-card shadow-sm overflow-hidden">
+                <Table>
+                  <TableHeader className="bg-primary/5">
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="font-semibold text-primary py-4">{t('kilaiName')}</TableHead>
+                      <TableHead className="font-semibold text-primary py-4">Panchayat</TableHead>
+                      <TableHead className="font-semibold text-primary py-4">Secretary Details</TableHead>
+                      <TableHead className="font-semibold text-primary py-4">{t('union')}</TableHead>
+                      <TableHead className="font-semibold text-primary py-4">{t('status')}</TableHead>
+                      <TableHead className="font-semibold text-primary py-4 text-right">{tCommon('actions')}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredKilais.map((kilai) => {
+                      const kilaiUnion = unions?.find((u: any) => String(u.id || u._id) === kilai.unionId);
+                      
+                      return (
+                        <TableRow key={kilai.id} className="hover:bg-primary/5 transition-colors group border-b-primary/10">
+                          <TableCell className="font-bold text-base py-4 text-foreground">
+                            <Link href={`/kilais/${kilai.id}`} className="flex items-center gap-2 hover:text-[#8F0A1B] transition-colors cursor-pointer">
+                              <Building2 className="h-4 w-4 text-[#8F0A1B]" />
+                              {kilai.name} {kilai.tamilName && <span className="text-sm font-normal text-muted-foreground">({kilai.tamilName})</span>}
+                            </Link>
+                          </TableCell>
+                          <TableCell className="py-4">
+                            <span className="inline-flex items-center text-sm font-medium">
+                              {kilai.panchayat || '-'}
+                            </span>
+                          </TableCell>
+                          <TableCell className="py-4">
+                            {kilai.secretaryName ? (
+                              <div className="flex flex-col gap-1.5">
+                                <span className="font-medium text-sm text-foreground">{kilai.secretaryName}</span>
+                                {kilai.phone && (
+                                  <button 
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      setCallConfirmation({ name: kilai.secretaryName ?? '', phone: kilai.phone ?? '' });
+                                    }}
+                                    className="text-xs text-primary hover:text-primary/80 cursor-pointer hover:underline text-left flex items-center gap-1.5 transition-colors w-fit focus:outline-none"
+                                  >
+                                    <PhoneCall className="h-3 w-3" />
+                                    {kilai.phone}
+                                  </button>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">-</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="py-4">
+                            <span className="inline-flex items-center px-3 py-1 rounded-md text-xs font-bold bg-secondary text-secondary-foreground shadow-sm">
+                              {kilaiUnion?.name || '-'}
+                            </span>
+                          </TableCell>
+                          <TableCell className="py-4">
+                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                              kilai.status === 'ACTIVE' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                              kilai.status === 'INACTIVE' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                              'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                            }`}>
+                              {kilai.status ? t(kilai.status.toLowerCase()) : t('pending')}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-right py-4">
+                            <div className="flex justify-end gap-2 transition-opacity">
+                              <Button onClick={() => handleOpenEdit(kilai)} variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10 rounded-full">
+                                <Edit2 className="h-4 w-4" />
+                              </Button>
+                              <Button onClick={() => handleDelete(kilai.id)} variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                              <Button render={<Link href={`/kilais/${kilai.id}`} />} nativeButton={false} variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10 rounded-full">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {filteredKilais.map((kilai) => {
                   const kilaiUnion = unions?.find((u: any) => String(u.id || u._id) === kilai.unionId);
                   
                   return (
-                    <TableRow key={kilai.id} className="hover:bg-primary/5 transition-colors group border-b-primary/10">
-                      <TableCell className="font-bold text-base py-4 text-foreground">
-                        <Link href={`/kilais/${kilai.id}`} className="flex items-center gap-2 hover:text-[#8F0A1B] transition-colors cursor-pointer">
-                          <Building2 className="h-4 w-4 text-[#8F0A1B]" />
-                          {kilai.name} {kilai.tamilName && <span className="text-sm font-normal text-muted-foreground">({kilai.tamilName})</span>}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="py-4">
-                        <span className="inline-flex items-center text-sm font-medium">
-                          {kilai.panchayat || '-'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="py-4">
-                        {kilai.secretaryName ? (
-                          <div className="flex flex-col gap-1.5">
-                            <span className="font-medium text-sm text-foreground">{kilai.secretaryName}</span>
-                            {kilai.phone && (
-                              <button 
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  setCallConfirmation({ name: kilai.secretaryName ?? '', phone: kilai.phone ?? '' });
-                                }}
-                                className="text-xs text-primary hover:text-primary/80 cursor-pointer hover:underline text-left flex items-center gap-1.5 transition-colors w-fit focus:outline-none"
-                              >
-                                <PhoneCall className="h-3 w-3" />
-                                {kilai.phone}
-                              </button>
-                            )}
+                    <div key={kilai.id} className="bg-card border border-primary/10 rounded-lg p-5 shadow-sm hover:shadow-md transition-all flex flex-col gap-4 relative group">
+                      <div className="flex justify-between items-start gap-2">
+                        <Link href={`/kilais/${kilai.id}`} className="flex items-start gap-2 hover:text-[#8F0A1B] transition-colors cursor-pointer font-bold text-lg text-foreground pr-16">
+                          <Building2 className="h-5 w-5 text-[#8F0A1B] shrink-0 mt-0.5" />
+                          <div className="flex flex-col leading-tight">
+                            <span>{kilai.name}</span>
+                            {kilai.tamilName && <span className="text-sm font-normal text-muted-foreground mt-0.5">({kilai.tamilName})</span>}
                           </div>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">-</span>
-                        )}
-                      </TableCell>
-                      <TableCell className="py-4">
-                        <span className="inline-flex items-center px-3 py-1 rounded-md text-xs font-bold bg-secondary text-secondary-foreground shadow-sm">
-                          {kilaiUnion?.name || '-'}
-                        </span>
-                      </TableCell>
-                      <TableCell className="py-4">
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          kilai.status === 'ACTIVE' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                          kilai.status === 'INACTIVE' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                          'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                        }`}>
-                          {kilai.status ? t(kilai.status.toLowerCase()) : t('pending')}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right py-4">
-                        <div className="flex justify-end gap-2 transition-opacity">
-                          <Button onClick={() => handleOpenEdit(kilai)} variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10 rounded-full">
-                            <Edit2 className="h-4 w-4" />
-                          </Button>
-                          <Button onClick={() => handleDelete(kilai.id)} variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                          <Button render={<Link href={`/kilais/${kilai.id}`} />} nativeButton={false} variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10 rounded-full">
-                            <Eye className="h-4 w-4" />
-                          </Button>
+                        </Link>
+                        <div className="absolute top-5 right-5">
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] uppercase font-bold tracking-wider ${
+                            kilai.status === 'ACTIVE' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                            kilai.status === 'INACTIVE' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                            'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
+                          }`}>
+                            {kilai.status ? t(kilai.status.toLowerCase()) : t('pending')}
+                          </span>
                         </div>
-                      </TableCell>
-                    </TableRow>
+                      </div>
+                      
+                      <div className="space-y-4 flex-1 mt-2">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Panchayat</span>
+                          <span className="font-medium text-sm bg-primary/5 px-2.5 py-1.5 rounded-md w-fit border border-primary/10">{kilai.panchayat || '-'}</span>
+                        </div>
+                        
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('union')}</span>
+                          <span className="inline-flex items-center w-fit px-2.5 py-1.5 rounded-md text-sm font-bold bg-secondary/30 text-secondary-foreground border border-secondary/20">
+                            {kilaiUnion?.name || '-'}
+                          </span>
+                        </div>
+                        
+                        <div className="flex flex-col gap-1">
+                          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Secretary</span>
+                          {kilai.secretaryName ? (
+                            <div className="flex flex-col gap-1.5 bg-zinc-50 dark:bg-zinc-900/50 p-2.5 rounded-md border border-border/50">
+                              <span className="font-semibold text-sm text-foreground">{kilai.secretaryName}</span>
+                              {kilai.phone && (
+                                <button 
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setCallConfirmation({ name: kilai.secretaryName ?? '', phone: kilai.phone ?? '' });
+                                  }}
+                                  className="text-xs text-primary hover:text-primary/80 cursor-pointer hover:underline text-left flex items-center gap-1.5 transition-colors w-fit focus:outline-none"
+                                >
+                                  <PhoneCall className="h-3.5 w-3.5" />
+                                  <span className="font-medium">{kilai.phone}</span>
+                                </button>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-sm italic">Not assigned</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex justify-end gap-2 pt-4 border-t border-border/50 mt-2 transition-opacity">
+                        <Button onClick={() => handleOpenEdit(kilai)} variant="outline" size="sm" className="h-8 text-primary hover:text-primary hover:bg-primary/10">
+                          <Edit2 className="h-3.5 w-3.5 mr-1.5" />
+                          Edit
+                        </Button>
+                        <Button onClick={() => handleDelete(kilai.id)} variant="outline" size="sm" className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10">
+                          <Trash2 className="h-3.5 w-3.5 mr-1.5" />
+                          Delete
+                        </Button>
+                      </div>
+                    </div>
                   );
                 })}
-              </TableBody>
-            </Table>
+              </div>
+            )}
           </div>
         )}
       </div>
