@@ -15,10 +15,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import * as XLSX from 'xlsx';
-import { cleanRomanize, cn } from '@/lib/utils';
-import { useBooths, useBoothAreas } from '@/hooks/use-booths';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { cleanRomanize } from '@/lib/utils';
+import { BoothMultiSelect } from '@/components/shared/booth-multi-select';
+import { AreaMultiSelect } from '@/components/shared/area-multi-select';
 
 interface ImportedKilai {
   id: string;
@@ -37,8 +36,6 @@ export default function ImportKilaisPage() {
   const router = useRouter();
   const { activeUnionId } = useUser();
   const { data: unions, isLoading: isLoadingUnions } = useUnions();
-  const { data: booths } = useBooths();
-  const { data: areas } = useBoothAreas();
   
   const [file, setFile] = useState<File | null>(null);
   const [status, setStatus] = useState<'idle' | 'uploading' | 'success' | 'error'>('idle');
@@ -204,7 +201,7 @@ export default function ImportKilaisPage() {
     
     if (!selectedUnionId) {
       setStatus('error');
-      setErrorMessage('Please select an Org Unit (Union) before importing.');
+      setErrorMessage('Please select an Org Unit before importing.');
       return;
     }
 
@@ -266,8 +263,8 @@ export default function ImportKilaisPage() {
                 <div className="pl-8">
                   <Select value={selectedUnionId} onValueChange={(value) => setSelectedUnionId(value ?? '')} disabled={isLoadingUnions}>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select a Union">
-                        {(val) => val ? unions?.find(u => u.id === val)?.name : "Select a Union"}
+                      <SelectValue placeholder="Select a Org Unit">
+                        {(val) => val ? unions?.find(u => u.id === val)?.name : "Select a Org Unit"}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
@@ -453,119 +450,19 @@ export default function ImportKilaisPage() {
               </div>
               <div className="grid gap-2">
                 <Label>Booth No</Label>
-                <Popover>
-                  <PopoverTrigger render={<Button variant="outline" className="w-full justify-between font-normal text-left h-auto min-h-[40px] py-2 flex items-center" />}>
-                    <span className="block truncate flex-1">
-                      {editingRow.linkedBooths ? editingRow.linkedBooths : "Select Booths..."}
-                    </span>
-                    {editingRow.linkedBooths && (
-                      <div 
-                        role="button"
-                        tabIndex={0}
-                        className="ml-2 p-0.5 rounded-sm hover:bg-muted/50 text-muted-foreground hover:text-destructive shrink-0 cursor-pointer transition-colors"
-                        onPointerDown={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                        }}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setEditingRow({...editingRow, linkedBooths: ''});
-                        }} 
-                      >
-                        <X className="h-4 w-4" />
-                      </div>
-                    )}
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[var(--anchor-width)] p-0">
-                    <Command>
-                      <CommandInput placeholder="Search booths..." />
-                      <CommandList>
-                        <CommandEmpty>No booth found.</CommandEmpty>
-                        <CommandGroup>
-                          {booths?.map((booth) => {
-                            const selected = editingRow.linkedBooths.split(',').map(s=>s.trim()).filter(Boolean);
-                            const isSelected = selected.includes(booth.boothNo);
-                            return (
-                              <CommandItem
-                                key={booth.id}
-                                value={booth.boothNo}
-                                onSelect={(val) => {
-                                  const current = editingRow.linkedBooths.split(',').map(s=>s.trim()).filter(Boolean);
-                                  const next = isSelected 
-                                    ? current.filter(b => b !== booth.boothNo) 
-                                    : [...current, booth.boothNo];
-                                  setEditingRow({...editingRow, linkedBooths: next.join(', ')});
-                                }}
-                              >
-                                <Check className={cn("mr-2 h-4 w-4 shrink-0", isSelected ? "opacity-100" : "opacity-0")} />
-                                {booth.boothNo} - {booth.name}
-                              </CommandItem>
-                            );
-                          })}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                <BoothMultiSelect
+                  value={editingRow.linkedBooths ? editingRow.linkedBooths.split(',').map(s=>s.trim()).filter(Boolean) : []}
+                  onChange={(val) => setEditingRow({...editingRow, linkedBooths: val.join(', ')})}
+                  displayStyle="badges"
+                />
               </div>
               <div className="grid gap-2">
                 <Label>Village/Areas</Label>
-                <Popover>
-                  <PopoverTrigger render={<Button variant="outline" className="w-full justify-between font-normal text-left h-auto min-h-[40px] py-2 flex items-center" />}>
-                    <span className="block truncate flex-1">
-                      {editingRow.villages ? editingRow.villages : "Select Areas..."}
-                    </span>
-                    {editingRow.villages && (
-                      <div 
-                        role="button"
-                        tabIndex={0}
-                        className="ml-2 p-0.5 rounded-sm hover:bg-muted/50 text-muted-foreground hover:text-destructive shrink-0 cursor-pointer transition-colors"
-                        onPointerDown={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                        }}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setEditingRow({...editingRow, villages: ''});
-                        }} 
-                      >
-                        <X className="h-4 w-4" />
-                      </div>
-                    )}
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[var(--anchor-width)] p-0">
-                    <Command>
-                      <CommandInput placeholder="Search areas..." />
-                      <CommandList>
-                        <CommandEmpty>No area found.</CommandEmpty>
-                        <CommandGroup>
-                          {areas?.map((area) => {
-                            const selected = editingRow.villages.split(',').map(s=>s.trim()).filter(Boolean);
-                            const isSelected = selected.includes(area);
-                            return (
-                              <CommandItem
-                                key={area}
-                                value={area}
-                                onSelect={(val) => {
-                                  const current = editingRow.villages.split(',').map(s=>s.trim()).filter(Boolean);
-                                  const next = isSelected 
-                                    ? current.filter(a => a !== area) 
-                                    : [...current, area];
-                                  setEditingRow({...editingRow, villages: next.join(', ')});
-                                }}
-                              >
-                                <Check className={cn("mr-2 h-4 w-4 shrink-0", isSelected ? "opacity-100" : "opacity-0")} />
-                                {area}
-                              </CommandItem>
-                            );
-                          })}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                <AreaMultiSelect
+                  value={editingRow.villages ? editingRow.villages.split(',').map(s=>s.trim()).filter(Boolean) : []}
+                  onChange={(val) => setEditingRow({...editingRow, villages: val.join(', ')})}
+                  displayStyle="badges"
+                />
               </div>
               <div className="grid gap-2">
                 <Label>Panchayat</Label>

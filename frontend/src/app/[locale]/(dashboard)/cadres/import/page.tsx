@@ -15,14 +15,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { UploadCloud, AlertCircle, ArrowLeft, Edit2, Trash2, CheckCircle2, ChevronsUpDown, Check, X } from "lucide-react";
+import { UploadCloud, AlertCircle, ArrowLeft, Edit2, Trash2, Download } from "lucide-react";
 import { useCreateBulkCadres } from '@/hooks/use-cadres';
 import { useUnions } from '@/hooks/use-unions';
 import { useKilais } from '@/hooks/use-kilais';
 import { useBooths, useBoothAreas } from '@/hooks/use-booths';
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { cn, cleanRomanize } from "@/lib/utils";
+import { AreaMultiSelect } from "@/components/shared/area-multi-select";
+import { BoothMultiSelect } from "@/components/shared/booth-multi-select";
+import { cleanRomanize } from "@/lib/utils";
 import * as XLSX from 'xlsx';
 import { CreateCadreDto } from '@/services/api/cadres';
 import {
@@ -45,8 +45,6 @@ export default function ImportCadresPage() {
   // Bulk Overrides
   const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
   const [selectedBooths, setSelectedBooths] = useState<string[]>([]);
-  const [bulkAreaOpen, setBulkAreaOpen] = useState(false);
-  const [bulkBoothOpen, setBulkBoothOpen] = useState(false);
   
   // Dialog Edit State
   const [editingRow, setEditingRow] = useState<(CreateCadreDto & { index: number }) | null>(null);
@@ -54,11 +52,8 @@ export default function ImportCadresPage() {
   const { data: unions = [] } = useUnions();
   const { data: kilais = [] } = useKilais();
   const { data: booths = [] } = useBooths();
-  const bulkCreateMutation = useCreateBulkCadres();
-  
-  const [boothOpen, setBoothOpen] = useState(false);
-  const [areaOpen, setAreaOpen] = useState(false);
   const { data: allAreas = [] } = useBoothAreas();
+  const bulkCreateMutation = useCreateBulkCadres();
 
   const processCadreData = (data: any[][], isPaste = false) => {
     try {
@@ -282,6 +277,12 @@ export default function ImportCadresPage() {
             </p>
           </div>
         </div>
+        <a href="/Kilai Details Template.xlsx" download>
+          <Button variant="outline" className="gap-2 bg-white">
+            <Download className="w-4 h-4" />
+            Download Template
+          </Button>
+        </a>
       </div>
 
       <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-8 shadow-sm border border-gray-100 space-y-6">
@@ -297,7 +298,7 @@ export default function ImportCadresPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="DISTRICT">District</SelectItem>
-                <SelectItem value="UNION">Union</SelectItem>
+                <SelectItem value="UNION">Organization Unit</SelectItem>
                 <SelectItem value="KILAI">Kilai</SelectItem>
               </SelectContent>
             </Select>
@@ -341,79 +342,20 @@ export default function ImportCadresPage() {
 
               <div className="space-y-2 animate-in fade-in zoom-in-95 duration-200 flex flex-col">
                 <Label>Area (Optional)</Label>
-                <Popover open={bulkAreaOpen} onOpenChange={setBulkAreaOpen}>
-                  <PopoverTrigger render={<Button variant="outline" role="combobox" aria-expanded={bulkAreaOpen} className={cn("w-full justify-between font-normal h-auto min-h-10", selectedAreas.length === 0 && "text-muted-foreground")} />}>
-                    <div className="flex flex-wrap gap-1 items-center max-w-[calc(100%-2rem)]">
-                      {selectedAreas.length > 0 ? (
-                        selectedAreas.map((area) => (
-                          <span key={area} className="inline-flex items-center gap-1 rounded bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleAreaSelect(area); }}>
-                            {area}
-                            <X className="h-3 w-3 hover:text-destructive cursor-pointer" />
-                          </span>
-                        ))
-                      ) : (
-                        "Select area(s)"
-                      )}
-                    </div>
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[var(--anchor-width)] p-0" align="start">
-                    <Command>
-                      <CommandInput placeholder="Search area..." />
-                      <CommandList>
-                        <CommandEmpty>No area found.</CommandEmpty>
-                        <CommandGroup>
-                          {allAreas.map((area: string) => (
-                            <CommandItem key={area} onSelect={() => handleAreaSelect(area)}>
-                              <Check className={cn("mr-2 h-4 w-4", selectedAreas.includes(area) ? "opacity-100" : "opacity-0")} />
-                              {area}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                <AreaMultiSelect
+                  value={selectedAreas}
+                  onChange={setSelectedAreas}
+                  displayStyle="badges"
+                />
               </div>
 
               <div className="space-y-2 animate-in fade-in zoom-in-95 duration-200 flex flex-col">
                 <Label>Booth (Optional)</Label>
-                <Popover open={bulkBoothOpen} onOpenChange={setBulkBoothOpen}>
-                  <PopoverTrigger render={<Button variant="outline" role="combobox" aria-expanded={bulkBoothOpen} className={cn("w-full justify-between font-normal h-auto min-h-10", selectedBooths.length === 0 && "text-muted-foreground")} />}>
-                    <div className="flex flex-wrap gap-1 items-center max-w-[calc(100%-2rem)]">
-                      {selectedBooths.length > 0 ? (
-                        selectedBooths.map((boothId) => {
-                          const booth = booths.find((b: any) => b.boothNo === boothId);
-                          return (
-                            <span key={boothId} className="inline-flex items-center gap-1 rounded bg-secondary px-2 py-1 text-xs font-medium text-secondary-foreground" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleBoothSelect(boothId); }}>
-                              {boothId} {booth ? `- ${booth.area || booth.name}` : ''}
-                              <X className="h-3 w-3 hover:text-destructive cursor-pointer" />
-                            </span>
-                          );
-                        })
-                      ) : (
-                        "Select booth(s)"
-                      )}
-                    </div>
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[var(--anchor-width)] p-0" align="start">
-                    <Command>
-                      <CommandInput placeholder="Search booth..." />
-                      <CommandList>
-                        <CommandEmpty>No booth found.</CommandEmpty>
-                        <CommandGroup>
-                          {booths.map((booth: any) => (
-                            <CommandItem key={booth.id} onSelect={() => handleBoothSelect(booth.boothNo)}>
-                              <Check className={cn("mr-2 h-4 w-4", selectedBooths.includes(booth.boothNo) ? "opacity-100" : "opacity-0")} />
-                              {booth.boothNo} - {booth.area || booth.name}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                <BoothMultiSelect
+                  value={selectedBooths}
+                  onChange={setSelectedBooths}
+                  displayStyle="badges"
+                />
               </div>
             </>
           )}
@@ -567,74 +509,19 @@ export default function ImportCadresPage() {
               </div>
               <div className="space-y-2 flex flex-col">
                 <Label>Area / Village</Label>
-                <Popover open={areaOpen} onOpenChange={setAreaOpen}>
-                  <PopoverTrigger role="combobox" aria-expanded={areaOpen} className={cn("flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm hover:bg-accent hover:text-accent-foreground font-normal outline-none focus-visible:ring-3 focus-visible:ring-ring/50", !editingRow.area && "text-muted-foreground")}>
-                    {editingRow.area ? editingRow.area : "Select place / area"}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </PopoverTrigger>
-                  <PopoverContent className="p-0" style={{ width: 'var(--anchor-width)' }}>
-                    <Command>
-                      <CommandInput placeholder="Search area..." />
-                      <CommandList>
-                        <CommandEmpty>No area found.</CommandEmpty>
-                        <CommandGroup>
-                          {allAreas.map((area: string) => (
-                            <CommandItem
-                              key={area}
-                              value={area}
-                              onSelect={(currentValue) => {
-                                const selectedArea = allAreas.find((a: string) => a.toLowerCase() === currentValue) || currentValue;
-                                setEditingRow({ ...editingRow, area: selectedArea });
-                                setAreaOpen(false);
-                              }}
-                            >
-                              <Check className={cn("mr-2 h-4 w-4", editingRow.area === area ? "opacity-100" : "opacity-0")} />
-                              {area}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                <AreaMultiSelect
+                  value={editingRow.area ? editingRow.area.split(',').map(s=>s.trim()).filter(Boolean) : []}
+                  onChange={(val) => setEditingRow({...editingRow, area: val.join(', ')})}
+                  displayStyle="badges"
+                />
               </div>
               <div className="space-y-2 flex flex-col">
                 <Label>Booth No</Label>
-                <Popover open={boothOpen} onOpenChange={setBoothOpen}>
-                  <PopoverTrigger role="combobox" aria-expanded={boothOpen} className={cn("flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm hover:bg-accent hover:text-accent-foreground font-normal outline-none focus-visible:ring-3 focus-visible:ring-ring/50", !editingRow.boothNo && "text-muted-foreground")}>
-                    {editingRow.boothNo ? (
-                      (() => {
-                        const selected = booths.find((b: any) => b.boothNo === editingRow.boothNo);
-                        return selected ? `${selected.boothNo} - ${selected.area || selected.name}` : editingRow.boothNo;
-                      })()
-                    ) : "Select booth"}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </PopoverTrigger>
-                  <PopoverContent className="p-0" style={{ width: 'var(--anchor-width)' }}>
-                    <Command>
-                      <CommandInput placeholder="Search booth..." />
-                      <CommandList>
-                        <CommandEmpty>No booth found.</CommandEmpty>
-                        <CommandGroup>
-                          {booths.map((booth: any) => (
-                            <CommandItem
-                              key={booth.id}
-                              value={booth.boothNo}
-                              onSelect={(currentValue) => {
-                                const selectedBooth = booths.find((b: any) => b.boothNo.toLowerCase() === currentValue) || { boothNo: currentValue };
-                                setEditingRow({ ...editingRow, boothNo: selectedBooth.boothNo });
-                                setBoothOpen(false);
-                              }}
-                            >
-                              <Check className={cn("mr-2 h-4 w-4", editingRow.boothNo === booth.boothNo ? "opacity-100" : "opacity-0")} />
-                              {booth.boothNo} - {booth.area || booth.name}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
+                <BoothMultiSelect
+                  value={editingRow.boothNo ? editingRow.boothNo.split(',').map(s=>s.trim()).filter(Boolean) : []}
+                  onChange={(val) => setEditingRow({...editingRow, boothNo: val.join(', ')})}
+                  displayStyle="badges"
+                />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
