@@ -147,7 +147,7 @@ export default function ImportKilaisPage() {
                   Select Org Unit (Union)
                 </h3>
                 <div className="pl-8">
-                  <Select value={selectedUnionId} onValueChange={setSelectedUnionId} disabled={isLoadingUnions}>
+                  <Select value={selectedUnionId} onValueChange={(val) => setSelectedUnionId(val || '')} disabled={isLoadingUnions}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select a Union" />
                     </SelectTrigger>

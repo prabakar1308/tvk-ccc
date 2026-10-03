@@ -51,7 +51,7 @@ if ($jobExists) {
         --image $Image `
         --region $Region `
         --project $ProjectId `
-        --command="npx,prisma,db,execute,--file,prisma/unit_type_migration.sql" `
+        --command="npx,prisma,db,execute,--file,prisma/kilai_changes_migration.sql" `
         --set-env-vars="DATABASE_URL=$DbUrl" `
         --set-cloudsql-instances=$CloudSqlInstance `
         --quiet
@@ -60,7 +60,7 @@ if ($jobExists) {
         --image $Image `
         --region $Region `
         --project $ProjectId `
-        --command="npx,prisma,db,execute,--file,prisma/unit_type_migration.sql" `
+        --command="npx,prisma,db,execute,--file,prisma/kilai_changes_migration.sql" `
         --set-env-vars="DATABASE_URL=$DbUrl" `
         --set-cloudsql-instances=$CloudSqlInstance `
         --quiet

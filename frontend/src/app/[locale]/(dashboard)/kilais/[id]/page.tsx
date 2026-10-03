@@ -6,6 +6,7 @@ import { ArrowLeft, MapPin, Building2, Users, Tent, Phone } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { useState } from 'react';
 import { CadreFormDialog } from '@/components/cadre-form-dialog';
+import { CadreViewDialog } from '@/components/cadre-view-dialog';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -16,6 +17,7 @@ export default function KilaiDetailsPage() {
   const { data: kilai, isLoading } = useKilai(id as string);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [callConfirmation, setCallConfirmation] = useState<{name: string, phone: string} | null>(null);
+  const [viewingCadre, setViewingCadre] = useState<any | null>(null);
   const queryClient = useQueryClient();
 
   if (isLoading) return <div className="p-8 text-center text-gray-500 font-medium">Loading kilai details...</div>;
@@ -116,11 +118,15 @@ export default function KilaiDetailsPage() {
               const highlight = index === 0 && rawRole.includes('SECRETARY'); // Example highlight logic
               
               return (
-                <div key={cadre.id || index} className={`flex flex-col items-center justify-center p-5 sm:p-6 rounded-xl border hover:shadow-md transition-all duration-300 group cursor-pointer h-full ${
-                  highlight 
-                    ? "bg-gradient-to-b from-[#8F0A1B]/10 to-[#8F0A1B]/5 border-[#8F0A1B]/30 hover:border-[#8F0A1B]/50 shadow-sm relative overflow-hidden" 
-                    : "bg-[#F8F9FA] border-gray-100 hover:border-[#8F0A1B]/20"
-                }`}>
+                <div 
+                  key={cadre.id || index} 
+                  onClick={() => setViewingCadre(cadre)}
+                  className={`flex flex-col items-center justify-center p-5 sm:p-6 rounded-xl border hover:shadow-md transition-all duration-300 group cursor-pointer h-full ${
+                    highlight 
+                      ? "bg-gradient-to-b from-[#8F0A1B]/10 to-[#8F0A1B]/5 border-[#8F0A1B]/30 hover:border-[#8F0A1B]/50 shadow-sm relative overflow-hidden" 
+                      : "bg-[#F8F9FA] border-gray-100 hover:border-[#8F0A1B]/20"
+                  }`}
+                >
                   {highlight && (
                     <div className="absolute top-0 right-0 w-12 h-12 bg-gradient-to-bl from-[#8F0A1B]/20 to-transparent">
                       <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#8F0A1B] animate-pulse"></div>
@@ -159,6 +165,12 @@ export default function KilaiDetailsPage() {
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['kilais', id] });
         }}
+      />
+
+      <CadreViewDialog
+        isOpen={!!viewingCadre}
+        onOpenChange={(open) => !open && setViewingCadre(null)}
+        cadre={viewingCadre}
       />
 
       <CallConfirmationDialog 

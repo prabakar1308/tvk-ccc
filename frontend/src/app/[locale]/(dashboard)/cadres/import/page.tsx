@@ -55,6 +55,8 @@ export default function ImportCadresPage() {
   const { data: allAreas = [] } = useBoothAreas();
   const bulkCreateMutation = useCreateBulkCadres();
 
+  const filteredKilais = importUnionId ? kilais.filter((k: any) => String(k.unionId) === importUnionId) : kilais;
+
   const processCadreData = (data: any[][], isPaste = false) => {
     try {
       // Filter out empty rows and header rows
@@ -293,23 +295,26 @@ export default function ImportCadresPage() {
             <Select value={importLevel} onValueChange={(value) => setImportLevel(value || '')}>
               <SelectTrigger className="w-full text-base">
                 <SelectValue placeholder="Select level">
-                  {importLevel === 'DISTRICT' ? 'District' : importLevel === 'UNION' ? 'Union' : importLevel === 'KILAI' ? 'Kilai' : ''}
+                  {importLevel === 'DISTRICT' ? 'District' : importLevel === 'UNION' ? 'Organizational Unit' : importLevel === 'KILAI' ? 'Kilai' : ''}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="DISTRICT">District</SelectItem>
-                <SelectItem value="UNION">Organization Unit</SelectItem>
+                <SelectItem value="UNION">Organizational Unit</SelectItem>
                 <SelectItem value="KILAI">Kilai</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {importLevel === 'UNION' && (
+          {(importLevel === 'UNION' || importLevel === 'KILAI') && (
             <div className="space-y-2 animate-in fade-in zoom-in-95 duration-200">
-              <Label>Select Union</Label>
-              <Select value={importUnionId} onValueChange={(value) => setImportUnionId(value || '')}>
+              <Label>Select Organizational Unit</Label>
+              <Select value={importUnionId} onValueChange={(value) => {
+                setImportUnionId(value || '');
+                if (importLevel === 'KILAI') setImportKilaiId(''); // Reset Kilai when Org Unit changes
+              }}>
                 <SelectTrigger className="w-full text-base">
-                  <SelectValue placeholder="Select Union">
+                  <SelectValue placeholder="Select Organizational Unit">
                     {importUnionId ? unions.find((u: any) => String(u.id) === importUnionId)?.name : undefined}
                   </SelectValue>
                 </SelectTrigger>
@@ -326,14 +331,14 @@ export default function ImportCadresPage() {
             <>
               <div className="space-y-2 animate-in fade-in zoom-in-95 duration-200">
                 <Label>Select Kilai</Label>
-                <Select value={importKilaiId} onValueChange={(value) => setImportKilaiId(value || '')}>
+                <Select value={importKilaiId} onValueChange={(value) => setImportKilaiId(value || '')} disabled={!importUnionId}>
                   <SelectTrigger className="w-full text-base">
                     <SelectValue placeholder="Select Kilai">
                       {importKilaiId ? kilais.find((k: any) => String(k.id) === importKilaiId)?.name : undefined}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    {kilais.map((k: any) => (
+                    {filteredKilais.map((k: any) => (
                       <SelectItem key={String(k.id)} value={String(k.id)}>{k.name}</SelectItem>
                     ))}
                   </SelectContent>
@@ -438,7 +443,7 @@ export default function ImportCadresPage() {
                     <TableHead className="font-semibold text-primary py-4">Booth No</TableHead>
                     <TableHead className="font-semibold text-primary py-4">Phone</TableHead>
                     <TableHead className="font-semibold text-primary py-4">Aadhaar</TableHead>
-                    <TableHead className="font-semibold text-primary py-4">Member ID</TableHead>
+                    <TableHead className="font-semibold text-primary py-4">Voter ID</TableHead>
                     <TableHead className="text-right sticky right-0 bg-primary/5 z-10 font-semibold text-primary py-4">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -451,7 +456,7 @@ export default function ImportCadresPage() {
                       <TableCell className="p-3">{cadre.boothNo}</TableCell>
                       <TableCell className="p-3">{cadre.phone}</TableCell>
                       <TableCell className="p-3">{cadre.aadhaarNumber}</TableCell>
-                      <TableCell className="p-3">{cadre.memberId}</TableCell>
+                      <TableCell className="p-3">{cadre.voterId}</TableCell>
                       <TableCell className="p-2 text-right sticky right-0 bg-card group-hover:bg-primary/5 transition-colors z-10 shadow-[-1px_0_0_rgba(0,0,0,0.05)]">
                         <div className="flex justify-end gap-1">
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => setEditingRow({ ...cadre, index: idx })}>
@@ -529,8 +534,8 @@ export default function ImportCadresPage() {
                   <Input value={editingRow.aadhaarNumber} onChange={(e) => setEditingRow({ ...editingRow, aadhaarNumber: e.target.value })} />
                 </div>
                 <div className="space-y-2">
-                  <Label>Member ID</Label>
-                  <Input value={editingRow.memberId} onChange={(e) => setEditingRow({ ...editingRow, memberId: e.target.value })} />
+                  <Label>Voter ID</Label>
+                  <Input value={editingRow.voterId} onChange={(e) => setEditingRow({ ...editingRow, voterId: e.target.value, memberId: e.target.value })} />
                 </div>
               </div>
             </div>

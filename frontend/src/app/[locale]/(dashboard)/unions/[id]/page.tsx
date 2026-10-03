@@ -2,10 +2,12 @@
 
 import { useParams } from 'next/navigation';
 import { useUnion } from '@/hooks/use-unions';
-import { ArrowLeft, Store, Building2, Users, Phone } from 'lucide-react';
+import { ArrowLeft, Store, Building2, Users, Phone, Edit2, Trash2 } from 'lucide-react';
 import { Link } from '@/i18n/routing';
+import { useDeleteCadre } from '@/hooks/use-cadres';
 import { useState } from 'react';
 import { CadreFormDialog } from '@/components/cadre-form-dialog';
+import { CadreViewDialog } from '@/components/cadre-view-dialog';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -22,8 +24,23 @@ export default function UnionDetailsPage() {
   const { id } = useParams();
   const { data: union, isLoading } = useUnion(id as string);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null);
   const [callConfirmation, setCallConfirmation] = useState<{name: string, phone: string} | null>(null);
+  const [viewingCadre, setViewingCadre] = useState<any | null>(null);
   const queryClient = useQueryClient();
+  const deleteMutation = useDeleteCadre();
+
+  const handleOpenEdit = (e: React.MouseEvent, cadre: any) => {
+    e.stopPropagation();
+    setEditingId(cadre.id);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setDeleteConfirmation(id);
+  };
 
   if (isLoading) return <div className="p-8 text-center text-gray-500 font-medium">Loading org unit details...</div>;
   if (!union) return <div className="p-8 text-center text-red-500 font-bold">Org unit not found</div>;
@@ -43,7 +60,7 @@ export default function UnionDetailsPage() {
             </p>
           </div>
         </div>
-        <Button onClick={() => setIsModalOpen(true)} className="bg-primary hover:bg-primary/90 text-white font-semibold shadow-md h-11 px-6 rounded-lg transition-transform active:scale-95">
+        <Button onClick={() => { setEditingId(null); setIsModalOpen(true); }} className="bg-primary hover:bg-primary/90 text-white font-semibold shadow-md h-11 px-6 rounded-lg transition-transform active:scale-95">
           <Plus className="mr-2 h-5 w-5" /> Register Administrator
         </Button>
       </div>
@@ -78,21 +95,26 @@ export default function UnionDetailsPage() {
         </div>
 
         {/* Total Administrators */}
-        <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-gray-100 flex items-center gap-3 sm:gap-4">
+        <Link href={`/cadres?filterLevel=UNION&unionId=${union.id}&includeKilai=true`} className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-gray-100 flex items-center gap-3 sm:gap-4 hover:shadow-md transition-all hover:-translate-y-1 cursor-pointer">
           <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-purple-50 flex items-center justify-center shrink-0">
             <Users className="w-6 h-6 sm:w-8 sm:h-8 text-purple-500" />
           </div>
           <div className="flex-1">
             <p className="text-[12px] sm:text-[13px] font-semibold text-gray-800">Total Administrators</p>
             <h3 className="text-[22px] sm:text-[28px] font-bold text-gray-900 leading-tight">{(union._count?.cadres || 0).toLocaleString()}</h3>
-            <p className="text-[10px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1">Active in this org unit</p>
+            <p className="text-[10px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1">Active across this org unit</p>
           </div>
-        </div>
+        </Link>
       </div>
 
       {/* Cadres Grid */}
       <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-8 shadow-sm border border-gray-100">
-        <h2 className="text-lg font-bold text-gray-900 tracking-wide mb-6">Org Unit Administrators</h2>
+        <div className="flex items-center gap-3 mb-6">
+          <h2 className="text-lg font-bold text-gray-900 tracking-wide">Org Unit Administrators</h2>
+          <span className="bg-primary/10 text-primary px-2.5 py-0.5 rounded-full text-sm font-bold border border-primary/20">
+            {union.unionCadres?.length || 0}
+          </span>
+        </div>
         
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
           {(union.unionCadres || []).map((cadre, index) => {
@@ -102,11 +124,24 @@ export default function UnionDetailsPage() {
             const highlight = index === 0 && rawRole.includes('SECRETARY'); // Example highlight logic
             
             return (
-              <div key={cadre.id || index} className={`flex flex-col items-center justify-center p-5 sm:p-6 rounded-xl border hover:shadow-md transition-all duration-300 group cursor-pointer h-full ${
-                highlight 
+              <div 
+                key={cadre.id || index} 
+                onClick={() => setViewingCadre(cadre)}
+                className={`flex flex-col items-center justify-center pt-5 px-4 pb-2 sm:p-6 rounded-xl border hover:shadow-md transition-all duration-300 group cursor-pointer h-full ${
+                  highlight 
                   ? "bg-gradient-to-b from-[#8F0A1B]/10 to-[#8F0A1B]/5 border-[#8F0A1B]/30 hover:border-[#8F0A1B]/50 shadow-sm relative overflow-hidden" 
-                  : "bg-[#F8F9FA] border-gray-100 hover:border-[#8F0A1B]/20"
+                  : "bg-[#F8F9FA] border-gray-100 hover:border-[#8F0A1B]/20 relative"
               }`}>
+                {/* Desktop Actions (Top Right Hover) */}
+                <div className="hidden md:flex absolute top-2 right-2 gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                  <Button onClick={(e) => handleOpenEdit(e, cadre)} variant="ghost" size="icon" className="h-7 w-7 text-primary hover:text-primary hover:bg-primary/10 rounded-full bg-white/50 backdrop-blur-sm shadow-sm">
+                    <Edit2 className="h-3 w-3" />
+                  </Button>
+                  <Button onClick={(e) => handleDelete(e, cadre.id)} variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full bg-white/50 backdrop-blur-sm shadow-sm">
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+
                 {highlight && (
                   <div className="absolute top-0 right-0 w-12 h-12 bg-gradient-to-bl from-[#8F0A1B]/20 to-transparent">
                     <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#8F0A1B] animate-pulse"></div>
@@ -124,9 +159,21 @@ export default function UnionDetailsPage() {
                     {cadre.phone}
                   </button>
                 )}
-                <p className={`text-[11px] sm:text-[12px] font-semibold text-center ${
-                  highlight ? "text-[#8F0A1B] bg-[#8F0A1B]/10 px-2 py-0.5 rounded-full mt-1" : "text-[#8F0A1B]"
-                }`}>{designation}</p>
+                <div className="mt-1">
+                  <p className={`text-[11px] sm:text-[12px] font-semibold text-center inline-block ${
+                    highlight ? "text-[#8F0A1B] bg-[#8F0A1B]/10 px-2 py-0.5 rounded-full" : "text-[#8F0A1B]"
+                  }`}>{designation}</p>
+                </div>
+
+                {/* Mobile Actions (Bottom Inline) */}
+                <div className="flex md:hidden w-full justify-center gap-6 mt-4 pt-2 border-t border-gray-200/60">
+                  <Button onClick={(e) => handleOpenEdit(e, cadre)} variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10 rounded-full">
+                    <Edit2 className="h-4 w-4" />
+                  </Button>
+                  <Button onClick={(e) => handleDelete(e, cadre.id)} variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10 rounded-full">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             );
           })}
@@ -137,11 +184,19 @@ export default function UnionDetailsPage() {
       <CadreFormDialog 
         isOpen={isModalOpen}
         onOpenChange={setIsModalOpen}
+        editingId={editingId}
+        cadres={union.unionCadres}
         defaultLevel="UNION"
         defaultUnionId={union.id}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['unions', id] });
         }}
+      />
+
+      <CadreViewDialog
+        isOpen={!!viewingCadre}
+        onOpenChange={(open) => !open && setViewingCadre(null)}
+        cadre={viewingCadre}
       />
 
       {/* Call Confirmation Dialog */}
@@ -163,6 +218,36 @@ export default function UnionDetailsPage() {
               }}
             >
               Yes, Call Now
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteConfirmation} onOpenChange={(open) => !open && setDeleteConfirmation(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Delete Administrator</DialogTitle>
+            <DialogDescription className="pt-2">
+              Are you sure you want to delete this administrator? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setDeleteConfirmation(null)}>Cancel</Button>
+            <Button 
+              variant="destructive"
+              onClick={() => {
+                if (deleteConfirmation) {
+                  deleteMutation.mutate(deleteConfirmation, {
+                    onSuccess: () => {
+                      queryClient.invalidateQueries({ queryKey: ['unions', union?.id] });
+                      setDeleteConfirmation(null);
+                    }
+                  });
+                }
+              }}
+            >
+              Yes, Delete
             </Button>
           </DialogFooter>
         </DialogContent>

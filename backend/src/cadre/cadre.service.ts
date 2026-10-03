@@ -68,7 +68,7 @@ export class CadreService {
   }
 
 
-  findAll(query: any) {
+  async findAll(query: any) {
     const { level, districtId, districtGroup, unionId, kilaiId, search } = query;
     const where: any = {};
     
@@ -81,9 +81,43 @@ export class CadreService {
       where.name = { contains: search, mode: 'insensitive' };
     }
 
-    return this.prisma.cadre.findMany({
+    const cadres = await this.prisma.cadre.findMany({
       where,
       orderBy: { createdAt: 'desc' },
+    });
+
+    const LEVEL_WEIGHTS: Record<string, number> = {
+      'DISTRICT': 1,
+      'GROUP': 2,
+      'UNION': 3,
+      'KILAI': 4
+    };
+
+    const ROLE_WEIGHTS: Record<string, number> = {
+      'Secretary': 1,
+      'Joint Secretary': 2,
+      'Treasurer': 3,
+      'Deputy Secretary': 4,
+      'Executive Committee Member': 5,
+      'EC Member': 5
+    };
+
+    return cadres.sort((a, b) => {
+      const levelA = LEVEL_WEIGHTS[a.level] || 99;
+      const levelB = LEVEL_WEIGHTS[b.level] || 99;
+      
+      if (levelA !== levelB) {
+        return levelA - levelB;
+      }
+      
+      const roleA = ROLE_WEIGHTS[a.role || ''] || 99;
+      const roleB = ROLE_WEIGHTS[b.role || ''] || 99;
+      
+      if (roleA !== roleB) {
+         return roleA - roleB;
+      }
+
+      return 0; 
     });
   }
 

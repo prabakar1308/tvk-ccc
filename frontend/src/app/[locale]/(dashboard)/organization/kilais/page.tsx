@@ -13,7 +13,7 @@ import { useKilais } from '@/hooks/use-kilais';
 
 export default function KilaisListPage() {
   const t = useTranslations('Index');
-  const [view, setView] = useState<'table' | 'cards'>('table');
+  const [view, setView] = useState<'table' | 'cards'>('cards');
   const [search, setSearch] = useState('');
 
   const [isAddOpen, setIsAddOpen] = useState(false);

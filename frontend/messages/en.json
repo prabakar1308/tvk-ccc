@@ -87,6 +87,7 @@
     "description": "Manage party members, roles, and grassroots engagement.",
     "register": "Register Administrator",
     "totalCadres": "Total Administrators",
+    "totalAdministrators": "Total Administrators",
     "newThisMonth": "New This Month",
     "activeCadres": "Active Administrators",
     "searchPlaceholder": "Search administrators",

@@ -60,7 +60,7 @@ export default function KilaisPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [callConfirmation, setCallConfirmation] = useState<{name: string, phone: string} | null>(null);
-  const [viewMode, setViewMode] = useState<'table' | 'tile'>('table');
+  const [viewMode, setViewMode] = useState<'table' | 'tile'>('tile');
 
   const initialFormData: CreateKilaiDto = {
     name: '',
