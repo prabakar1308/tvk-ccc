@@ -426,7 +426,7 @@ export default function KilaisPage() {
         <div className="flex flex-col sm:flex-row items-center w-full sm:w-auto gap-4">
           <div className="w-full sm:w-64">
             <Select value={selectedUnion} onValueChange={(value) => setSelectedUnion(value || '')}>
-              <SelectTrigger className="h-11 border-primary/20 bg-zinc-50 dark:bg-zinc-900 focus:ring-primary/30 rounded-md w-full">
+              <SelectTrigger className="!h-11 border-primary/20 bg-zinc-50 dark:bg-zinc-900 focus:ring-primary/30 rounded-md w-full">
                 <SelectValue placeholder={t('filterUnion')}>
                   {selectedUnion === 'all' 
                     ? t('allUnions') 
@@ -562,7 +562,7 @@ export default function KilaisPage() {
                   const kilaiUnion = unions?.find((u: any) => String(u.id || u._id) === kilai.unionId);
                   
                   return (
-                    <div key={kilai.id} className="bg-card border border-primary/10 rounded-lg p-5 shadow-sm hover:shadow-md transition-all flex flex-col gap-4 relative group">
+                    <div key={kilai.id} className="bg-card border-2 border-primary/20 dark:border-primary/30 rounded-xl p-5 shadow-md hover:shadow-xl hover:border-primary/50 transition-all flex flex-col gap-4 relative group">
                       <div className="flex justify-between items-start gap-2">
                         <Link href={`/kilais/${kilai.id}`} className="flex items-start gap-2 hover:text-[#8F0A1B] transition-colors cursor-pointer font-bold text-lg text-foreground pr-16">
                           <Building2 className="h-5 w-5 text-[#8F0A1B] shrink-0 mt-0.5" />

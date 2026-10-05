@@ -190,7 +190,7 @@ export default function CadresPage() {
       <div className="grid gap-6 sm:grid-cols-3">
         <Card 
           onClick={scrollToTable}
-          className="border-primary/20 shadow-sm bg-white dark:bg-zinc-900 rounded-lg transition-all duration-300 hover:shadow-md hover:-translate-y-1 cursor-pointer"
+          className="border-2 border-primary/20 dark:border-primary/30 shadow-md bg-white dark:bg-zinc-900 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-primary/50 hover:-translate-y-1 cursor-pointer"
         >
           <CardContent className="p-6 flex items-center gap-4">
             <div className="p-3 bg-primary/10 rounded-md text-primary">
@@ -203,7 +203,7 @@ export default function CadresPage() {
           </CardContent>
         </Card>
         
-        <Card className="border-primary/20 shadow-sm bg-white dark:bg-zinc-900 rounded-lg transition-all duration-300 hover:shadow-md hover:-translate-y-1">
+        <Card className="border-2 border-primary/20 dark:border-primary/30 shadow-md bg-white dark:bg-zinc-900 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-primary/50 hover:-translate-y-1">
           <CardContent className="p-6 flex items-center gap-4">
             <div className="p-3 bg-manjal/20 rounded-md text-amber-600 dark:text-manjal">
               <UserPlus className="w-8 h-8" />
@@ -215,7 +215,7 @@ export default function CadresPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-primary/20 shadow-sm bg-white dark:bg-zinc-900 rounded-lg transition-all duration-300 hover:shadow-md hover:-translate-y-1">
+        <Card className="border-2 border-primary/20 dark:border-primary/30 shadow-md bg-white dark:bg-zinc-900 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-primary/50 hover:-translate-y-1">
           <CardContent className="p-6 flex items-center gap-4">
             <div className="p-3 bg-primary/10 rounded-md text-primary">
               <Trophy className="w-8 h-8" />

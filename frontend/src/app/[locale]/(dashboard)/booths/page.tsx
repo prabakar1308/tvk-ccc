@@ -30,10 +30,11 @@ import {
 
 import { useBooths, useCreateBooth, useUpdateBooth, useDeleteBooth } from '@/hooks/use-booths';
 import { useKilais } from '@/hooks/use-kilais';
-import { useCadres } from '@/hooks/use-cadres';
 import { useUnions } from '@/hooks/use-unions';
 import { shortenBoothName } from '@/lib/booth-utils';
 import { useTranslations } from 'next-intl';
+import { MultiAutocomplete } from '@/components/ui/autocomplete';
+import { cadreApi } from '@/services/api/cadres';
 
 // Custom MultiSelect Dropdown
 function MultiSelectDropdown({ 
@@ -134,7 +135,6 @@ export default function BoothsPage() {
   const tCommon = useTranslations('Common');
   const { data: booths, isLoading } = useBooths();
   const { data: kilais } = useKilais();
-  const { data: cadres } = useCadres();
   const { data: unions } = useUnions();
 
   const createBooth = useCreateBooth();
@@ -165,6 +165,7 @@ export default function BoothsPage() {
     totalCount: 0,
     kilaiIds: [] as string[],
     agentIds: [] as string[],
+    agents: [] as any[],
   };
   const [formData, setFormData] = useState(initialFormState);
 
@@ -181,6 +182,7 @@ export default function BoothsPage() {
         totalCount: booth.totalCount || 0,
         kilaiIds: booth.kilais?.map((k: any) => k.id) || [],
         agentIds: booth.agents?.map((a: any) => a.id) || [],
+        agents: booth.agents || [],
       });
     } else {
       setEditingBooth(null);
@@ -311,11 +313,15 @@ export default function BoothsPage() {
 
               <div className="space-y-2">
                 <Label>{t('boothAgents')}</Label>
-                <MultiSelectDropdown 
-                  options={cadres || []}
-                  selected={formData.agentIds}
-                  onChange={(val) => setFormData({...formData, agentIds: val})}
-                  placeholder="Select agents..."
+                <MultiAutocomplete 
+                  value={formData.agents}
+                  onChange={(val) => setFormData({...formData, agents: val, agentIds: val.map((v: any) => v.id)})}
+                  fetchOptions={async (search) => {
+                    return await cadreApi.getAll({ search, limit: '10' });
+                  }}
+                  getOptionLabel={(option) => option.name}
+                  getOptionValue={(option) => option.id}
+                  placeholder="Search agents (min 3 chars)..."
                 />
               </div>
 
@@ -453,7 +459,7 @@ export default function BoothsPage() {
       {/* Metrics Row */}
       <div className="grid gap-6 sm:grid-cols-3">
         <Card 
-          className="border-primary/20 shadow-sm bg-white dark:bg-zinc-900 rounded-lg transition-all duration-300 hover:shadow-md hover:-translate-y-1 cursor-pointer"
+          className="border-2 border-primary/20 dark:border-primary/30 shadow-md bg-white dark:bg-zinc-900 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-primary/50 hover:-translate-y-1 cursor-pointer"
           onClick={() => {
             dataSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }}
@@ -469,7 +475,7 @@ export default function BoothsPage() {
           </CardContent>
         </Card>
         
-        <Card className="border-primary/20 shadow-sm bg-white dark:bg-zinc-900 rounded-lg transition-all duration-300 hover:shadow-md hover:-translate-y-1">
+        <Card className="border-2 border-primary/20 dark:border-primary/30 shadow-md bg-white dark:bg-zinc-900 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-primary/50 hover:-translate-y-1">
           <CardContent className="p-6 flex items-center gap-4">
             <div className="p-3 bg-manjal/20 rounded-md text-amber-600 dark:text-manjal">
               <Users className="w-8 h-8" />
@@ -483,7 +489,7 @@ export default function BoothsPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-primary/20 shadow-sm bg-white dark:bg-zinc-900 rounded-lg transition-all duration-300 hover:shadow-md hover:-translate-y-1">
+        <Card className="border-2 border-primary/20 dark:border-primary/30 shadow-md bg-white dark:bg-zinc-900 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-primary/50 hover:-translate-y-1">
           <CardContent className="p-6 flex items-center gap-4">
             <div className="p-3 bg-primary/10 rounded-md text-primary">
               <CheckCircle2 className="w-8 h-8" />
@@ -735,7 +741,7 @@ export default function BoothsPage() {
             <div className="col-span-full text-center py-8 text-muted-foreground">{t('noBooths')}</div>
           ) : (
             paginatedBooths.map((booth: any) => (
-              <Card key={booth.id} className="p-1 gap-1 overflow-hidden border border-primary/10 hover:border-primary/40 hover:shadow-lg transition-all duration-300 group bg-card relative">
+              <Card key={booth.id} className="p-1 gap-1 overflow-hidden border-2 border-primary/20 dark:border-primary/30 shadow-md hover:border-primary/50 hover:shadow-xl transition-all duration-300 group bg-card relative rounded-xl">
                 <div className="absolute top-2 right-2 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-full p-0.5 shadow-sm">
                   <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-primary/20 rounded-full" onClick={() => handleOpenDialog(booth)}>
                     <Edit2 className="h-3.5 w-3.5" />

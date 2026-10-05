@@ -69,7 +69,7 @@ export class CadreService {
 
 
   async findAll(query: any) {
-    const { level, districtId, districtGroup, unionId, kilaiId, search } = query;
+    const { level, districtId, districtGroup, unionId, kilaiId, search, limit } = query;
     const where: any = {};
     
     if (level) where.level = level;
@@ -81,8 +81,11 @@ export class CadreService {
       where.name = { contains: search, mode: 'insensitive' };
     }
 
+    const limitNum = limit ? parseInt(limit, 10) : undefined;
+
     const cadres = await this.prisma.cadre.findMany({
       where,
+      ...(limitNum && { take: limitNum }),
       orderBy: { createdAt: 'desc' },
     });
 

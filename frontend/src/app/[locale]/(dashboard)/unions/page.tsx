@@ -219,7 +219,7 @@ export default function UnionsPage() {
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <Select value={unitTypeFilter} onValueChange={(val) => setUnitTypeFilter(val || '')}>
-            <SelectTrigger className="w-full sm:w-[200px] h-11 bg-zinc-50 dark:bg-zinc-900 border-primary/20 m-0">
+            <SelectTrigger className="w-full sm:w-[200px] !h-11 bg-zinc-50 dark:bg-zinc-900 border-primary/20 m-0">
               <SelectValue placeholder="All Unit Types" />
             </SelectTrigger>
             <SelectContent>
@@ -333,74 +333,73 @@ export default function UnionsPage() {
                   {groupUnions.map((union: any) => (
                     <div 
                       key={union.id} 
-                      className="bg-card flex flex-col h-full rounded-xl p-5 border border-primary/10 hover:shadow-md transition-all group relative overflow-hidden"
+                      className="bg-card flex flex-col h-full rounded-xl p-0 border-2 border-primary/20 dark:border-primary/30 shadow-md hover:border-primary/50 hover:shadow-xl transition-all group relative overflow-hidden"
                     >
-                      {/* Desktop Actions */}
-                      <div className="hidden md:flex absolute top-2 right-2 gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-                        <Button onClick={(e) => { e.stopPropagation(); handleOpenEdit(union); }} variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10 rounded-full bg-white/50 backdrop-blur-sm shadow-sm">
-                          <Edit2 className="h-4 w-4" />
+                      {/* Action Buttons Overlay */}
+                      <div className="absolute top-2 right-2 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-full p-0.5 shadow-sm">
+                        <Button onClick={(e) => { e.stopPropagation(); handleOpenEdit(union); }} variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-primary/20 rounded-full">
+                          <Edit2 className="h-3.5 w-3.5" />
                         </Button>
-                        <Button onClick={(e) => { e.stopPropagation(); handleDelete(union.id); }} variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10 rounded-full bg-white/50 backdrop-blur-sm shadow-sm">
-                          <Trash2 className="h-4 w-4" />
+                        <Button onClick={(e) => { e.stopPropagation(); handleDelete(union.id); }} variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/20 rounded-full">
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                       
-                      <Link href={`/unions/${union.id}`} className="flex-1 block cursor-pointer">
-                        <div className="flex items-start gap-4 mb-4">
+                      <Link href={`/unions/${union.id}`} className="flex-1 flex flex-col cursor-pointer">
+                        {/* Header Section */}
+                        <div className="bg-primary/5 p-4 border-b border-primary/10 flex items-start gap-3">
                           {union.unitType === 'TOWN' ? (
-                            <div className="p-3 rounded-lg bg-blue-50 border border-blue-100 text-blue-600">
-                              <Building className="h-6 w-6" />
+                            <div className="p-2.5 rounded-lg bg-blue-50 border border-blue-100 text-blue-600 shadow-sm shrink-0">
+                              <Building className="h-5 w-5" />
                             </div>
                           ) : union.unitType === 'TOWN_PANCHAYAT' ? (
-                            <div className="p-3 rounded-lg bg-green-50 border border-green-100 text-green-600">
-                              <Store className="h-6 w-6" />
+                            <div className="p-2.5 rounded-lg bg-green-50 border border-green-100 text-green-600 shadow-sm shrink-0">
+                              <Store className="h-5 w-5" />
                             </div>
                           ) : union.unitType === 'AREA' ? (
-                            <div className="p-3 rounded-lg bg-purple-50 border border-purple-100 text-purple-600">
-                              <MapPin className="h-6 w-6" />
+                            <div className="p-2.5 rounded-lg bg-purple-50 border border-purple-100 text-purple-600 shadow-sm shrink-0">
+                              <MapPin className="h-5 w-5" />
                             </div>
                           ) : (
-                            <div className="p-3 rounded-lg bg-orange-50 border border-orange-100 text-orange-600">
-                              <Building2 className="h-6 w-6" />
+                            <div className="p-2.5 rounded-lg bg-orange-50 border border-orange-100 text-orange-600 shadow-sm shrink-0">
+                              <Building2 className="h-5 w-5" />
                             </div>
                           )}
-                          <div className="flex-1">
-                            <h3 className="font-bold text-base sm:text-lg text-foreground group-hover:text-primary transition-colors line-clamp-2 leading-snug">{union.name}</h3>
-                            <span className="inline-block mt-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase bg-primary/5 text-primary border border-primary/10">
+                          <div className="flex-1 pr-14">
+                            <h3 className="font-bold text-lg text-primary mb-1.5 line-clamp-2 leading-tight">{union.name}</h3>
+                            <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold tracking-widest uppercase bg-white dark:bg-zinc-800 text-primary border border-primary/20 shadow-sm">
                               {union.unitType === 'TOWN_PANCHAYAT' ? 'Town Panchayat' : union.unitType || 'Union'}
                             </span>
                           </div>
                         </div>
 
-                        {(union.contactName || union.contactPhone) && (
-                          <div className="mt-4 pt-4 border-t border-primary/10 flex flex-col gap-2">
-                            {union.contactName && (
-                              <p className="text-sm font-semibold text-foreground flex items-center gap-2">
-                                <span className="text-muted-foreground font-normal">Contact:</span>
-                                {union.contactName}
-                              </p>
-                            )}
-                            {union.contactPhone && (
-                              <div className="mt-1">
-                                <a href={`tel:${union.contactPhone}`} onClick={(e) => e.stopPropagation()} className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-mono bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-md transition-colors w-max">
-                                  <Phone className="w-3.5 h-3.5" />
-                                  {union.contactPhone}
-                                </a>
-                              </div>
-                            )}
-                          </div>
-                        )}
+                        {/* Body Section */}
+                        <div className="p-4 flex flex-col gap-3 flex-1 bg-white dark:bg-zinc-950">
+                          {(union.contactName || union.contactPhone) ? (
+                            <div className="flex flex-col gap-2.5">
+                              {union.contactName && (
+                                <div className="flex items-start gap-2">
+                                  <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider w-16 mt-0.5">Contact</span>
+                                  <span className="text-sm font-semibold text-foreground break-words flex-1">{union.contactName}</span>
+                                </div>
+                              )}
+                              {union.contactPhone && (
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider w-16">Phone</span>
+                                  <a href={`tel:${union.contactPhone}`} onClick={(e) => e.stopPropagation()} className="inline-flex items-center gap-1.5 text-sm font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-100 px-2 py-0.5 rounded-md transition-colors w-max">
+                                    <Phone className="w-3 h-3" />
+                                    {union.contactPhone}
+                                  </a>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="flex flex-col justify-center h-full text-muted-foreground py-2">
+                              <p className="text-sm italic font-medium">{t('noContactProvided')}</p>
+                            </div>
+                          )}
+                        </div>
                       </Link>
-
-                      {/* Mobile Actions */}
-                      <div className="flex md:hidden w-full justify-end gap-2 mt-4 pt-4 border-t border-primary/10 z-10 relative">
-                        <Button onClick={(e) => { e.stopPropagation(); handleOpenEdit(union); }} variant="outline" size="sm" className="h-8 text-primary border-primary/20 bg-primary/5">
-                          <Edit2 className="h-3 w-3 mr-1.5" /> Edit
-                        </Button>
-                        <Button onClick={(e) => { e.stopPropagation(); handleDelete(union.id); }} variant="outline" size="sm" className="h-8 text-destructive border-destructive/20 bg-destructive/5">
-                          <Trash2 className="h-3 w-3 mr-1.5" /> Delete
-                        </Button>
-                      </div>
                     </div>
                   ))}
                 </div>
