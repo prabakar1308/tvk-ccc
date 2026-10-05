@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CadreLevel } from '@prisma/client';
 
@@ -13,49 +17,69 @@ export class CadreService {
   }
 
   async createBulk(payloads: any[]) {
-    const aadhaars = payloads.map(p => p.aadhaarNumber).filter(Boolean);
-    const phones = payloads.map(p => p.phone).filter(Boolean);
-    const voterIds = payloads.map(p => p.voterId).filter(Boolean);
+    const aadhaars = payloads.map((p) => p.aadhaarNumber).filter(Boolean);
+    const phones = payloads.map((p) => p.phone).filter(Boolean);
+    const voterIds = payloads.map((p) => p.voterId).filter(Boolean);
 
     const orConditions: any[] = [];
-    if (aadhaars.length > 0) orConditions.push({ aadhaarNumber: { in: aadhaars } });
+    if (aadhaars.length > 0)
+      orConditions.push({ aadhaarNumber: { in: aadhaars } });
     if (phones.length > 0) orConditions.push({ phone: { in: phones } });
     if (voterIds.length > 0) orConditions.push({ voterId: { in: voterIds } });
 
     if (orConditions.length > 0) {
       const existingRecords = await this.prisma.cadre.findMany({
         where: { OR: orConditions },
-        select: { name: true, phone: true, aadhaarNumber: true, voterId: true, level: true, unionId: true, homeKilaiId: true }
+        select: {
+          name: true,
+          phone: true,
+          aadhaarNumber: true,
+          voterId: true,
+          level: true,
+          unionId: true,
+          homeKilaiId: true,
+        },
       });
 
       if (existingRecords.length > 0) {
         const duplicates = [];
-        
+
         for (const payload of payloads) {
-          const matching = existingRecords.find(r => 
-            (payload.phone && r.phone === payload.phone) || 
-            (payload.aadhaarNumber && r.aadhaarNumber === payload.aadhaarNumber) || 
-            (payload.voterId && r.voterId === payload.voterId)
+          const matching = existingRecords.find(
+            (r) =>
+              (payload.phone && r.phone === payload.phone) ||
+              (payload.aadhaarNumber &&
+                r.aadhaarNumber === payload.aadhaarNumber) ||
+              (payload.voterId && r.voterId === payload.voterId),
           );
-          
+
           if (matching) {
-            let reason = [];
-            if (payload.phone && matching.phone === payload.phone) reason.push('Phone');
-            if (payload.aadhaarNumber && matching.aadhaarNumber === payload.aadhaarNumber) reason.push('Aadhaar');
-            if (payload.voterId && matching.voterId === payload.voterId) reason.push('Voter ID');
-            
+            const reason = [];
+            if (payload.phone && matching.phone === payload.phone)
+              reason.push('Phone');
+            if (
+              payload.aadhaarNumber &&
+              matching.aadhaarNumber === payload.aadhaarNumber
+            )
+              reason.push('Aadhaar');
+            if (payload.voterId && matching.voterId === payload.voterId)
+              reason.push('Voter ID');
+
             duplicates.push({
               name: payload.name || 'Unknown',
               phone: payload.phone || '-',
               aadhaarNumber: payload.aadhaarNumber || '-',
               voterId: payload.voterId || '-',
-              reason: `${reason.join(', ')} already exists`
+              reason: `${reason.join(', ')} already exists`,
             });
           }
         }
 
         if (duplicates.length > 0) {
-          throw new BadRequestException({ message: 'Duplicate records found', duplicates });
+          throw new BadRequestException({
+            message: 'Duplicate records found',
+            duplicates,
+          });
         }
       }
     }
@@ -67,11 +91,18 @@ export class CadreService {
     return { message: 'Cadres imported successfully', count: result.count };
   }
 
-
   async findAll(query: any) {
-    const { level, districtId, districtGroup, unionId, kilaiId, search, limit } = query;
+    const {
+      level,
+      districtId,
+      districtGroup,
+      unionId,
+      kilaiId,
+      search,
+      limit,
+    } = query;
     const where: any = {};
-    
+
     if (level) where.level = level;
     if (districtId) where.districtId = districtId;
     if (districtGroup) where.districtGroup = districtGroup;
@@ -90,37 +121,37 @@ export class CadreService {
     });
 
     const LEVEL_WEIGHTS: Record<string, number> = {
-      'DISTRICT': 1,
-      'GROUP': 2,
-      'UNION': 3,
-      'KILAI': 4
+      DISTRICT: 1,
+      GROUP: 2,
+      UNION: 3,
+      KILAI: 4,
     };
 
     const ROLE_WEIGHTS: Record<string, number> = {
-      'Secretary': 1,
+      Secretary: 1,
       'Joint Secretary': 2,
-      'Treasurer': 3,
+      Treasurer: 3,
       'Deputy Secretary': 4,
       'Executive Committee Member': 5,
-      'EC Member': 5
+      'EC Member': 5,
     };
 
     return cadres.sort((a, b) => {
       const levelA = LEVEL_WEIGHTS[a.level] || 99;
       const levelB = LEVEL_WEIGHTS[b.level] || 99;
-      
+
       if (levelA !== levelB) {
         return levelA - levelB;
       }
-      
+
       const roleA = ROLE_WEIGHTS[a.role || ''] || 99;
       const roleB = ROLE_WEIGHTS[b.role || ''] || 99;
-      
+
       if (roleA !== roleB) {
-         return roleA - roleB;
+        return roleA - roleB;
       }
 
-      return 0; 
+      return 0;
     });
   }
 
@@ -141,7 +172,7 @@ export class CadreService {
   async update(id: string, payload: any) {
     const cadre = await this.prisma.cadre.findUnique({ where: { id } });
     if (!cadre) throw new NotFoundException('Cadre not found');
-    
+
     return this.prisma.cadre.update({
       where: { id },
       data: payload,
@@ -151,7 +182,7 @@ export class CadreService {
   async remove(id: string) {
     const cadre = await this.prisma.cadre.findUnique({ where: { id } });
     if (!cadre) throw new NotFoundException('Cadre not found');
-    
+
     return this.prisma.cadre.delete({ where: { id } });
   }
 }

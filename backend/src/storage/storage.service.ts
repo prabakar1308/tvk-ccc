@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+} from '@nestjs/common';
 import { Storage } from '@google-cloud/storage';
 import { extname } from 'path';
 
@@ -19,14 +23,19 @@ export class StorageService {
    * @param folder Optional folder path prefix (e.g. 'cadres/')
    * @returns The public URL of the uploaded file
    */
-  async uploadFile(file: Express.Multer.File, folder: string = ''): Promise<string | null> {
+  async uploadFile(
+    file: Express.Multer.File,
+    folder: string = '',
+  ): Promise<string | null> {
     try {
       if (!file) return null;
 
       const bucket = this.storage.bucket(this.bucketName);
       const uniqueFilename = `${Date.now()}-${Math.round(Math.random() * 1e9)}${extname(file.originalname)}`;
-      const destination = folder ? `${folder}${uniqueFilename}` : uniqueFilename;
-      
+      const destination = folder
+        ? `${folder}${uniqueFilename}`
+        : uniqueFilename;
+
       const fileRef = bucket.file(destination);
 
       await fileRef.save(file.buffer, {
@@ -36,11 +45,13 @@ export class StorageService {
 
       // Usually, if the bucket is public, the URL looks like this:
       const publicUrl = `https://storage.googleapis.com/${this.bucketName}/${destination}`;
-      
+
       return publicUrl;
     } catch (error) {
       this.logger.error('Error uploading file to GCS', error);
-      throw new InternalServerErrorException('Failed to upload file to Cloud Storage');
+      throw new InternalServerErrorException(
+        'Failed to upload file to Cloud Storage',
+      );
     }
   }
 

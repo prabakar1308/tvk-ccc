@@ -11,7 +11,12 @@ export class AuthController {
   @ApiOperation({ summary: 'Register a new user' })
   @ApiResponse({ status: 201, description: 'User successfully created.' })
   async register(@Body() body: any) {
-    return this.authService.register(body.userId, body.password, body.unionId, body.role);
+    return this.authService.register(
+      body.userId,
+      body.password,
+      body.unionId,
+      body.role,
+    );
   }
 
   @Post('login')
@@ -19,7 +24,10 @@ export class AuthController {
   @ApiResponse({ status: 200, description: 'Successful login.' })
   @ApiResponse({ status: 401, description: 'Unauthorized.' })
   async login(@Body() body: any) {
-    const user = await this.authService.validateUser(body.userId, body.password);
+    const user = await this.authService.validateUser(
+      body.userId,
+      body.password,
+    );
     if (!user) {
       throw new UnauthorizedException();
     }

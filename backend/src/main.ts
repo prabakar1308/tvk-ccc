@@ -1,13 +1,21 @@
 import { NestFactory } from '@nestjs/core';
-try { process.loadEnvFile(); } catch (e) {}
+try {
+  process.loadEnvFile();
+} catch {
+  // Ignore error if env file is not found
+}
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { TranslationInterceptor } from './i18n/interceptors/translation.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // Set Global Prefix
   app.setGlobalPrefix('api/v1');
+
+  // Apply Translation Interceptor Globally
+  app.useGlobalInterceptors(new TranslationInterceptor());
 
   // Setup Swagger
   const config = new DocumentBuilder()
@@ -24,5 +32,5 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT ?? 8000, '0.0.0.0');
 }
-bootstrap();
+bootstrap().catch(console.error);
 // Trigger restart for prisma client

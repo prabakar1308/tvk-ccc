@@ -11,24 +11,27 @@ export class I18nService {
    */
   async translate(text: string, targetLanguage: string): Promise<string> {
     if (!text || targetLanguage === 'en') return text;
-    
+
     this.logger.debug(`Translating "${text}" to ${targetLanguage}`);
-    
+
     // TODO: Replace with real API call
     // e.g. const [translation] = await translate.translate(text, targetLanguage);
-    
+
     // Fallback Mock Translation Logic for prototyping
     if (targetLanguage === 'ta') {
       return `[Tamil: ${text}]`;
     }
-    
+
     return `[${targetLanguage}: ${text}]`;
   }
 
   /**
    * Helper to generate a full translations JSON object for a given entity's fields
    */
-  async generateTranslationsForEntity(fieldsToTranslate: Record<string, string>, targetLanguages: string[] = ['ta']) {
+  async generateTranslationsForEntity(
+    fieldsToTranslate: Record<string, string>,
+    targetLanguages: string[] = ['ta'],
+  ) {
     const translations: Record<string, Record<string, string>> = {};
 
     for (const lang of targetLanguages) {

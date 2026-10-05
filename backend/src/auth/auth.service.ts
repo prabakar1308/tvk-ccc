@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
@@ -10,7 +14,12 @@ export class AuthService {
     private jwtService: JwtService,
   ) {}
 
-  async register(userId: string, pass: string, unionId?: string, role?: string) {
+  async register(
+    userId: string,
+    pass: string,
+    unionId?: string,
+    role?: string,
+  ) {
     const existing = await this.prisma.user.findUnique({ where: { userId } });
     if (existing) {
       throw new BadRequestException('User already exists');
@@ -24,7 +33,7 @@ export class AuthService {
         ...(role && { role: role as any }),
       },
     });
-    
+
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { passwordHash: _, ...result } = user;
     return result;
@@ -32,7 +41,7 @@ export class AuthService {
 
   async validateUser(userId: string, pass: string): Promise<any> {
     const user = await this.prisma.user.findUnique({ where: { userId } });
-    if (user && await bcrypt.compare(pass, user.passwordHash)) {
+    if (user && (await bcrypt.compare(pass, user.passwordHash))) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { passwordHash, ...result } = user;
       return result;
@@ -41,7 +50,12 @@ export class AuthService {
   }
 
   async login(user: any) {
-    const payload = { userId: user.userId, sub: user.id, role: user.role, unionId: user.unionId };
+    const payload = {
+      userId: user.userId,
+      sub: user.id,
+      role: user.role,
+      unionId: user.unionId,
+    };
     return {
       access_token: this.jwtService.sign(payload),
     };

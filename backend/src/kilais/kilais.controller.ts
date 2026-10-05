@@ -1,8 +1,25 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, UseGuards, Req, ForbiddenException } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  UseGuards,
+  Req,
+  ForbiddenException,
+} from '@nestjs/common';
 import { KilaisService } from './kilais.service';
 import { CreateKilaiDto } from './dto/create-kilai.dto';
 import { UpdateKilaiDto } from './dto/update-kilai.dto';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @ApiTags('Kilais')
@@ -16,14 +33,16 @@ export class KilaisController {
   @ApiOperation({ summary: 'Create a new Kilai' })
   create(@Req() req: any, @Body() createKilaiDto: CreateKilaiDto) {
     if (req.user.role !== 'SUPER_ADMIN') {
-      if (!req.user.unionId) throw new ForbiddenException('User is not assigned to a union');
+      if (!req.user.unionId)
+        throw new ForbiddenException('User is not assigned to a union');
       createKilaiDto.unionId = req.user.unionId;
     } else {
       // Super admin can provide unionId in dto, or header. If missing, throw error
       if (!createKilaiDto.unionId) {
         const headerUnionId = req.headers['x-active-union-id'];
         if (headerUnionId) createKilaiDto.unionId = headerUnionId as string;
-        else throw new ForbiddenException('unionId is required for SUPER_ADMIN');
+        else
+          throw new ForbiddenException('unionId is required for SUPER_ADMIN');
       }
     }
     return this.kilaisService.create(createKilaiDto);
@@ -33,14 +52,16 @@ export class KilaisController {
   @ApiOperation({ summary: 'Create multiple Kilais' })
   createBulk(@Req() req: any, @Body() createKilaiDtos: CreateKilaiDto[]) {
     if (req.user.role !== 'SUPER_ADMIN') {
-      if (!req.user.unionId) throw new ForbiddenException('User is not assigned to a union');
-      createKilaiDtos.forEach(dto => dto.unionId = req.user.unionId);
+      if (!req.user.unionId)
+        throw new ForbiddenException('User is not assigned to a union');
+      createKilaiDtos.forEach((dto) => (dto.unionId = req.user.unionId));
     } else {
-      createKilaiDtos.forEach(dto => {
+      createKilaiDtos.forEach((dto) => {
         if (!dto.unionId) {
           const headerUnionId = req.headers['x-active-union-id'];
           if (headerUnionId) dto.unionId = headerUnionId as string;
-          else throw new ForbiddenException('unionId is required for SUPER_ADMIN');
+          else
+            throw new ForbiddenException('unionId is required for SUPER_ADMIN');
         }
       });
     }
@@ -93,14 +114,20 @@ export class KilaisController {
 
   @Patch(':id/office-bearers/:bearerId')
   @ApiOperation({ summary: 'Update an Office Bearer' })
-  updateOfficeBearer(@Param('id') id: string, @Param('bearerId') bearerId: string, @Body() payload: any) {
+  updateOfficeBearer(
+    @Param('id') id: string,
+    @Param('bearerId') bearerId: string,
+    @Body() payload: any,
+  ) {
     return this.kilaisService.updateOfficeBearer(id, bearerId, payload);
   }
 
   @Delete(':id/office-bearers/:bearerId')
   @ApiOperation({ summary: 'Remove an Office Bearer' })
-  removeOfficeBearer(@Param('id') id: string, @Param('bearerId') bearerId: string) {
+  removeOfficeBearer(
+    @Param('id') id: string,
+    @Param('bearerId') bearerId: string,
+  ) {
     return this.kilaisService.removeOfficeBearer(id, bearerId);
   }
-
 }

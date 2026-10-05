@@ -14,21 +14,25 @@ export class KilaisService {
   async create(createKilaiDto: CreateKilaiDto) {
     const { linkedBooths, ...data } = createKilaiDto;
     const createData: any = { ...data };
-    
+
     if (linkedBooths && linkedBooths.length > 0) {
       createData.booths = {
         connect: linkedBooths.map((identifier: string) => {
-          const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
+          const isUuid =
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+              identifier,
+            );
           return isUuid ? { id: identifier } : { boothNo: identifier };
-        })
+        }),
       };
     }
 
     if (createData.name && !createData.translations) {
-      createData.translations = await this.i18nService.generateTranslationsForEntity({
-        name: createData.name,
-        description: createData.description,
-      });
+      createData.translations =
+        await this.i18nService.generateTranslationsForEntity({
+          name: createData.name,
+          description: createData.description,
+        });
     }
 
     return this.prisma.kilai.create({
@@ -38,21 +42,24 @@ export class KilaisService {
 
   async createBulk(createKilaiDtos: CreateKilaiDto[]) {
     return this.prisma.$transaction(
-      createKilaiDtos.map(dto => {
+      createKilaiDtos.map((dto) => {
         const { linkedBooths, ...data } = dto;
         const createData: any = { ...data };
-        
+
         if (linkedBooths && linkedBooths.length > 0) {
           createData.booths = {
             connect: linkedBooths.map((identifier: string) => {
-              const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
+              const isUuid =
+                /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+                  identifier,
+                );
               return isUuid ? { id: identifier } : { boothNo: identifier };
-            })
+            }),
           };
         }
 
         return this.prisma.kilai.create({ data: createData });
-      })
+      }),
     );
   }
 
@@ -97,51 +104,51 @@ export class KilaisService {
     const kilaiCadres = await this.prisma.cadre.findMany({
       where: {
         homeKilaiId: id,
-        level: 'KILAI'
+        level: 'KILAI',
       },
       include: {
-        officeBearerRoles: true
+        officeBearerRoles: true,
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
 
     const LEVEL_WEIGHTS: Record<string, number> = {
-      'DISTRICT': 1,
-      'GROUP': 2,
-      'UNION': 3,
-      'KILAI': 4
+      DISTRICT: 1,
+      GROUP: 2,
+      UNION: 3,
+      KILAI: 4,
     };
 
     const ROLE_WEIGHTS: Record<string, number> = {
-      'Secretary': 1,
+      Secretary: 1,
       'Joint Secretary': 2,
-      'Treasurer': 3,
+      Treasurer: 3,
       'Deputy Secretary': 4,
       'Executive Committee Member': 5,
-      'EC Member': 5
+      'EC Member': 5,
     };
 
     kilaiCadres.sort((a, b) => {
       const levelA = LEVEL_WEIGHTS[a.level] || 99;
       const levelB = LEVEL_WEIGHTS[b.level] || 99;
-      
+
       if (levelA !== levelB) {
         return levelA - levelB;
       }
-      
+
       const roleA = ROLE_WEIGHTS[a.role || ''] || 99;
       const roleB = ROLE_WEIGHTS[b.role || ''] || 99;
-      
+
       if (roleA !== roleB) {
-         return roleA - roleB;
+        return roleA - roleB;
       }
 
-      return 0; 
+      return 0;
     });
 
     return {
       ...kilai,
-      kilaiCadres
+      kilaiCadres,
     };
   }
 
@@ -153,13 +160,16 @@ export class KilaisService {
 
     const { linkedBooths, ...data } = updateKilaiDto;
     const updateData: any = { ...data };
-    
+
     if (linkedBooths !== undefined) {
       updateData.booths = {
         set: linkedBooths.map((identifier: string) => {
-          const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(identifier);
+          const isUuid =
+            /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+              identifier,
+            );
           return isUuid ? { id: identifier } : { boothNo: identifier };
-        })
+        }),
       };
     }
 
@@ -174,7 +184,7 @@ export class KilaisService {
     if (!kilai) {
       throw new NotFoundException(`Kilai with ID ${id} not found`);
     }
-    
+
     // Instead of actual deletion, we could soft delete, but for now we'll update status
     return this.prisma.kilai.update({
       where: { id },
@@ -194,7 +204,7 @@ export class KilaisService {
 
   async addOfficeBearer(kilaiId: string, payload: any) {
     const { role, status, joinedOn, cadre } = payload;
-    
+
     return this.prisma.$transaction(async (tx) => {
       // Upsert Cadre using memberId
       const savedCadre = await tx.cadre.upsert({
@@ -245,7 +255,8 @@ export class KilaisService {
         include: { cadre: true },
       });
 
-      if (!existingBearer) throw new NotFoundException('Office Bearer not found');
+      if (!existingBearer)
+        throw new NotFoundException('Office Bearer not found');
 
       // Update Cadre
       if (cadre) {

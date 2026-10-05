@@ -18,28 +18,34 @@ export class BoothsService {
       },
       orderBy: {
         area: 'asc',
-      }
+      },
     });
-    return booths.map(b => b.area).filter(a => a && a.trim() !== '') as string[];
+    return booths
+      .map((b) => b.area)
+      .filter((a) => a && a.trim() !== '') as string[];
   }
 
   async create(createBoothDto: CreateBoothDto) {
     const { kilaiIds, agentIds, ...boothData } = createBoothDto;
-    
+
     return this.prisma.booth.create({
       data: {
         ...boothData,
-        kilais: kilaiIds ? {
-          connect: kilaiIds.map(id => ({ id }))
-        } : undefined,
-        agents: agentIds ? {
-          connect: agentIds.map(id => ({ id }))
-        } : undefined,
+        kilais: kilaiIds
+          ? {
+              connect: kilaiIds.map((id) => ({ id })),
+            }
+          : undefined,
+        agents: agentIds
+          ? {
+              connect: agentIds.map((id) => ({ id })),
+            }
+          : undefined,
       },
       include: {
         kilais: true,
         agents: true,
-      }
+      },
     });
   }
 
@@ -50,9 +56,11 @@ export class BoothsService {
         agents: true,
       },
     });
-    
+
     // Use natural alphanumeric sorting so "10" comes after "2"
-    return booths.sort((a, b) => a.boothNo.localeCompare(b.boothNo, undefined, { numeric: true }));
+    return booths.sort((a, b) =>
+      a.boothNo.localeCompare(b.boothNo, undefined, { numeric: true }),
+    );
   }
 
   async findOne(id: string) {
@@ -61,7 +69,7 @@ export class BoothsService {
       include: {
         kilais: true,
         agents: true,
-      }
+      },
     });
 
     if (!booth) {
@@ -81,17 +89,21 @@ export class BoothsService {
       where: { id },
       data: {
         ...boothData,
-        kilais: kilaiIds ? {
-          set: kilaiIds.map(id => ({ id }))
-        } : undefined,
-        agents: agentIds ? {
-          set: agentIds.map(id => ({ id }))
-        } : undefined,
+        kilais: kilaiIds
+          ? {
+              set: kilaiIds.map((id) => ({ id })),
+            }
+          : undefined,
+        agents: agentIds
+          ? {
+              set: agentIds.map((id) => ({ id })),
+            }
+          : undefined,
       },
       include: {
         kilais: true,
         agents: true,
-      }
+      },
     });
   }
 

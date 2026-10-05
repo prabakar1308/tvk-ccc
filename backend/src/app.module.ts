@@ -16,7 +16,19 @@ import { UploadModule } from './upload/upload.module';
 import { I18nModule } from './i18n/i18n.module';
 
 @Module({
-  imports: [AuthModule, PrismaModule, CadreModule, KilaisModule, UnionsModule, BoothsModule, DistrictModule, DashboardModule, StorageModule, UploadModule, I18nModule],
+  imports: [
+    AuthModule,
+    PrismaModule,
+    CadreModule,
+    KilaisModule,
+    UnionsModule,
+    BoothsModule,
+    DistrictModule,
+    DashboardModule,
+    StorageModule,
+    UploadModule,
+    I18nModule,
+  ],
   controllers: [AppController],
   providers: [
     AppService,

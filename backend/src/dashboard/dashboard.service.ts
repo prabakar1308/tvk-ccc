@@ -6,17 +6,13 @@ export class DashboardService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getStats() {
-    const [
-      totalUnions,
-      totalKilais,
-      totalCadres,
-      totalBooths
-    ] = await Promise.all([
-      this.prisma.union.count(),
-      this.prisma.kilai.count(),
-      this.prisma.cadre.count(),
-      this.prisma.booth.count(),
-    ]);
+    const [totalUnions, totalKilais, totalCadres, totalBooths] =
+      await Promise.all([
+        this.prisma.union.count(),
+        this.prisma.kilai.count(),
+        this.prisma.cadre.count(),
+        this.prisma.booth.count(),
+      ]);
 
     return {
       totalUnions,

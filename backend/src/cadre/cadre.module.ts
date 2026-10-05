@@ -4,6 +4,6 @@ import { CadreController } from './cadre.controller';
 
 @Module({
   providers: [CadreService],
-  controllers: [CadreController]
+  controllers: [CadreController],
 })
 export class CadreModule {}

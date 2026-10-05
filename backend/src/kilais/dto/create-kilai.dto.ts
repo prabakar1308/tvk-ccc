@@ -1,4 +1,11 @@
-import { IsString, IsOptional, IsNumber, IsEnum, IsEmail, IsArray } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsNumber,
+  IsEnum,
+  IsEmail,
+  IsArray,
+} from 'class-validator';
 import { KilaiStatus } from '@prisma/client';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
