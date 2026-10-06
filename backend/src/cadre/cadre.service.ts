@@ -10,10 +10,35 @@ import { CadreLevel } from '@prisma/client';
 export class CadreService {
   constructor(private readonly prisma: PrismaService) {}
 
-  create(payload: any) {
+  async create(payload: any) {
+    if (payload.wingId) {
+      await this.validateWingLimits(payload);
+    }
     return this.prisma.cadre.create({
       data: payload,
     });
+  }
+
+  private async validateWingLimits(payload: any) {
+    const { wingId, role, level, districtId, unionId } = payload;
+    if (!wingId || !role || !level) return;
+
+    const count = await this.prisma.cadre.count({
+      where: {
+        wingId,
+        role,
+        level,
+        ...(level === 'DISTRICT' && districtId ? { districtId } : {}),
+        ...(level === 'UNION' && unionId ? { unionId } : {}),
+      },
+    });
+
+    if (role === 'COORDINATOR' && count >= 1) {
+      throw new BadRequestException('A Coordinator already exists for this wing at this level.');
+    }
+    if (role === 'CO_COORDINATOR' && count >= 10) {
+      throw new BadRequestException('Maximum of 10 Co-coordinators are allowed for this wing at this level.');
+    }
   }
 
   async createBulk(payloads: any[]) {
@@ -172,6 +197,10 @@ export class CadreService {
   async update(id: string, payload: any) {
     const cadre = await this.prisma.cadre.findUnique({ where: { id } });
     if (!cadre) throw new NotFoundException('Cadre not found');
+
+    if (payload.wingId && (payload.role !== cadre.role || payload.wingId !== cadre.wingId)) {
+      await this.validateWingLimits({ ...cadre, ...payload });
+    }
 
     return this.prisma.cadre.update({
       where: { id },

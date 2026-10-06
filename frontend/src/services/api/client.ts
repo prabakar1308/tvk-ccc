@@ -5,8 +5,13 @@ export function getAuthToken(): string | null {
 
 export function getAuthHeaders(headers: HeadersInit = {}): HeadersInit {
   const token = getAuthToken();
+  let locale = 'en';
+  if (typeof document !== 'undefined') {
+    locale = document.cookie.split('; ').find(row => row.startsWith('NEXT_LOCALE='))?.split('=')[1] || 'en';
+  }
   return {
     'Content-Type': 'application/json',
+    'Accept-Language': locale,
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     ...headers,
   };

@@ -35,12 +35,12 @@ export default function DashboardLayout({
   const { data: unions } = useUnions();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
-
   const navItems = [
     { name: tSidebar('home'), href: '/', icon: 'home' },
     { name: tSidebar('unions'), href: '/unions', icon: 'building' },
     { name: tSidebar('kilais'), href: '/kilais', icon: 'git-branch' },
     { name: tSidebar('cadres'), href: '/cadres', icon: 'users' },
+    { name: tSidebar('wings'), href: '/wings', icon: 'bird' },
     { name: tSidebar('booths'), href: '/booths', icon: 'map-pin' },
     { name: tSidebar('announcements'), href: '/announcements', icon: 'clipboard-list' },
     { name: tSidebar('analytics'), href: '/analytics', icon: 'bar-chart' },

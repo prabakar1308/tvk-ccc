@@ -29,10 +29,13 @@ export interface CadreFormDialogProps {
   editingId?: string | null;
   cadres?: any[]; // list of existing cadres (needed to find the one being edited)
   defaultLevel?: 'KILAI' | 'UNION' | 'DISTRICT' | 'GROUP';
+  defaultDistrictId?: string;
   defaultUnionId?: string;
   defaultKilaiId?: string;
   defaultBoothNo?: string;
   defaultArea?: string;
+  defaultWingId?: string;
+  defaultRole?: string;
   onSuccess?: () => void;
 }
 
@@ -42,10 +45,13 @@ export function CadreFormDialog({
   editingId,
   cadres = [],
   defaultLevel = 'KILAI',
+  defaultDistrictId,
   defaultUnionId,
   defaultKilaiId,
   defaultBoothNo,
   defaultArea,
+  defaultWingId,
+  defaultRole,
   onSuccess,
 }: CadreFormDialogProps) {
   const createMutation = useCreateCadre();
@@ -61,8 +67,9 @@ export function CadreFormDialog({
     name: '',
     memberId: '',
     phone: '',
-    role: '',
+    role: defaultRole || '',
     level: defaultLevel,
+    districtId: defaultDistrictId,
     unionId: defaultUnionId,
     homeKilaiId: defaultKilaiId,
     aadhaarNumber: '',
@@ -70,7 +77,8 @@ export function CadreFormDialog({
     attachments: { aadhaarPhoto: '', voterIdPhoto: '' },
     area: defaultArea || '',
     boothNo: defaultBoothNo || '',
-  };
+    wingId: defaultWingId,
+  } as any;
 
   const [formData, setFormData] = useState<CreateCadreDto>(initialFormData);
 
@@ -110,11 +118,14 @@ export function CadreFormDialog({
         setFormData({ 
           ...initialFormData, 
           level: defaultLevel, 
+          districtId: defaultDistrictId,
           unionId: defaultUnionId, 
           homeKilaiId: defaultKilaiId,
           boothNo: defaultBoothNo || '',
-          area: defaultArea || ''
-        });
+          area: defaultArea || '',
+          wingId: defaultWingId,
+          role: defaultRole || '',
+        } as any);
       }
       setPendingFiles({});
     }
@@ -149,6 +160,7 @@ export function CadreFormDialog({
         aadhaarNumber: formData.aadhaarNumber || undefined,
         voterId: formData.voterId || undefined,
         phone: formData.phone || undefined,
+        districtId: formData.level === 'DISTRICT' ? formData.districtId : undefined,
         unionId: (formData.level === 'UNION' || formData.level === 'KILAI') ? formData.unionId : undefined,
         homeKilaiId: formData.level === 'KILAI' ? formData.homeKilaiId : undefined,
         attachments: {
@@ -252,6 +264,7 @@ export function CadreFormDialog({
               <Select 
                 value={formData.level} 
                 onValueChange={(val: any) => setFormData({...formData, level: val})}
+                disabled={!!defaultLevel}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select level" />
@@ -272,6 +285,7 @@ export function CadreFormDialog({
                   value={formData.unionId || ''} 
                   onValueChange={(val) => setFormData({...formData, unionId: val, homeKilaiId: ''} as any)}
                   required
+                  disabled={!!defaultUnionId}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder="Select union">
@@ -319,16 +333,26 @@ export function CadreFormDialog({
                 value={formData.role || ''} 
                 onValueChange={(val) => setFormData({...formData, role: val || ''} as any)}
                 required
+                disabled={!!defaultWingId && !!defaultRole}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select designation" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Secretary">Secretary</SelectItem>
-                  <SelectItem value="Joint Secretary">Joint Secretary</SelectItem>
-                  <SelectItem value="Treasurer">Treasurer</SelectItem>
-                  <SelectItem value="Deputy Secretary">Deputy Secretary</SelectItem>
-                  <SelectItem value="Executive Committee Member">Executive Committee Member</SelectItem>
+                  {defaultWingId ? (
+                    <>
+                      <SelectItem value="COORDINATOR">Coordinator</SelectItem>
+                      <SelectItem value="CO_COORDINATOR">Co-coordinator</SelectItem>
+                    </>
+                  ) : (
+                    <>
+                      <SelectItem value="Secretary">Secretary</SelectItem>
+                      <SelectItem value="Joint Secretary">Joint Secretary</SelectItem>
+                      <SelectItem value="Treasurer">Treasurer</SelectItem>
+                      <SelectItem value="Deputy Secretary">Deputy Secretary</SelectItem>
+                      <SelectItem value="Executive Committee Member">Executive Committee Member</SelectItem>
+                    </>
+                  )}
                 </SelectContent>
               </Select>
             </div>

@@ -51,7 +51,7 @@ if ($jobExists) {
         --image $Image `
         --region $Region `
         --project $ProjectId `
-        --command="npx,prisma,db,execute,--file,prisma/kilai_changes_migration.sql" `
+        --command="npx,prisma,db,execute,--file,prisma/wing_migration.sql" `
         --set-env-vars="DATABASE_URL=$DbUrl" `
         --set-cloudsql-instances=$CloudSqlInstance `
         --quiet
@@ -60,7 +60,7 @@ if ($jobExists) {
         --image $Image `
         --region $Region `
         --project $ProjectId `
-        --command="npx,prisma,db,execute,--file,prisma/kilai_changes_migration.sql" `
+        --command="npx,prisma,db,execute,--file,prisma/wing_migration.sql" `
         --set-env-vars="DATABASE_URL=$DbUrl" `
         --set-cloudsql-instances=$CloudSqlInstance `
         --quiet
@@ -72,10 +72,20 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 
-# 4. Execute the Job
+# 4. Execute the Migration Job
 Write-Host "`nExecuting Database Migration Job (This may take a minute)..." -ForegroundColor Green
 gcloud run jobs execute $JobName --region $Region --project $ProjectId --wait
 
+# 5. Update Cloud Run Job to run Seed
+Write-Host "`nConfiguring Cloud Run Job to Seed Wings..." -ForegroundColor Yellow
+gcloud run jobs update $JobName `
+    --command="npx,ts-node,prisma/seed-wings.ts" `
+    --quiet
+
+# 6. Execute Seed Job
+Write-Host "`nExecuting Database Seed Job (This may take a minute)..." -ForegroundColor Green
+gcloud run jobs execute $JobName --region $Region --project $ProjectId --wait
+
 Write-Host "`n========================================" -ForegroundColor Green
-Write-Host "✅ Database Migration Complete!" -ForegroundColor Green
+Write-Host "✅ Database Migration & Seeding Complete!" -ForegroundColor Green
 Write-Host "========================================" -ForegroundColor Green

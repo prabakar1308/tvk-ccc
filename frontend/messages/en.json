@@ -15,7 +15,8 @@
     "cadreCommandCentre": "Organisation & Administration",
     "developedBy": "Developed By",
     "treasurer": "Treasurer",
-    "southEastUnion": "South-East Org Unit"
+    "southEastUnion": "South-East Org Unit",
+    "wings": "Wings"
   },
   "Header": {
     "constituencyName": "Kurunjipadi Constituency",
@@ -280,5 +281,9 @@
     "beneficiaries": "Beneficiaries",
     "status": "Status",
     "noPrograms": "No programs found."
+  },
+  "Wings": {
+    "title": "Wings",
+    "description": "Manage different wings for district and org unit levels."
   }
 }
