@@ -12,10 +12,32 @@ export class UnionsService {
     });
   }
 
-  findAll() {
-    return this.prisma.union.findMany({
-      include: { district: true },
+  async findAll() {
+    const unions = await this.prisma.union.findMany({
+      include: { 
+        district: true,
+        cadres: {
+          where: { 
+            level: 'UNION',
+            OR: [
+              { role: { equals: 'Secretary', mode: 'insensitive' } },
+              { role: { equals: 'SECRETARY', mode: 'insensitive' } },
+              { officeBearerRoles: { some: { role: 'SECRETARY' } } }
+            ]
+          },
+          include: { officeBearerRoles: true },
+          take: 1
+        }
+      },
       orderBy: { name: 'asc' },
+    });
+    
+    return unions.map(union => {
+      const { cadres, ...rest } = union;
+      return {
+        ...rest,
+        secretary: cadres.length > 0 ? cadres[0] : null,
+      };
     });
   }
 

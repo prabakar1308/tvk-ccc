@@ -13,12 +13,10 @@ export class WingsService {
       include: {
         cadres: level ? {
           where: {
-            role: 'COORDINATOR',
             level,
             ...(level === 'DISTRICT' && districtId ? { districtId } : {}),
             ...(level === 'UNION' && unionId ? { unionId } : {}),
           },
-          take: 1, // Only 1 coordinator should exist anyway
         } : false,
         _count: level ? {
           select: {

@@ -11,6 +11,7 @@ export interface Union {
   contactName?: string;
   contactPhone?: string;
   contactEmail?: string;
+  areasCovered?: string[];
   attachments?: any;
   district?: District;
   createdAt: string;
@@ -31,6 +32,7 @@ export interface CreateUnionDto {
   contactName?: string;
   contactPhone?: string;
   contactEmail?: string;
+  areasCovered?: string[];
   attachments?: any;
 }
 

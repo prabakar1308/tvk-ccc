@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, MapPin, Eye, Edit2, Trash2, Building2, Building, Store, LayoutGrid, List, Phone } from "lucide-react";
+import { Search, Plus, MapPin, Eye, Edit2, Trash2, Building2, Building, Store, LayoutGrid, List, Phone, Users, X } from "lucide-react";
 import { Link } from '@/i18n/routing';
 import { useTranslations } from 'next-intl';
 import {
@@ -32,6 +32,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { useUnions, useCreateUnion, useUpdateUnion, useDeleteUnion } from '@/hooks/use-unions';
 import { useDistricts } from '@/hooks/use-districts';
+import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
 
 export default function UnionsPage() {
   const t = useTranslations('Unions');
@@ -48,19 +49,37 @@ export default function UnionsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [unitTypeFilter, setUnitTypeFilter] = useState('ALL');
   const [viewType, setViewType] = useState<'TABLE' | 'TILE'>('TILE');
+  const [callPerson, setCallPerson] = useState<{ name: string; phone: string } | null>(null);
+
+  const handleInitiateCall = (phone: string, name: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCallPerson({ phone, name });
+  };
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    name: string;
+    group: string;
+    unitType: string;
+    contactName: string;
+    contactPhone: string;
+    contactEmail: string;
+    areasCovered: string[];
+  }>({
     name: '',
     group: 'KURINJIPADI',
     unitType: 'UNION',
     contactName: '',
     contactPhone: '',
-    contactEmail: ''
+    contactEmail: '',
+    areasCovered: []
   });
+  const [areaInput, setAreaInput] = useState('');
 
   const handleOpenCreate = () => {
     setEditingId(null);
-    setFormData({ name: '', group: 'KURINJIPADI', unitType: 'UNION', contactName: '', contactPhone: '', contactEmail: '' });
+    setFormData({ name: '', group: 'KURINJIPADI', unitType: 'UNION', contactName: '', contactPhone: '', contactEmail: '', areasCovered: [] });
+    setAreaInput('');
     setIsModalOpen(true);
   };
 
@@ -72,9 +91,22 @@ export default function UnionsPage() {
       unitType: union.unitType || 'UNION',
       contactName: union.contactName || '',
       contactPhone: union.contactPhone || '',
-      contactEmail: union.contactEmail || ''
+      contactEmail: union.contactEmail || '',
+      areasCovered: union.areasCovered || []
     });
+    setAreaInput('');
     setIsModalOpen(true);
+  };
+
+  const handleAddArea = () => {
+    if (areaInput.trim() && !formData.areasCovered.includes(areaInput.trim())) {
+      setFormData({ ...formData, areasCovered: [...formData.areasCovered, areaInput.trim()] });
+      setAreaInput('');
+    }
+  };
+
+  const handleRemoveArea = (areaToRemove: string) => {
+    setFormData({ ...formData, areasCovered: formData.areasCovered.filter(area => area !== areaToRemove) });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -180,6 +212,37 @@ export default function UnionsPage() {
                 </Select>
               </div>
               <div className="space-y-2">
+                <Label>Areas Covered</Label>
+                <div className="flex gap-2">
+                  <Input 
+                    value={areaInput}
+                    onChange={(e) => setAreaInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleAddArea();
+                      }
+                    }}
+                    placeholder="Type area and press enter"
+                  />
+                  <Button type="button" onClick={handleAddArea} size="icon" className="shrink-0 bg-primary text-white hover:bg-primary/90">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                {formData.areasCovered.length > 0 && (
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    {formData.areasCovered.map((area, idx) => (
+                      <div key={idx} className="flex items-center gap-1 bg-primary/10 text-primary px-3 py-1.5 rounded-md text-sm">
+                        <span>{area}</span>
+                        <button type="button" onClick={() => handleRemoveArea(area)} className="text-primary hover:text-red-500 transition-colors rounded-full p-0.5 hover:bg-primary/10">
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="space-y-2">
                 <Label htmlFor="contactName">{tForms('contactName')}</Label>
                 <Input 
                   id="contactName" 
@@ -208,7 +271,7 @@ export default function UnionsPage() {
 
       {/* Action Bar */}
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-card p-4 rounded-lg shadow-sm border border-primary/10">
-        <div className="relative w-full sm:w-80">
+        <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input 
             placeholder={t('searchPlaceholder')} 
@@ -271,11 +334,17 @@ export default function UnionsPage() {
                         <TableHead className="font-semibold text-primary py-4">{t('unionName')}</TableHead>
                         <TableHead className="font-semibold text-primary py-4">{tForms('contactName')}</TableHead>
                         <TableHead className="font-semibold text-primary py-4">{tForms('phone')}</TableHead>
+                        <TableHead className="font-semibold text-primary py-4">Areas Covered</TableHead>
                         <TableHead className="font-semibold text-primary py-4 text-right">{tCommon('actions')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {groupUnions.map((union: any) => (
+                      {groupUnions.map((union: any) => {
+                        const secretary = union.secretary;
+                        const contactName = secretary ? secretary.name : union.contactName;
+                        const contactPhone = secretary ? secretary.phone : union.contactPhone;
+
+                        return (
                         <TableRow key={union.id} className="hover:bg-primary/5 transition-colors group border-b-primary/10">
                           <TableCell className="font-bold text-base py-4 text-foreground">
                             <Link href={`/unions/${union.id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer group-hover:text-primary">
@@ -304,14 +373,32 @@ export default function UnionsPage() {
                               </div>
                             </Link>
                           </TableCell>
-                          <TableCell className="py-4 font-medium">{union.contactName || '-'}</TableCell>
+                          <TableCell className="py-4 font-medium">
+                            <div className="flex flex-col">
+                              <span>{contactName || '-'}</span>
+                              {secretary && <span className="text-[10px] text-[#8F0A1B] uppercase font-bold">Secretary</span>}
+                            </div>
+                          </TableCell>
                           <TableCell className="py-4 font-medium text-muted-foreground">
-                            {union.contactPhone ? (
-                              <a href={`tel:${union.contactPhone}`} onClick={(e) => e.stopPropagation()} className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800 transition-colors bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-md text-sm">
+                            {contactPhone ? (
+                              <button onClick={(e) => handleInitiateCall(contactPhone, contactName || '', e)} className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800 transition-colors bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-md text-sm">
                                 <Phone className="w-3.5 h-3.5" />
-                                {union.contactPhone}
-                              </a>
+                                {contactPhone}
+                              </button>
                             ) : '-'}
+                          </TableCell>
+                          <TableCell className="py-4">
+                            {union.areasCovered && union.areasCovered.length > 0 ? (
+                              <div className="flex flex-wrap gap-1.5 max-w-[250px]">
+                                {union.areasCovered.map((area: string, idx: number) => (
+                                  <span key={idx} className="inline-flex items-center text-[10px] font-bold tracking-wide uppercase bg-gray-50 dark:bg-zinc-800/50 text-gray-500 dark:text-zinc-400 border border-gray-200 dark:border-zinc-700/50 rounded-md px-1.5 py-0.5 shadow-sm">
+                                    {area}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
                           </TableCell>
                           <TableCell className="text-right py-4">
                             <div className="flex justify-end gap-2 transition-opacity">
@@ -324,90 +411,118 @@ export default function UnionsPage() {
                             </div>
                           </TableCell>
                         </TableRow>
-                      ))}
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 p-1">
-                  {groupUnions.map((union: any) => (
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 p-1">
+                  {groupUnions.map((union: any) => {
+                    const secretary = union.secretary;
+                    const contactName = secretary ? secretary.name : union.contactName;
+                    const contactPhone = secretary ? secretary.phone : union.contactPhone;
+                    const contactPhoto = secretary?.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(contactName || 'U')}&background=8F0A1B&color=fff&size=128`;
+
+                    return (
                     <div 
                       key={union.id} 
-                      className="bg-card flex flex-col h-full rounded-xl p-0 border-2 border-primary/20 dark:border-primary/30 shadow-md hover:border-primary/50 hover:shadow-xl transition-all group relative overflow-hidden"
+                      className="flex flex-col h-full rounded-2xl border-2 border-[#f5e3e3] dark:border-zinc-800 hover:border-[#8F0A1B] dark:hover:border-[#8F0A1B] bg-zinc-50/90 dark:bg-zinc-900/90 backdrop-blur-sm hover:bg-white dark:hover:bg-zinc-900 shadow-md hover:shadow-xl dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition-all duration-300 group relative overflow-hidden hover:-translate-y-1"
                     >
+                      {/* Top Accent Line */}
+                      <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#8F0A1B]/80 to-[#8F0A1B] opacity-0 group-hover:opacity-100 transition-opacity" />
+
                       {/* Action Buttons Overlay */}
-                      <div className="absolute top-2 right-2 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-full p-0.5 shadow-sm">
-                        <Button onClick={(e) => { e.stopPropagation(); handleOpenEdit(union); }} variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-primary/20 rounded-full">
+                      <div className="absolute top-3 right-3 flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-0 md:translate-x-2 group-hover:translate-x-0 z-10">
+                        <Button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleOpenEdit(union); }} variant="ghost" size="icon" className="h-8 w-8 text-[#8F0A1B] hover:text-white bg-[#8F0A1B]/10 hover:bg-[#8F0A1B] rounded-full transition-colors md:bg-[#8F0A1B]/5">
                           <Edit2 className="h-3.5 w-3.5" />
                         </Button>
-                        <Button onClick={(e) => { e.stopPropagation(); handleDelete(union.id); }} variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/20 rounded-full">
+                        <Button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDelete(union.id); }} variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-white bg-destructive/10 hover:bg-destructive rounded-full transition-colors md:bg-destructive/5">
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                       
-                      <Link href={`/unions/${union.id}`} className="flex-1 flex flex-col cursor-pointer">
+                      <Link href={`/unions/${union.id}`} className="flex-1 flex flex-col cursor-pointer p-4">
+                        
                         {/* Header Section */}
-                        <div className="bg-primary/5 p-4 border-b border-primary/10 flex items-start gap-3">
-                          {union.unitType === 'TOWN' ? (
-                            <div className="p-2.5 rounded-lg bg-blue-50 border border-blue-100 text-blue-600 shadow-sm shrink-0">
-                              <Building className="h-5 w-5" />
-                            </div>
-                          ) : union.unitType === 'TOWN_PANCHAYAT' ? (
-                            <div className="p-2.5 rounded-lg bg-green-50 border border-green-100 text-green-600 shadow-sm shrink-0">
-                              <Store className="h-5 w-5" />
-                            </div>
-                          ) : union.unitType === 'AREA' ? (
-                            <div className="p-2.5 rounded-lg bg-purple-50 border border-purple-100 text-purple-600 shadow-sm shrink-0">
-                              <MapPin className="h-5 w-5" />
-                            </div>
-                          ) : (
-                            <div className="p-2.5 rounded-lg bg-orange-50 border border-orange-100 text-orange-600 shadow-sm shrink-0">
-                              <Building2 className="h-5 w-5" />
-                            </div>
-                          )}
-                          <div className="flex-1 pr-14">
-                            <h3 className="font-bold text-lg text-primary mb-1.5 line-clamp-2 leading-tight">{union.name}</h3>
-                            <span className="inline-block px-2 py-0.5 rounded-md text-[10px] font-bold tracking-widest uppercase bg-white dark:bg-zinc-800 text-primary border border-primary/20 shadow-sm">
+                        <div className="flex items-start gap-4 mb-3">
+                          <div className={`w-12 h-12 rounded-xl shadow-sm shrink-0 flex items-center justify-center transition-colors group-hover:scale-110 duration-300 ${
+                            union.unitType === 'TOWN' ? 'bg-blue-50 text-blue-600 border border-blue-100' :
+                            union.unitType === 'TOWN_PANCHAYAT' ? 'bg-green-50 text-green-600 border border-green-100' :
+                            union.unitType === 'AREA' ? 'bg-purple-50 text-purple-600 border border-purple-100' :
+                            'bg-orange-50 text-orange-600 border border-orange-100'
+                          }`}>
+                            {union.unitType === 'TOWN' ? <Building className="h-6 w-6" /> :
+                             union.unitType === 'TOWN_PANCHAYAT' ? <Store className="h-6 w-6" /> :
+                             union.unitType === 'AREA' ? <MapPin className="h-6 w-6" /> :
+                             <Building2 className="h-6 w-6" />}
+                          </div>
+                          
+                          <div className="flex-1 pr-16 pt-0.5">
+                            <h3 className="font-extrabold text-[18px] text-gray-900 dark:text-white mb-1.5 line-clamp-2 leading-tight group-hover:text-[#8F0A1B] transition-colors">{union.name}</h3>
+                            <span className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-widest uppercase bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-400">
                               {union.unitType === 'TOWN_PANCHAYAT' ? 'Town Panchayat' : union.unitType || 'Union'}
                             </span>
                           </div>
                         </div>
 
-                        {/* Body Section */}
-                        <div className="p-4 flex flex-col gap-3 flex-1 bg-white dark:bg-zinc-950">
-                          {(union.contactName || union.contactPhone) ? (
-                            <div className="flex flex-col gap-2.5">
-                              {union.contactName && (
-                                <div className="flex items-start gap-2">
-                                  <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider w-16 mt-0.5">Contact</span>
-                                  <span className="text-sm font-semibold text-foreground break-words flex-1">{union.contactName}</span>
-                                </div>
-                              )}
-                              {union.contactPhone && (
-                                <div className="flex items-center gap-2">
-                                  <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider w-16">Phone</span>
-                                  <a href={`tel:${union.contactPhone}`} onClick={(e) => e.stopPropagation()} className="inline-flex items-center gap-1.5 text-sm font-bold text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-100 px-2 py-0.5 rounded-md transition-colors w-max">
-                                    <Phone className="w-3 h-3" />
-                                    {union.contactPhone}
-                                  </a>
-                                </div>
-                              )}
+                        <div className="w-full h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-zinc-700 to-transparent my-2.5" />
+
+                        {/* Body Section (Secretary / Contact) */}
+                        <div className="flex-1 flex flex-col justify-center pt-1">
+                          {(contactName || contactPhone) ? (
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white dark:border-zinc-800 shadow-sm shrink-0">
+                                <img src={contactPhoto} alt={contactName || 'Contact'} className="w-full h-full object-cover" />
+                              </div>
+                              <div className="flex flex-col flex-1 overflow-hidden">
+                                <span className="text-[11px] font-bold text-[#8F0A1B] uppercase tracking-wider mb-0.5">{secretary ? 'Secretary' : 'Contact Person'}</span>
+                                {contactName && (
+                                  <span className="text-base font-bold text-gray-900 dark:text-zinc-100 truncate leading-tight mb-1">{contactName}</span>
+                                )}
+                                {contactPhone && (
+                                  <button onClick={(e) => handleInitiateCall(contactPhone, contactName || '', e)} className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-600 dark:text-zinc-400 hover:text-[#8F0A1B] transition-colors w-max">
+                                    <Phone className="w-3.5 h-3.5" />
+                                    {contactPhone}
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           ) : (
-                            <div className="flex flex-col justify-center h-full text-muted-foreground py-2">
-                              <p className="text-sm italic font-medium">{t('noContactProvided')}</p>
+                            <div className="flex flex-col items-center justify-center h-full py-2 opacity-50">
+                              <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-zinc-800 flex items-center justify-center mb-2">
+                                <Users className="w-5 h-5 text-gray-400" />
+                              </div>
+                              <p className="text-sm italic font-medium text-gray-500">{t('noContactProvided')}</p>
                             </div>
                           )}
                         </div>
+                        
+                        {/* Areas Covered Section */}
+                        {union.areasCovered && union.areasCovered.length > 0 && (
+                          <div className="mt-4 pt-3 border-t border-gray-100 dark:border-zinc-800/50 flex flex-wrap gap-1.5">
+                            {union.areasCovered.map((area: string, idx: number) => (
+                              <span key={idx} className="inline-flex items-center text-[10px] font-bold tracking-wide uppercase bg-white dark:bg-zinc-800/50 text-gray-500 dark:text-zinc-400 border border-gray-200 dark:border-zinc-700/50 rounded-md px-2 py-1 shadow-sm">
+                                {area}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </Link>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
           ))
         )}
       </div>
+
+      <CallConfirmationDialog 
+        person={callPerson} 
+        onOpenChange={(open) => !open && setCallPerson(null)} 
+      />
     </div>
   );
 }

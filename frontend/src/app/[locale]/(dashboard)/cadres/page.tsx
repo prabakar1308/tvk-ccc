@@ -438,47 +438,61 @@ export default function CadresPage() {
                 </TableBody>
               </Table>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 p-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5 p-2">
                 {filteredCadres.map((cadre) => (
                   <div 
                     key={cadre.id} 
                     onClick={() => handleOpenView(cadre)}
-                    className="flex flex-col items-center justify-center pt-5 px-3 pb-2 sm:p-5 rounded-xl border hover:shadow-md transition-all duration-300 group cursor-pointer h-full bg-[#F8F9FA] border-gray-100 hover:border-primary/20 relative"
+                    className="flex flex-col items-center pt-6 px-4 pb-5 rounded-2xl bg-zinc-50/90 backdrop-blur-sm hover:bg-white dark:bg-zinc-900/90 dark:hover:bg-zinc-900 border-2 border-[#f5e3e3] dark:border-zinc-800 hover:border-primary dark:hover:border-primary shadow-md hover:shadow-xl dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] dark:hover:shadow-[0_8px_30px_rgba(255,255,255,0.05)] transition-all duration-300 group cursor-pointer h-full relative overflow-hidden hover:-translate-y-1"
                   >
+                    {/* Top Accent Line */}
+                    <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-primary/80 to-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+                    
                     {/* Desktop Actions (Top Right Hover) */}
-                    <div className="hidden md:flex absolute top-2 right-2 gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button onClick={(e) => handleOpenEdit(e, cadre)} variant="ghost" size="icon" className="h-7 w-7 text-primary hover:text-primary hover:bg-primary/10 rounded-full">
-                        <Edit2 className="h-3 w-3" />
+                    <div className="hidden md:flex absolute top-3 right-3 gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
+                      <Button onClick={(e) => handleOpenEdit(e, cadre)} variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-white hover:bg-primary rounded-full transition-colors bg-primary/5">
+                        <Edit2 className="h-3.5 w-3.5" />
                       </Button>
-                      <Button onClick={(e) => handleDelete(e, cadre.id)} variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full">
-                        <Trash2 className="h-3 w-3" />
+                      <Button onClick={(e) => handleDelete(e, cadre.id)} variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-white hover:bg-destructive rounded-full transition-colors bg-destructive/5">
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                     
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden mb-3 border-2 shadow-sm border-white group-hover:border-primary transition-colors">
-                      <img src={cadre.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(cadre.name)}&background=random`} alt={cadre.name} className="w-full h-full object-cover" />
+                    <div className="relative mb-4 mt-2">
+                      <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-4 border-white dark:border-zinc-800 shadow-lg z-10 relative">
+                        <img src={cadre.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(cadre.name)}&background=random`} alt={cadre.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                      </div>
+                      <div className="absolute inset-0 rounded-full border-2 border-primary/20 scale-[1.15] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     </div>
-                    <h3 className="font-bold text-[14px] sm:text-[15px] text-gray-900 text-center leading-tight mb-1">{cadre.name}</h3>
-                    <p className="text-[11px] text-muted-foreground mb-1 font-mono">{cadre.memberId}</p>
-                    {cadre.phone && (
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); setCallConfirmation({ name: cadre.name, phone: cadre.phone || '' }); }}
-                        className="flex items-center justify-center gap-1.5 text-[12px] font-medium text-blue-600 hover:text-blue-800 transition-colors bg-blue-50 hover:bg-blue-100 px-2 py-0.5 rounded-md mb-1.5"
-                      >
-                        <Phone className="w-3 h-3" />
-                        {cadre.phone}
-                      </button>
-                    )}
-                    <div className="mt-1">
+                    
+                    <h3 className="font-extrabold text-[15px] sm:text-[17px] text-gray-900 dark:text-zinc-100 text-center leading-tight mb-1 group-hover:text-primary transition-colors">{cadre.name}</h3>
+                    
+                    <div className="flex items-center gap-2 mb-3">
+                       <span className="text-[11px] font-semibold text-muted-foreground bg-gray-100 dark:bg-zinc-800 px-2.5 py-0.5 rounded-full uppercase tracking-wider">{cadre.memberId}</span>
+                    </div>
+
+                    <div className="w-full h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-zinc-700 to-transparent my-1" />
+
+                    <div className="mt-3 w-full flex flex-col items-center gap-2">
                       {getRoleBadge(cadre.role, cadre.level, true)}
+                      
+                      {cadre.phone && (
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); setCallConfirmation({ name: cadre.name, phone: cadre.phone || '' }); }}
+                          className="flex items-center justify-center gap-1.5 text-[12px] font-semibold text-gray-600 dark:text-zinc-400 hover:text-primary dark:hover:text-primary transition-colors mt-1"
+                        >
+                          <Phone className="w-3.5 h-3.5" />
+                          {cadre.phone}
+                        </button>
+                      )}
                     </div>
                     
                     {/* Mobile Actions (Bottom Inline) */}
-                    <div className="flex md:hidden w-full justify-center gap-6 mt-4 pt-2 border-t border-gray-200/60">
-                      <Button onClick={(e) => handleOpenEdit(e, cadre)} variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10 rounded-full">
+                    <div className="flex md:hidden w-full justify-center gap-6 mt-5 pt-3 border-t border-gray-100 dark:border-zinc-800">
+                      <Button onClick={(e) => handleOpenEdit(e, cadre)} variant="ghost" size="icon" className="h-9 w-9 text-primary bg-primary/5 hover:bg-primary/10 rounded-full">
                         <Edit2 className="h-4 w-4" />
                       </Button>
-                      <Button onClick={(e) => handleDelete(e, cadre.id)} variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10 rounded-full">
+                      <Button onClick={(e) => handleDelete(e, cadre.id)} variant="ghost" size="icon" className="h-9 w-9 text-destructive bg-destructive/5 hover:bg-destructive/10 rounded-full">
                         <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>

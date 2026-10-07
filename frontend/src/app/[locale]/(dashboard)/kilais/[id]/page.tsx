@@ -121,32 +121,46 @@ export default function KilaiDetailsPage() {
                 <div 
                   key={cadre.id || index} 
                   onClick={() => setViewingCadre(cadre)}
-                  className={`flex flex-col items-center justify-center p-5 sm:p-6 rounded-xl border hover:shadow-md transition-all duration-300 group cursor-pointer h-full ${
+                  className={`flex flex-col items-center pt-6 px-4 pb-5 rounded-2xl border-2 transition-all duration-300 group cursor-pointer h-full relative overflow-hidden hover:-translate-y-1 shadow-md hover:shadow-xl dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] dark:hover:shadow-[0_8px_30px_rgba(255,255,255,0.05)] ${
                     highlight 
-                      ? "bg-gradient-to-b from-[#8F0A1B]/10 to-[#8F0A1B]/5 border-[#8F0A1B]/30 hover:border-[#8F0A1B]/50 shadow-sm relative overflow-hidden" 
-                      : "bg-[#F8F9FA] border-gray-100 hover:border-[#8F0A1B]/20"
+                      ? "bg-gradient-to-b from-[#8F0A1B]/10 to-zinc-50/90 dark:to-zinc-900/90 backdrop-blur-sm border-[#8F0A1B]/40 hover:border-[#8F0A1B]" 
+                      : "bg-zinc-50/90 backdrop-blur-sm hover:bg-white dark:bg-zinc-900/90 dark:hover:bg-zinc-900 border-[#f5e3e3] dark:border-zinc-800 hover:border-[#8F0A1B] dark:hover:border-[#8F0A1B]"
                   }`}
                 >
+                  {/* Top Accent Line */}
+                  <div className={`absolute top-0 left-0 w-full h-1.5 transition-opacity ${highlight ? "bg-gradient-to-r from-[#8F0A1B]/80 to-[#8F0A1B] opacity-100" : "bg-gradient-to-r from-gray-200 to-gray-300 dark:from-zinc-700 dark:to-zinc-600 opacity-0 group-hover:opacity-100"}`} />
+
                   {highlight && (
-                    <div className="absolute top-0 right-0 w-12 h-12 bg-gradient-to-bl from-[#8F0A1B]/20 to-transparent">
+                    <div className="absolute top-0 right-0 w-12 h-12 bg-gradient-to-bl from-[#8F0A1B]/20 to-transparent pointer-events-none">
                       <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#8F0A1B] animate-pulse"></div>
                     </div>
                   )}
-                  <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden mb-3 sm:mb-4 border-2 shadow-sm transition-colors ${
-                    highlight ? "border-[#8F0A1B]" : "border-white group-hover:border-[#8F0A1B]"
-                  }`}>
-                    <img src={photoUrl} alt={cadre.name || 'Administrator'} className="w-full h-full object-cover" />
+
+                  <div className="relative mb-4 mt-2">
+                    <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-4 shadow-lg z-10 relative ${
+                      highlight ? "border-[#8F0A1B]/20" : "border-white dark:border-zinc-800"
+                    }`}>
+                      <img src={photoUrl} alt={cadre.name || 'Administrator'} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                    </div>
+                    <div className={`absolute inset-0 rounded-full border-2 scale-[1.15] opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${highlight ? "border-[#8F0A1B]/40" : "border-gray-300 dark:border-zinc-600"}`}></div>
                   </div>
-                  <h3 className="font-bold text-[14px] sm:text-[15px] text-gray-900 text-center leading-tight mb-1">{cadre.name || 'Unknown Name'}</h3>
-                  {cadre.phone && (
-                    <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCallConfirmation({ name: cadre.name || 'Unknown Name', phone: cadre.phone }); }} className="flex items-center justify-center gap-1.5 text-[12px] sm:text-[13px] font-medium text-blue-600 hover:text-blue-800 transition-colors bg-blue-50 hover:bg-blue-100 px-2.5 py-0.5 rounded-md mb-1.5">
-                      <Phone className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                      {cadre.phone}
-                    </button>
-                  )}
-                  <p className={`text-[11px] sm:text-[12px] font-semibold text-center ${
-                    highlight ? "text-[#8F0A1B] bg-[#8F0A1B]/10 px-2 py-0.5 rounded-full mt-1" : "text-[#8F0A1B]"
-                  }`}>{designation}</p>
+
+                  <h3 className="font-extrabold text-[15px] sm:text-[17px] text-gray-900 dark:text-zinc-100 text-center leading-tight mb-2 group-hover:text-[#8F0A1B] transition-colors">{cadre.name || 'Unknown Name'}</h3>
+                  
+                  <div className="w-full h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-zinc-700 to-transparent my-1" />
+
+                  <div className="mt-3 w-full flex flex-col items-center gap-2">
+                    <p className={`text-[11px] sm:text-[12px] font-semibold text-center inline-block px-3 py-1 rounded-full uppercase tracking-wider ${
+                      highlight ? "text-[#8F0A1B] bg-[#8F0A1B]/10" : "text-gray-600 dark:text-zinc-400 bg-gray-100 dark:bg-zinc-800"
+                    }`}>{designation}</p>
+                    
+                    {cadre.phone && (
+                      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCallConfirmation({ name: cadre.name || 'Unknown Name', phone: cadre.phone }); }} className="flex items-center justify-center gap-1.5 text-[12px] font-semibold text-gray-600 dark:text-zinc-400 hover:text-[#8F0A1B] dark:hover:text-[#8F0A1B] transition-colors mt-1">
+                        <Phone className="w-3.5 h-3.5" />
+                        {cadre.phone}
+                      </button>
+                    )}
+                  </div>
                 </div>
               );
             })}
