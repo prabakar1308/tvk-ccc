@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Check, ChevronsUpDown, Upload, FileText } from "lucide-react";
+import { Check, ChevronsUpDown, Upload, FileText, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CreateCadreDto } from '@/services/api/cadres';
 import { uploadApi } from '@/services/api/upload';
@@ -479,6 +479,20 @@ export function CadreFormDialog({
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                         <Upload className="w-6 h-6 text-white drop-shadow-md" />
                       </div>
+                      <button 
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setPendingFiles(prev => ({...prev, photo: undefined}));
+                          setFormData(prev => ({...prev, photoUrl: ''}));
+                          const el = document.getElementById('photo') as HTMLInputElement;
+                          if (el) el.value = '';
+                        }}
+                        className="absolute top-2 right-2 bg-black/60 hover:bg-red-500 text-white p-1.5 rounded-full transition-colors z-10"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
                     </>
                   ) : (
                     <div className="flex flex-col items-center justify-center text-muted-foreground group-hover:text-primary">
@@ -519,6 +533,20 @@ export function CadreFormDialog({
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                         <Upload className="w-6 h-6 text-white drop-shadow-md" />
                       </div>
+                      <button 
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setPendingFiles(prev => ({...prev, aadhaarPhoto: undefined}));
+                          setFormData(prev => ({...prev, attachments: { ...prev.attachments, aadhaarPhoto: '' } as any}));
+                          const el = document.getElementById('aadhaarPhoto') as HTMLInputElement;
+                          if (el) el.value = '';
+                        }}
+                        className="absolute top-2 right-2 bg-black/60 hover:bg-red-500 text-white p-1.5 rounded-full transition-colors z-10"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
                     </>
                   ) : (
                     <div className="flex flex-col items-center justify-center text-muted-foreground group-hover:text-primary">
@@ -559,6 +587,20 @@ export function CadreFormDialog({
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                         <Upload className="w-6 h-6 text-white drop-shadow-md" />
                       </div>
+                      <button 
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setPendingFiles(prev => ({...prev, voterIdPhoto: undefined}));
+                          setFormData(prev => ({...prev, attachments: { ...prev.attachments, voterIdPhoto: '' } as any}));
+                          const el = document.getElementById('voterIdPhoto') as HTMLInputElement;
+                          if (el) el.value = '';
+                        }}
+                        className="absolute top-2 right-2 bg-black/60 hover:bg-red-500 text-white p-1.5 rounded-full transition-colors z-10"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
                     </>
                   ) : (
                     <div className="flex flex-col items-center justify-center text-muted-foreground group-hover:text-primary">

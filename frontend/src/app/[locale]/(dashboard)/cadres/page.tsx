@@ -18,6 +18,7 @@ import { useTranslations } from 'next-intl';
 import { useCadres, useDeleteCadre } from '@/hooks/use-cadres';
 import { useUnions } from '@/hooks/use-unions';
 import { useKilais } from '@/hooks/use-kilais';
+import { useWings } from '@/hooks/use-wings';
 import {
   Dialog,
   DialogContent,
@@ -42,6 +43,8 @@ export default function CadresPage() {
   const [filterLevel, setFilterLevel] = useState<string>('ALL');
   const [filterUnionId, setFilterUnionId] = useState<string>('');
   const [filterKilaiId, setFilterKilaiId] = useState<string>('');
+  const [filterWingId, setFilterWingId] = useState<string>('');
+  const [wingsFilterType, setWingsFilterType] = useState<'DISTRICT' | 'UNION'>('DISTRICT');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewType, setViewType] = useState<'TABLE' | 'TILE'>('TILE');
   const [includeKilai, setIncludeKilai] = useState(false);
@@ -72,7 +75,7 @@ export default function CadresPage() {
     }
   }, []);
   
-  const LEVELS = ['ALL', 'DISTRICT', 'UNION', 'KILAI'];
+  const LEVELS = ['ALL', 'DISTRICT', 'UNION', 'WINGS', 'KILAI'];
 
   const switchTab = (direction: 'left' | 'right') => {
     const currentIndex = LEVELS.indexOf(levelFilter);
@@ -85,11 +88,19 @@ export default function CadresPage() {
     setFilterLevel('ALL');
     setFilterUnionId('');
     setFilterKilaiId('');
+    setFilterWingId('');
+    setWingsFilterType('DISTRICT');
   };
   
-  const { data: cadres, isLoading } = useCadres();
+  const queryParams: Record<string, string> = {};
+  if (levelFilter === 'WINGS') {
+    queryParams.isWing = 'true';
+  }
+
+  const { data: cadres, isLoading } = useCadres(queryParams);
   const { data: unions = [] } = useUnions();
   const { data: kilais = [] } = useKilais();
+  const { data: wings = [] } = useWings();
   const deleteMutation = useDeleteCadre();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -130,6 +141,14 @@ export default function CadresPage() {
                           cadre.memberId?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           cadre.phone?.includes(searchQuery) ||
                           cadre.aadhaarNumber?.includes(searchQuery);
+    
+    if (levelFilter === 'WINGS') {
+      const matchesWingType = cadre.level === wingsFilterType;
+      const matchesWingUnion = wingsFilterType === 'UNION' && filterUnionId ? cadre.unionId === filterUnionId : true;
+      const matchesWing = filterWingId ? cadre.wingId === filterWingId : true;
+      
+      return matchesSearch && matchesWingType && matchesWingUnion && matchesWing;
+    }
     
     const currentTabLevel = levelFilter === 'ALL' ? filterLevel : levelFilter;
     let matchesLevel = currentTabLevel === 'ALL' || cadre.level === currentTabLevel;
@@ -269,6 +288,8 @@ export default function CadresPage() {
                 setFilterLevel('ALL');
                 setFilterUnionId('');
                 setFilterKilaiId('');
+                setFilterWingId('');
+                setWingsFilterType('DISTRICT');
               }}
               className={`px-4 py-2 font-semibold whitespace-nowrap ${levelFilter === level ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground hover:text-primary'}`}
             >
@@ -302,7 +323,58 @@ export default function CadresPage() {
 
         {/* Dynamic Filters */}
         <div className="px-4 mb-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-          <div className="flex flex-wrap gap-4 items-center">
+          <div className="flex flex-wrap gap-4 items-center w-full sm:w-auto flex-1">
+             {levelFilter === 'WINGS' && (
+               <div className="flex flex-col sm:flex-row gap-3 w-full items-center">
+                 <div className="flex bg-zinc-100 p-1 rounded-lg w-fit shrink-0 h-10">
+                   <button 
+                     onClick={() => { setWingsFilterType('DISTRICT'); setFilterUnionId(''); setFilterWingId(''); }}
+                     className={`px-4 h-full rounded-md text-sm font-medium transition-colors ${wingsFilterType === 'DISTRICT' ? 'bg-white shadow-sm text-primary' : 'text-gray-500 hover:text-gray-700'}`}
+                   >
+                     District
+                   </button>
+                   <button 
+                     onClick={() => { setWingsFilterType('UNION'); setFilterWingId(''); }}
+                     className={`px-4 h-full rounded-md text-sm font-medium transition-colors ${wingsFilterType === 'UNION' ? 'bg-white shadow-sm text-primary' : 'text-gray-500 hover:text-gray-700'}`}
+                   >
+                     Org Unit
+                   </button>
+                 </div>
+
+                 {wingsFilterType === 'UNION' && (
+                   <div className="w-full sm:w-64 shrink-0">
+                     <Select value={filterUnionId} onValueChange={(v) => { setFilterUnionId(v || ''); setFilterWingId(''); }}>
+                       <SelectTrigger className="w-full h-10">
+                         <SelectValue placeholder={t('selectUnion')}>
+                           {filterUnionId ? unions.find((u: any) => String(u.id || u._id) === filterUnionId)?.name : undefined}
+                         </SelectValue>
+                       </SelectTrigger>
+                       <SelectContent>
+                         {unions.map((u: any) => (
+                           <SelectItem key={String(u.id || u._id)} value={String(u.id || u._id)}>{u.name}</SelectItem>
+                         ))}
+                       </SelectContent>
+                     </Select>
+                   </div>
+                 )}
+
+                 <div className="w-full sm:w-80 shrink-0">
+                   <Select value={filterWingId} onValueChange={(v) => setFilterWingId(v || '')}>
+                     <SelectTrigger className="w-full h-10">
+                       <SelectValue placeholder="List of Wings">
+                         {filterWingId ? wings.find((w: any) => String(w.id || w._id) === filterWingId)?.name : undefined}
+                       </SelectValue>
+                     </SelectTrigger>
+                     <SelectContent>
+                       {wings.map((w: any) => (
+                         <SelectItem key={String(w.id || w._id)} value={String(w.id || w._id)}>{w.name}</SelectItem>
+                       ))}
+                     </SelectContent>
+                   </Select>
+                 </div>
+               </div>
+             )}
+
              {levelFilter === 'ALL' && (
                <div className="w-48">
                  <Select value={filterLevel} onValueChange={(v) => { setFilterLevel(v || 'ALL'); setFilterUnionId(''); setFilterKilaiId(''); }}>
@@ -411,6 +483,7 @@ export default function CadresPage() {
                       <TableCell className="py-4 font-medium text-primary">{cadre.level}</TableCell>
                       <TableCell className="py-4">
                         {getRoleBadge(cadre.role, cadre.level)}
+                        {cadre.wing && <div className="mt-1 text-[11px] font-semibold text-muted-foreground">{cadre.wing.name}</div>}
                       </TableCell>
                       <TableCell className="font-medium py-4 text-muted-foreground">
                         {cadre.phone ? (
@@ -474,7 +547,10 @@ export default function CadresPage() {
                     <div className="w-full h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-zinc-700 to-transparent my-1" />
 
                     <div className="mt-3 w-full flex flex-col items-center gap-2">
-                      {getRoleBadge(cadre.role, cadre.level, true)}
+                      <div className="flex flex-col items-center">
+                        {getRoleBadge(cadre.role, cadre.level, true)}
+                        {cadre.wing && <div className="mt-1.5 text-[10px] text-center font-semibold text-muted-foreground leading-tight px-2">{cadre.wing.name}</div>}
+                      </div>
                       
                       {cadre.phone && (
                         <button 

@@ -125,6 +125,8 @@ export class CadreService {
       kilaiId,
       search,
       limit,
+      isWing,
+      wingId,
     } = query;
     const where: any = {};
 
@@ -137,11 +139,24 @@ export class CadreService {
       where.name = { contains: search, mode: 'insensitive' };
     }
 
+    if (isWing === 'true') {
+      where.role = { in: ['COORDINATOR', 'CO_COORDINATOR'] };
+      if (wingId) where.wingId = wingId;
+    } else {
+      where.OR = [
+        { role: null },
+        { role: { notIn: ['COORDINATOR', 'CO_COORDINATOR'] } }
+      ];
+    }
+
     const limitNum = limit ? parseInt(limit, 10) : undefined;
 
     const cadres = await this.prisma.cadre.findMany({
       where,
       ...(limitNum && { take: limitNum }),
+      include: {
+        wing: isWing === 'true',
+      },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -159,9 +174,17 @@ export class CadreService {
       'Deputy Secretary': 4,
       'Executive Committee Member': 5,
       'EC Member': 5,
+      COORDINATOR: 6,
+      CO_COORDINATOR: 7,
     };
 
     return cadres.sort((a, b) => {
+      if (isWing === 'true') {
+        const wingOrderA = (a as any).wing?.order || 999;
+        const wingOrderB = (b as any).wing?.order || 999;
+        if (wingOrderA !== wingOrderB) return wingOrderA - wingOrderB;
+      }
+
       const levelA = LEVEL_WEIGHTS[a.level] || 99;
       const levelB = LEVEL_WEIGHTS[b.level] || 99;
 

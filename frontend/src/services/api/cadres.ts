@@ -19,6 +19,8 @@ export interface Cadre {
   area?: string;
   boothNo?: string;
   officeBearerRoles?: { role: string }[];
+  wingId?: string;
+  wing?: any;
 }
 
 export type CreateCadreDto = Omit<Cadre, 'id' | 'createdAt' | 'updatedAt'>;
