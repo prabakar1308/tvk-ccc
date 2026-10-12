@@ -5,7 +5,7 @@ const TOKEN_KEY = 'tcc_auth_token';
 export async function setAuthToken(token: string) {
   const cookieStore = await cookies();
   cookieStore.set(TOKEN_KEY, token, {
-    httpOnly: true,
+    httpOnly: false,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',

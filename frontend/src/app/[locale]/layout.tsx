@@ -6,6 +6,7 @@ import { getMessages } from 'next-intl/server';
 import Providers from "@/providers/query-provider";
 import { UserProvider } from "@/contexts/user-context";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/ui/toast";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -64,6 +65,7 @@ export default async function RootLayout({
               <TooltipProvider>
                 {children}
               </TooltipProvider>
+              <Toaster />
             </Providers>
           </UserProvider>
         </NextIntlClientProvider>

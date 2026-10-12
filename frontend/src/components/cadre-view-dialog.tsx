@@ -14,6 +14,7 @@ import { useKilais } from '@/hooks/use-kilais';
 import { useBooths } from '@/hooks/use-booths';
 import { useState } from 'react';
 import { FileText, X } from "lucide-react";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 export interface CadreViewDialogProps {
   isOpen: boolean;
@@ -64,21 +65,35 @@ export function CadreViewDialog({
         </DialogHeader>
         
         <div className="space-y-6 pt-4">
-          <div className="flex items-center gap-4 border-b pb-4">
-             <div className="w-20 h-20 rounded-full overflow-hidden bg-gray-100 border-2 border-primary/20 shrink-0">
-                {cadre.photoUrl ? (
-                  <img src={cadre.photoUrl} alt={cadre.name} className="w-full h-full object-cover" />
-                ) : (
-                  <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(cadre.name || 'User')}&background=random`} alt={cadre.name} className="w-full h-full object-cover" />
-                )}
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 p-4 rounded-2xl bg-gradient-to-br from-primary/5 via-zinc-50 to-primary/10 dark:from-primary/10 dark:via-zinc-900 dark:to-primary/5 border border-primary/15 shadow-sm">
+             <div className="flex flex-col items-center gap-1.5 shrink-0">
+               <UserAvatar 
+                 src={cadre.photoUrl} 
+                 name={cadre.name} 
+                 size="2xl" 
+                 ring="primary" 
+                 elevation="glow"
+                 showZoomOnHover={Boolean(cadre.photoUrl)}
+                 onZoomClick={cadre.photoUrl ? () => openPreview(cadre.photoUrl, cadre.name) : undefined}
+               />
+               {cadre.photoUrl && (
+                 <span className="text-[10px] font-semibold text-primary/70 hover:text-primary cursor-pointer transition-colors">
+                   Click to enlarge
+                 </span>
+               )}
              </div>
-             <div>
-                <h3 className="text-xl font-bold text-gray-900">{cadre.name}</h3>
-                <div className="mt-1 flex items-center gap-2">
-                  <span className="text-sm text-gray-500">{cadre.memberId}</span>
-                  <span className="text-gray-300">•</span>
+             <div className="flex-1 text-center sm:text-left pt-1">
+                <h3 className="text-2xl font-black text-gray-900 dark:text-zinc-100 tracking-tight">{cadre.name}</h3>
+                <div className="mt-1.5 flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                  <span className="text-xs font-mono font-bold text-muted-foreground bg-white dark:bg-zinc-800 px-2.5 py-0.5 rounded-full border border-gray-200 dark:border-zinc-700 shadow-2xs">{cadre.memberId}</span>
+                  <span className="text-gray-300 dark:text-zinc-600">•</span>
                   {getRoleBadge(cadre.role, cadre.level)}
                 </div>
+                {cadre.wing && (
+                  <div className="mt-2 text-xs font-semibold text-primary inline-flex items-center gap-1.5 bg-primary/10 px-2.5 py-1 rounded-md">
+                    <span>{cadre.wing.name}</span>
+                  </div>
+                )}
              </div>
           </div>
 

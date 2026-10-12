@@ -2,7 +2,6 @@ import { fetchWithAuth } from './client';
 
 export interface Cadre {
   id: string;
-  userId?: string;
   memberId: string;
   name: string;
   phone?: string;
@@ -21,6 +20,17 @@ export interface Cadre {
   officeBearerRoles?: { role: string }[];
   wingId?: string;
   wing?: any;
+  user?: {
+    role?: {
+      name: string;
+    };
+  };
+  union?: {
+    name: string;
+  };
+  homeKilai?: {
+    name: string;
+  };
 }
 
 export type CreateCadreDto = Omit<Cadre, 'id' | 'createdAt' | 'updatedAt'>;

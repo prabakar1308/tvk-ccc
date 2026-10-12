@@ -12,7 +12,8 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Eye, Building2, Plus, Edit2, Trash2, Check, ChevronsUpDown, X, Download, Upload, PhoneCall, LayoutGrid, List } from "lucide-react";
+import { Search, Eye, Building2, Plus, Edit2, Trash2, Check, ChevronsUpDown, X, Download, Upload, PhoneCall, LayoutGrid, List, MapPin, Store, Users, Layers, ShieldCheck } from "lucide-react";
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
@@ -557,79 +558,172 @@ export default function KilaisPage() {
                 </Table>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                 {filteredKilais.map((kilai) => {
                   const kilaiUnion = unions?.find((u: any) => String(u.id || u._id) === kilai.unionId);
-                  
+                  const secretary = kilai.secretary;
+                  const secretaryName = secretary?.name || kilai.secretaryName;
+                  const secretaryPhone = secretary?.phone || kilai.phone;
+                  const secretaryPhoto = secretary?.photoUrl || kilai.secretaryPhoto;
+
+                  const statusConfig = 
+                    kilai.status === 'ACTIVE' 
+                      ? { bg: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-900/40', dot: 'bg-emerald-500', label: 'Active' }
+                      : kilai.status === 'INACTIVE'
+                      ? { bg: 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-200/60 dark:border-red-900/40', dot: 'bg-red-500', label: 'Inactive' }
+                      : { bg: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200/60 dark:border-amber-900/40', dot: 'bg-amber-500', label: 'Pending' };
+
                   return (
-                    <div key={kilai.id} className="bg-card border-2 border-primary/20 dark:border-primary/30 rounded-xl p-5 shadow-md hover:shadow-xl hover:border-primary/50 transition-all flex flex-col gap-4 relative group">
-                      <div className="flex justify-between items-start gap-2">
-                        <Link href={`/kilais/${kilai.id}`} className="flex items-start gap-2 hover:text-[#8F0A1B] transition-colors cursor-pointer font-bold text-lg text-foreground pr-16">
-                          <Building2 className="h-5 w-5 text-[#8F0A1B] shrink-0 mt-0.5" />
-                          <div className="flex flex-col leading-tight">
-                            <span>{kilai.name}</span>
-                            {kilai.tamilName && <span className="text-sm font-normal text-muted-foreground mt-0.5">({kilai.tamilName})</span>}
-                          </div>
-                        </Link>
-                        <div className="absolute top-5 right-5">
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] uppercase font-bold tracking-wider ${
-                            kilai.status === 'ACTIVE' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                            kilai.status === 'INACTIVE' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                            'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                          }`}>
-                            {kilai.status ? t(kilai.status.toLowerCase()) : t('pending')}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-4 flex-1 mt-2">
-                        <div className="flex flex-col gap-1">
-                          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Panchayat</span>
-                          <span className="font-medium text-sm bg-primary/5 px-2.5 py-1.5 rounded-md w-fit border border-primary/10">{kilai.panchayat || '-'}</span>
-                        </div>
-                        
-                        <div className="flex flex-col gap-1">
-                          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{t('union')}</span>
-                          <span className="inline-flex items-center w-fit px-2.5 py-1.5 rounded-md text-sm font-bold bg-secondary/30 text-secondary-foreground border border-secondary/20">
-                            {kilaiUnion?.name || '-'}
-                          </span>
-                        </div>
-                        
-                        <div className="flex flex-col gap-1">
-                          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Secretary</span>
-                          {kilai.secretaryName ? (
-                            <div className="flex flex-col gap-1.5 bg-zinc-50 dark:bg-zinc-900/50 p-2.5 rounded-md border border-border/50">
-                              <span className="font-semibold text-sm text-foreground">{kilai.secretaryName}</span>
-                              {kilai.phone && (
-                                <button 
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    e.stopPropagation();
-                                    setCallConfirmation({ name: kilai.secretaryName ?? '', phone: kilai.phone ?? '' });
-                                  }}
-                                  className="text-xs text-primary hover:text-primary/80 cursor-pointer hover:underline text-left flex items-center gap-1.5 transition-colors w-fit focus:outline-none"
-                                >
-                                  <PhoneCall className="h-3.5 w-3.5" />
-                                  <span className="font-medium">{kilai.phone}</span>
-                                </button>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-muted-foreground text-sm italic">Not assigned</span>
-                          )}
-                        </div>
+                    <div 
+                      key={kilai.id} 
+                      className="group relative flex flex-col h-full rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 hover:border-[#8F0A1B]/40 dark:hover:border-[#8F0A1B]/60 bg-gradient-to-b from-white via-white to-zinc-50/50 dark:from-zinc-900/90 dark:via-zinc-900/80 dark:to-zinc-950/90 shadow-sm hover:shadow-xl hover:shadow-[#8F0A1B]/6 dark:hover:shadow-[0_8px_30px_rgba(0,0,0,0.45)] transition-all duration-300 overflow-hidden hover:-translate-y-1"
+                    >
+                      {/* Ambient Accent Glow & Top Line */}
+                      <div className="absolute -top-16 -right-16 w-32 h-32 bg-gradient-to-br from-[#8F0A1B]/10 via-[#FFC72C]/10 to-transparent rounded-full blur-2xl group-hover:scale-150 group-hover:opacity-100 opacity-30 transition-all duration-500 pointer-events-none" />
+                      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#8F0A1B] via-[#D97706] to-[#FFC72C] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                      {/* Action Buttons Overlay */}
+                      <div className="absolute top-3.5 right-3.5 flex items-center gap-1.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-0 md:translate-x-1 group-hover:translate-x-0 z-10">
+                        <Button 
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleOpenEdit(kilai); }} 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-zinc-500 hover:text-[#8F0A1B] hover:bg-[#8F0A1B]/10 rounded-full transition-colors bg-white/80 dark:bg-zinc-800/80 shadow-xs border border-zinc-200/50 dark:border-zinc-700/50"
+                          title="Edit"
+                        >
+                          <Edit2 className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button 
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDelete(kilai.id); }} 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-zinc-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-full transition-colors bg-white/80 dark:bg-zinc-800/80 shadow-xs border border-zinc-200/50 dark:border-zinc-700/50"
+                          title="Delete"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
                       </div>
 
-                      <div className="flex justify-end gap-2 pt-4 border-t border-border/50 mt-2 transition-opacity">
-                        <Button onClick={() => handleOpenEdit(kilai)} variant="outline" size="sm" className="h-8 text-primary hover:text-primary hover:bg-primary/10">
-                          <Edit2 className="h-3.5 w-3.5 mr-1.5" />
-                          Edit
-                        </Button>
-                        <Button onClick={() => handleDelete(kilai.id)} variant="outline" size="sm" className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10">
-                          <Trash2 className="h-3.5 w-3.5 mr-1.5" />
-                          Delete
-                        </Button>
-                      </div>
+                      <Link href={`/kilais/${kilai.id}`} className="flex-1 flex flex-col cursor-pointer p-5">
+                        {/* Header Section */}
+                        <div className="flex items-start gap-3.5 mb-3.5 pr-14">
+                          <div className="w-11 h-11 rounded-xl shadow-xs shrink-0 flex items-center justify-center border bg-red-50 text-[#8F0A1B] border-red-100 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/40 transition-transform group-hover:scale-105 duration-300">
+                            <Building2 className="h-5 w-5" />
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-extrabold text-[16px] sm:text-[17px] text-zinc-900 dark:text-zinc-50 leading-tight group-hover:text-[#8F0A1B] dark:group-hover:text-red-400 transition-colors line-clamp-1 mb-1">
+                              {kilai.name}
+                            </h3>
+                            {kilai.tamilName && (
+                              <span className="text-xs font-normal text-zinc-500 dark:text-zinc-400 block truncate mb-1">
+                                ({kilai.tamilName})
+                              </span>
+                            )}
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border shadow-2xs ${statusConfig.bg}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dot}`}></span>
+                              {kilai.status ? t(kilai.status.toLowerCase()) : statusConfig.label}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Leader / Secretary Executive Badge */}
+                        <div className="flex-1 flex flex-col justify-center my-2">
+                          {(secretaryName || secretaryPhone) ? (
+                            <div className="flex items-center justify-between gap-3 bg-gradient-to-br from-zinc-50/90 to-white dark:from-zinc-900/90 dark:to-zinc-950/80 p-3 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 group-hover:border-[#8F0A1B]/25 dark:group-hover:border-[#8F0A1B]/40 transition-colors shadow-xs">
+                              <div className="flex flex-col flex-1 min-w-0 pr-1">
+                                <div className="flex items-center gap-1 mb-1">
+                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold tracking-wider uppercase bg-[#8F0A1B]/10 text-[#8F0A1B] dark:bg-[#8F0A1B]/25 dark:text-red-300">
+                                    <ShieldCheck className="w-3 h-3 text-[#8F0A1B] dark:text-red-400" />
+                                    Secretary
+                                  </span>
+                                </div>
+                                <h4 className="text-[14px] sm:text-[15px] font-bold text-zinc-900 dark:text-zinc-100 truncate leading-snug mb-1.5 group-hover:text-[#8F0A1B] transition-colors">
+                                  {secretaryName || 'Kilai Secretary'}
+                                </h4>
+                                {secretaryPhone ? (
+                                  <button 
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      setCallConfirmation({ name: secretaryName ?? '', phone: secretaryPhone });
+                                    }} 
+                                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 hover:bg-emerald-100/90 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 border border-emerald-200/80 dark:border-emerald-800/60 px-2.5 py-1 rounded-lg transition-all active:scale-95 shadow-xs w-max group/phone"
+                                  >
+                                    <PhoneCall className="w-3 h-3 group-hover/phone:animate-bounce" />
+                                    <span>{secretaryPhone}</span>
+                                  </button>
+                                ) : (
+                                  <span className="text-xs text-zinc-400 italic">No phone provided</span>
+                                )}
+                              </div>
+                              <div className="relative group-hover:scale-105 transition-transform duration-300 shrink-0">
+                                <UserAvatar 
+                                  src={secretaryPhoto} 
+                                  name={secretaryName || 'Secretary'} 
+                                  size="xl" 
+                                  shape="square" 
+                                  ring="primary" 
+                                  elevation="md" 
+                                  imageClassName="group-hover:scale-105 transition-transform duration-500"
+                                />
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between p-3 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/40">
+                              <div className="flex flex-col">
+                                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Leadership</span>
+                                <span className="text-xs font-semibold text-zinc-500 italic mt-0.5">Not assigned</span>
+                              </div>
+                              <div className="w-11 h-11 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-400">
+                                <Users className="w-5 h-5" />
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Panchayat & Union Badges */}
+                        <div className="flex flex-wrap items-center gap-1.5 my-2 justify-between">
+                          {kilai.panchayat && (
+                            <div 
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold text-white shadow-xs"
+                              style={{ backgroundColor: '#6d9188ff', color: 'white' }}
+                            >
+                              <MapPin className="w-3 h-3 text-white" />
+                              <span className="truncate max-w-[120px] text-white">{kilai.panchayat}</span>
+                            </div>
+                          )}
+                          {kilaiUnion?.name && (
+                            <div 
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold text-white shadow-xs"
+                              style={{ backgroundColor: '#6d9188ff', color: 'white' }}
+                            >
+                              <Store className="w-3 h-3 text-white" />
+                              <span className="truncate max-w-[120px] text-white">{kilaiUnion.name}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Quick Stats Footer */}
+                        <div 
+                          className="mt-2 flex items-center justify-between text-xs text-zinc-800 p-2"
+                          style={{
+                            background: '#e9edec',
+                            borderRadius: '15px',
+                            padding: '5px',
+                            fontWeight: 'bold',
+                          }}
+                        >
+                          <div className="flex items-center gap-1.5 px-2 font-bold">
+                            <Layers className="w-3.5 h-3.5 text-[#8F0A1B]" />
+                            <span><strong className="text-zinc-900 font-bold">{kilai.booths?.length || kilai.linkedBooths?.length || 0}</strong> Booths</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 px-2 font-bold">
+                            <Users className="w-3.5 h-3.5 text-[#8F0A1B]" />
+                            <span><strong className="text-zinc-900 font-bold">{kilai._count?.cadres || 0}</strong> Cadres</span>
+                          </div>
+                        </div>
+                      </Link>
                     </div>
                   );
                 })}

@@ -23,6 +23,7 @@ import { useRouter } from '@/i18n/routing';
 
 
 import { useWings } from '@/hooks/use-wings';
+import { UserAvatar } from '@/components/ui/user-avatar';
 
 const iconMap: Record<string, any> = {
   Monitor, Scale, Radio, Mic, GraduationCap, Users, TreePine, 
@@ -255,14 +256,14 @@ export default function WingsPage() {
                       </div>
                       
                       {coordinator ? (
-                        <div className="flex items-center gap-3 bg-gray-50/50 p-2.5 rounded-xl border border-gray-100/50 group-hover:bg-white group-hover:border-gray-200 transition-colors">
-                          <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center border-2 border-white shadow-sm shrink-0 overflow-hidden">
-                            {coordinator.photoUrl ? (
-                              <img src={coordinator.photoUrl} alt={coordinator.name} className="w-full h-full object-cover" />
-                            ) : (
-                              <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(coordinator.name)}&background=8F0A1B&color=fff`} alt={coordinator.name} className="w-full h-full object-cover" />
-                            )}
-                          </div>
+                        <div className="flex items-center gap-3.5 bg-gray-50/50 p-2.5 rounded-xl border border-gray-100/50 group-hover:bg-white group-hover:border-gray-200 transition-colors">
+                          <UserAvatar 
+                            src={coordinator.photoUrl} 
+                            name={coordinator.name} 
+                            size="lg" 
+                            ring="primary" 
+                            elevation="md" 
+                          />
                           <div className="flex flex-col overflow-hidden">
                             <span className="text-sm font-bold text-gray-900 truncate">{coordinator.name}</span>
                             {coordinator.phone && (
@@ -273,9 +274,9 @@ export default function WingsPage() {
                           </div>
                         </div>
                       ) : (
-                        <div className="flex items-center gap-3 bg-red-50/30 p-2.5 rounded-xl border border-red-100/50">
-                          <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center border-2 border-white shadow-sm shrink-0">
-                            <UserPlus className="w-5 h-5 text-red-300" />
+                        <div className="flex items-center gap-3.5 bg-red-50/30 p-2.5 rounded-xl border border-red-100/50">
+                          <div className="w-16 h-16 rounded-full bg-red-50 flex items-center justify-center border-2 border-white shadow-sm shrink-0">
+                            <UserPlus className="w-6 h-6 text-red-300" />
                           </div>
                           <span className="text-sm font-medium text-red-400 italic">Not Assigned</span>
                         </div>

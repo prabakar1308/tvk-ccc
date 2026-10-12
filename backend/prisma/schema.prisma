@@ -6,11 +6,48 @@ datasource db {
   provider = "postgresql"
 }
 
-enum Role {
-  SUPER_ADMIN
-  DISTRICT_LEADER
-  UNION_LEADER
-  CADRE
+enum ScopeLevel {
+  GLOBAL
+  DISTRICT
+  UNION
+  KILAI
+}
+
+model Role {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  description String?
+  isSystem    Boolean    @default(false)
+  scopeLevel  ScopeLevel @default(GLOBAL)
+  priority    Int        @default(0)
+  
+  permissions RolePermission[]
+  users       User[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  action      String   @unique
+  description String?
+  module      String?
+  
+  roles       RolePermission[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
 }
 
 enum DistrictGroupEnum {
@@ -29,15 +66,11 @@ model User {
   id           String @id @default(uuid())
   userId       String @unique
   passwordHash String
-  role         Role   @default(CADRE)
+  roleId       String?
+  role         Role?  @relation(fields: [roleId], references: [id])
 
-  districtId String?
-  district   District? @relation(fields: [districtId], references: [id])
-
-  unionId String?
-  union   Union?  @relation(fields: [unionId], references: [id])
-
-  cadre     Cadre?
+  cadreId   String? @unique
+  cadre     Cadre?  @relation(fields: [cadreId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -53,7 +86,6 @@ model District {
   translations Json?
 
   unions    Union[]
-  users     User[]
   cadres    Cadre[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -77,7 +109,6 @@ model Union {
   translations Json?
 
   kilais Kilai[]
-  users  User[]
   cadres Cadre[]
 
   createdAt DateTime @default(now())
@@ -129,8 +160,7 @@ enum CadreLevel {
 
 model Cadre {
   id            String  @id @default(uuid())
-  userId        String? @unique
-  user          User?   @relation(fields: [userId], references: [id])
+  user          User?
   memberId      String  @unique
   name          String
   phone         String?

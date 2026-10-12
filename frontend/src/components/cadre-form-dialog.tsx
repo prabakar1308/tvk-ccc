@@ -14,7 +14,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Check, ChevronsUpDown, Upload, FileText, X } from "lucide-react";
+import { Check, ChevronsUpDown, Upload, FileText, X, Camera } from "lucide-react";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { cn } from "@/lib/utils";
 import { CreateCadreDto } from '@/services/api/cadres';
 import { uploadApi } from '@/services/api/upload';
@@ -466,55 +467,74 @@ export function CadreFormDialog({
             </div>
           </div>
           
-          <div className="pt-4 border-t space-y-4">
-            <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Photo Uploads</h3>
-            <div className="grid grid-cols-3 gap-4">
-              {/* Administrator Photo */}
-              <div className="space-y-2">
-                <Label className="text-center block w-full text-xs font-semibold">Administrator Photo</Label>
-                <label htmlFor="photo" className="relative flex flex-col items-center justify-center w-full aspect-square border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-primary hover:bg-primary/5 transition-all group overflow-hidden bg-gray-50">
-                  {formData.photoUrl ? (
-                    <>
-                      <img src={formData.photoUrl} alt="Administrator Photo" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Upload className="w-6 h-6 text-white drop-shadow-md" />
-                      </div>
-                      <button 
-                        type="button"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          setPendingFiles(prev => ({...prev, photo: undefined}));
-                          setFormData(prev => ({...prev, photoUrl: ''}));
-                          const el = document.getElementById('photo') as HTMLInputElement;
-                          if (el) el.value = '';
-                        }}
-                        className="absolute top-2 right-2 bg-black/60 hover:bg-red-500 text-white p-1.5 rounded-full transition-colors z-10"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center text-muted-foreground group-hover:text-primary">
-                      <Upload className="w-6 h-6 mb-2 opacity-50 group-hover:opacity-100 transition-opacity" />
-                      <span className="text-[10px] font-medium text-center">Upload Photo</span>
-                    </div>
-                  )}
-                  <input 
-                    id="photo" 
-                    type="file" 
-                    accept="image/*"
-                    className="hidden" 
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        setPendingFiles({...pendingFiles, photo: file});
-                        setFormData({...formData, photoUrl: URL.createObjectURL(file)});
-                      }
+          <div className="pt-4 border-t space-y-5">
+            <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Photo & Verification Documents</h3>
+
+            {/* Prominent Profile Avatar Uploader */}
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-primary/5 via-zinc-50 to-primary/10 dark:from-primary/10 dark:via-zinc-900 dark:to-primary/5 border border-primary/15 shadow-sm flex flex-col sm:flex-row items-center gap-5">
+              <label htmlFor="photo" className="relative group cursor-pointer shrink-0">
+                <UserAvatar
+                  src={formData.photoUrl}
+                  name={formData.name || 'Admin'}
+                  size="2xl"
+                  ring="primary"
+                  elevation="glow"
+                />
+                <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white backdrop-blur-[1px] cursor-pointer">
+                  <Camera className="w-6 h-6 mb-1" />
+                  <span className="text-[10px] font-bold">Change</span>
+                </div>
+                {formData.photoUrl && (
+                  <button 
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setPendingFiles(prev => ({...prev, photo: undefined}));
+                      setFormData(prev => ({...prev, photoUrl: ''}));
+                      const el = document.getElementById('photo') as HTMLInputElement;
+                      if (el) el.value = '';
                     }}
-                  />
+                    className="absolute -top-1 -right-1 bg-red-600 hover:bg-red-700 text-white p-1.5 rounded-full shadow-md transition-colors z-20"
+                    title="Remove Photo"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+                <input 
+                  id="photo" 
+                  type="file" 
+                  accept="image/*"
+                  className="hidden" 
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setPendingFiles({...pendingFiles, photo: file});
+                      setFormData({...formData, photoUrl: URL.createObjectURL(file)});
+                    }
+                  }}
+                />
+              </label>
+
+              <div className="flex-1 text-center sm:text-left space-y-1.5">
+                <Label htmlFor="photo" className="text-base font-bold text-gray-900 dark:text-zinc-100 cursor-pointer hover:text-primary transition-colors flex items-center justify-center sm:justify-start gap-2">
+                  <Camera className="w-4 h-4 text-primary" /> Administrator Profile Photo
+                </Label>
+                <p className="text-xs text-muted-foreground">
+                  Upload a large, clear portrait photo. Recommended format: JPG, PNG or WebP.
+                </p>
+                <label 
+                  htmlFor="photo" 
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary/90 bg-primary/10 hover:bg-primary/20 px-3.5 py-1.5 rounded-lg cursor-pointer transition-colors mt-1"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  {formData.photoUrl ? 'Replace Photo' : 'Select Photo'}
                 </label>
               </div>
+            </div>
+
+            {/* Verification Documents */}
+            <div className="grid grid-cols-2 gap-4">
 
               {/* Aadhaar Photo */}
               <div className="space-y-2">

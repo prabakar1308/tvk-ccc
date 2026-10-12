@@ -34,6 +34,7 @@ import { CreateCadreDto } from '@/services/api/cadres';
 import { CadreFormDialog } from '@/components/cadre-form-dialog';
 import { CadreViewDialog } from '@/components/cadre-view-dialog';
 import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
+import { UserAvatar } from '@/components/ui/user-avatar';
 
 export default function CadresPage() {
   const t = useTranslations('Cadres');
@@ -474,11 +475,15 @@ export default function CadresPage() {
                       onClick={() => handleOpenView(cadre)}
                     >
                       <TableCell className="font-bold text-muted-foreground py-4">{cadre.memberId}</TableCell>
-                      <TableCell className="font-bold text-base py-4 text-foreground flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-200 shrink-0">
-                          <img src={cadre.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(cadre.name)}&background=random`} alt={cadre.name} className="w-full h-full object-cover" />
-                        </div>
-                        {cadre.name}
+                      <TableCell className="font-bold text-base py-4 text-foreground flex items-center gap-3.5">
+                        <UserAvatar 
+                          src={cadre.photoUrl} 
+                          name={cadre.name} 
+                          size="md" 
+                          ring="default" 
+                          elevation="sm" 
+                        />
+                        <span className="font-extrabold group-hover:text-primary transition-colors">{cadre.name}</span>
                       </TableCell>
                       <TableCell className="py-4 font-medium text-primary">{cadre.level}</TableCell>
                       <TableCell className="py-4">
@@ -531,11 +536,15 @@ export default function CadresPage() {
                       </Button>
                     </div>
                     
-                    <div className="relative mb-4 mt-2">
-                      <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-4 border-white dark:border-zinc-800 shadow-lg z-10 relative">
-                        <img src={cadre.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(cadre.name)}&background=random`} alt={cadre.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                      </div>
-                      <div className="absolute inset-0 rounded-full border-2 border-primary/20 scale-[1.15] opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    <div className="relative mb-4 mt-2 group-hover:scale-105 transition-transform duration-300">
+                      <UserAvatar 
+                        src={cadre.photoUrl} 
+                        name={cadre.name} 
+                        size="2xl" 
+                        ring="primary" 
+                        elevation="glow" 
+                        imageClassName="group-hover:scale-110 transition-transform duration-500"
+                      />
                     </div>
                     
                     <h3 className="font-extrabold text-[15px] sm:text-[17px] text-gray-900 dark:text-zinc-100 text-center leading-tight mb-1 group-hover:text-primary transition-colors">{cadre.name}</h3>

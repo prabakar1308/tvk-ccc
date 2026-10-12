@@ -15,6 +15,7 @@ import { StorageModule } from './storage/storage.module';
 import { UploadModule } from './upload/upload.module';
 import { I18nModule } from './i18n/i18n.module';
 import { WingsModule } from './wings/wings.module';
+import { RolesModule } from './roles/roles.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { WingsModule } from './wings/wings.module';
     UploadModule,
     I18nModule,
     WingsModule,
+    RolesModule,
   ],
   controllers: [AppController],
   providers: [

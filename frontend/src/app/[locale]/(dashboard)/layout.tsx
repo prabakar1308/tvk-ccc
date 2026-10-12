@@ -20,6 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { UserAvatar } from '@/components/ui/user-avatar';
 
 export default function DashboardLayout({
   children,
@@ -31,22 +32,22 @@ export default function DashboardLayout({
   const tHeader = useTranslations('Header');
   const tFooter = useTranslations('Footer');
   const pathname = usePathname();
-  const { user, activeUnionId, setActiveUnionId, logout } = useUser();
+  const { user, activeUnionId, setActiveUnionId, logout, hasPermission } = useUser();
   const { data: unions } = useUnions();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
   const navItems = [
-    { name: tSidebar('home'), href: '/', icon: 'home' },
-    { name: tSidebar('unions'), href: '/unions', icon: 'building' },
-    { name: tSidebar('kilais'), href: '/kilais', icon: 'git-branch' },
-    { name: tSidebar('cadres'), href: '/cadres', icon: 'users' },
-    { name: tSidebar('wings'), href: '/wings', icon: 'bird' },
-    { name: tSidebar('booths'), href: '/booths', icon: 'map-pin' },
-    { name: tSidebar('announcements'), href: '/announcements', icon: 'clipboard-list' },
-    { name: tSidebar('analytics'), href: '/analytics', icon: 'bar-chart' },
-    { name: tSidebar('reports'), href: '/reports', icon: 'file-text' },
-    { name: tSidebar('settings'), href: '/settings', icon: 'settings' },
-  ];
+    { name: tSidebar('home'), href: '/', icon: 'home', permission: null },
+    { name: tSidebar('unions'), href: '/unions', icon: 'building', permission: 'unions:read' },
+    { name: tSidebar('kilais'), href: '/kilais', icon: 'git-branch', permission: 'kilais:read' },
+    { name: tSidebar('cadres'), href: '/cadres', icon: 'users', permission: 'cadres:read' },
+    { name: tSidebar('wings'), href: '/wings', icon: 'bird', permission: 'wings:read' },
+    { name: tSidebar('booths'), href: '/booths', icon: 'map-pin', permission: 'booths:read' },
+    { name: tSidebar('announcements'), href: '/announcements', icon: 'clipboard-list', permission: 'announcements:read' },
+    { name: tSidebar('analytics'), href: '/analytics', icon: 'bar-chart', permission: 'analytics:read' },
+    { name: tSidebar('reports'), href: '/reports', icon: 'file-text', permission: 'reports:read' },
+    { name: tSidebar('settings'), href: '/settings', icon: 'settings', permission: 'settings:read' },
+  ].filter(item => !item.permission || hasPermission(item.permission));
 
   const SidebarContent = () => (
     <>
@@ -146,11 +147,19 @@ export default function DashboardLayout({
 
             <DropdownMenu>
               <DropdownMenuTrigger className="flex items-center gap-2 md:gap-3 outline-none cursor-pointer">
-                <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-gray-200 overflow-hidden border-2 border-white shadow-sm">
-                  <img src={`https://ui-avatars.com/api/?name=${(user as any)?.name || 'Rajkumar RKD'}&background=random`} alt="User" className="w-full h-full object-cover" />
-                </div>
+                <UserAvatar 
+                  src={user?.photoUrl} 
+                  name={user?.name || user?.userId || 'User'} 
+                  size="md" 
+                  ring="primary" 
+                  elevation="sm" 
+                  className="w-10 h-10 md:w-11 md:h-11"
+                  badge={
+                    <span className="w-3 h-3 bg-emerald-500 rounded-full border-2 border-white dark:border-zinc-900 block" title="Online" />
+                  }
+                />
                 <div className="flex-col hidden sm:flex text-left">
-                  <span className="text-[16px] font-bold text-gray-900 leading-tight">{(user as any)?.name || 'Rajkumar RKD'}</span>
+                  <span className="text-[16px] font-bold text-gray-900 leading-tight">{user?.name || user?.userId || 'User'}</span>
                   <span className="text-[14px] text-[#8F0A1B] font-semibold">{user?.role === 'SUPER_ADMIN' ? tHeader('admin') : tHeader('secretary')}</span>
                 </div>
                 <ChevronDown className="w-4 h-4 text-gray-500 hidden sm:block" />

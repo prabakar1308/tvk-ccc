@@ -16,6 +16,12 @@ export class UnionsService {
     const unions = await this.prisma.union.findMany({
       include: { 
         district: true,
+        _count: {
+          select: {
+            kilais: true,
+            cadres: true,
+          },
+        },
         cadres: {
           where: { 
             level: 'UNION',

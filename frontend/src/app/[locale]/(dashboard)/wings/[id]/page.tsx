@@ -18,6 +18,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { CadreFormDialog } from '@/components/cadre-form-dialog';
 import { useQueryClient } from '@tanstack/react-query';
+import { UserAvatar } from '@/components/ui/user-avatar';
 
 import { useWings, useWingMembers, useAssignWingMember, useRemoveWingMember } from '@/hooks/use-wings';
 import { useCadres } from '@/hooks/use-cadres';
@@ -115,13 +116,13 @@ export default function WingDetailsPage() {
               <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-gradient-to-br from-gray-50 to-gray-100 rounded-full opacity-50 group-hover:scale-150 transition-transform duration-700 ease-out z-0" />
               <CardContent className="p-5 relative z-10">
                 <div className="flex items-start justify-between mb-4">
-                  <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center border-2 border-white shadow-md overflow-hidden shrink-0 group-hover:scale-105 transition-transform">
-                    {member.photoUrl ? (
-                      <img src={member.photoUrl} alt={member.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=8F0A1B&color=fff`} alt={member.name} className="w-full h-full object-cover" />
-                    )}
-                  </div>
+                  <UserAvatar 
+                    src={member.photoUrl} 
+                    name={member.name} 
+                    size="xl" 
+                    ring="primary" 
+                    elevation="glow" 
+                  />
                   <div className="flex gap-1 bg-gray-50/80 rounded-full p-1 border border-gray-100">
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors" onClick={() => handleEdit(member)}>
                       <Edit2 className="w-3.5 h-3.5" />
@@ -178,11 +179,15 @@ export default function WingDetailsPage() {
               memberList.map((member: any) => (
                 <TableRow key={member.id}>
                   <TableCell className="font-medium">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center border border-gray-200">
-                        <UserRound className="w-4 h-4 text-gray-500" />
-                      </div>
-                      {member.name}
+                    <div className="flex items-center gap-3.5">
+                      <UserAvatar 
+                        src={member.photoUrl} 
+                        name={member.name} 
+                        size="md" 
+                        ring="default" 
+                        elevation="sm" 
+                      />
+                      <span className="font-bold text-gray-900">{member.name}</span>
                     </div>
                   </TableCell>
                   <TableCell>

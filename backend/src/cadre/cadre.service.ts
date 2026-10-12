@@ -156,6 +156,13 @@ export class CadreService {
       ...(limitNum && { take: limitNum }),
       include: {
         wing: isWing === 'true',
+        user: {
+          include: {
+            role: true,
+          },
+        },
+        union: true,
+        homeKilai: true,
       },
       orderBy: { createdAt: 'desc' },
     });

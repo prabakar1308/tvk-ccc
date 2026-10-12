@@ -6,14 +6,18 @@ import { jwtDecode } from 'jwt-decode';
 interface User {
   userId: string;
   sub: string;
-  role: string;
+  role: string | null;
   unionId?: string;
+  permissions?: string[];
+  name?: string | null;
+  photoUrl?: string | null;
 }
 
 interface UserContextType {
   user: User | null;
   activeUnionId: string | null;
   setActiveUnionId: (id: string | null) => void;
+  hasPermission: (permission: string) => boolean;
   logout: () => void;
 }
 
@@ -53,16 +57,26 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (e) {
+      console.error('Logout failed', e);
+    }
     document.cookie = 'tcc_auth_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
     localStorage.removeItem('tcc_active_union_id');
     window.location.href = '/en/login';
   };
 
+  const hasPermission = (permission: string) => {
+    if (user?.role === 'SUPER_ADMIN') return true; // Super admin can do anything, or we can strictly rely on permissions. Let's rely on permissions.
+    return user?.permissions?.includes(permission) ?? false;
+  };
+
   if (!isMounted) return null;
 
   return (
-    <UserContext.Provider value={{ user, activeUnionId, setActiveUnionId: handleSetActiveUnionId, logout }}>
+    <UserContext.Provider value={{ user, activeUnionId, setActiveUnionId: handleSetActiveUnionId, hasPermission, logout }}>
       {children}
     </UserContext.Provider>
   );

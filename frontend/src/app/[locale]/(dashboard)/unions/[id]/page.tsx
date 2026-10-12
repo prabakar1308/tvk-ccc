@@ -11,6 +11,7 @@ import { CadreViewDialog } from '@/components/cadre-view-dialog';
 import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
+import { UserAvatar } from '@/components/ui/user-avatar';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   Dialog,
@@ -171,13 +172,15 @@ export default function UnionDetailsPage() {
                   </div>
                 )}
                 
-                <div className="relative mb-4 mt-2">
-                  <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-4 shadow-lg z-10 relative ${
-                    highlight ? "border-[#8F0A1B]/20" : "border-white dark:border-zinc-800"
-                  }`}>
-                    <img src={photoUrl} alt={cadre.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                  </div>
-                  <div className={`absolute inset-0 rounded-full border-2 scale-[1.15] opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${highlight ? "border-[#8F0A1B]/40" : "border-gray-300 dark:border-zinc-600"}`}></div>
+                <div className="relative mb-4 mt-2 group-hover:scale-105 transition-transform duration-300">
+                  <UserAvatar 
+                    src={cadre.photoUrl} 
+                    name={cadre.name} 
+                    size="2xl" 
+                    ring={highlight ? "primary" : "default"} 
+                    elevation={highlight ? "glow" : "md"} 
+                    imageClassName="group-hover:scale-110 transition-transform duration-500"
+                  />
                 </div>
                 
                 <h3 className="font-extrabold text-[15px] sm:text-[17px] text-gray-900 dark:text-zinc-100 text-center leading-tight mb-2 group-hover:text-[#8F0A1B] transition-colors">{cadre.name}</h3>

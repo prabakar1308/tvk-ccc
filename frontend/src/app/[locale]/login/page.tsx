@@ -1,7 +1,9 @@
 'use client';
 
+import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
+import { AlertCircle } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -18,6 +20,8 @@ const formSchema = z.object({
 export default function LoginPage() {
   const t = useTranslations('Index'); 
   const router = useRouter();
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const {
     register,
@@ -33,6 +37,8 @@ export default function LoginPage() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
+      setAuthError(null);
+      setIsLoading(true);
       const res = await fetch(`/api/v1/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -48,10 +54,18 @@ export default function LoginPage() {
         });
         window.location.href = '/';
       } else {
-        alert('Login failed');
+        if (res.status === 401) {
+          setAuthError('Invalid User ID or Password. Please try again.');
+        } else {
+          const errorData = await res.json().catch(() => null);
+          setAuthError(errorData?.message || 'Login failed. Please try again later.');
+        }
       }
     } catch (error) {
       console.error(error);
+      setAuthError('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -74,6 +88,12 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            {authError && (
+              <div className="bg-destructive/15 text-destructive text-sm p-3 rounded-md flex items-center gap-2 animate-in fade-in slide-in-from-top-1 font-medium">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <p>{authError}</p>
+              </div>
+            )}
             <div className="space-y-2 group">
               <Label htmlFor="userId" className="group-focus-within:text-primary transition-colors">User ID</Label>
               <Input id="userId" className="focus-visible:ring-primary/50 transition-all duration-300 bg-background/50" placeholder="admin" {...register('userId')} />
@@ -86,8 +106,8 @@ export default function LoginPage() {
               {errors.password && <p className="text-sm text-destructive animate-in fade-in slide-in-from-top-1">{errors.password.message}</p>}
             </div>
 
-            <Button type="submit" className="w-full font-bold text-lg h-12 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 transition-all active:scale-[0.98]">
-              Sign In
+            <Button disabled={isLoading} type="submit" className="w-full font-bold text-lg h-12 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/25 transition-all active:scale-[0.98]">
+              {isLoading ? 'Signing In...' : 'Sign In'}
             </Button>
           </form>
         </CardContent>

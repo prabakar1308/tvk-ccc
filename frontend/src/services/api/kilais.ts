@@ -6,6 +6,13 @@ export interface Kilai {
   name: string;
   tamilName?: string;
   secretaryName?: string;
+  secretaryPhoto?: string;
+  secretary?: {
+    id: string;
+    name: string;
+    phone?: string;
+    photoUrl?: string;
+  };
   panchayat?: string;
   description?: string;
   unionId: string;
@@ -21,6 +28,10 @@ export interface Kilai {
   createdAt: string;
   updatedAt: string;
   linkedBooths?: string[];
+  booths?: any[];
+  _count?: {
+    cadres: number;
+  };
 }
 
 export interface CreateKilaiDto {

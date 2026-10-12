@@ -65,7 +65,7 @@ export class KilaisService {
 
   async findAll(unionId?: string) {
     const where = unionId ? { unionId } : {};
-    return this.prisma.kilai.findMany({
+    const kilais = await this.prisma.kilai.findMany({
       where,
       include: {
         union: true,
@@ -75,8 +75,27 @@ export class KilaisService {
             cadres: true,
           },
         },
+        cadres: {
+          where: {
+            OR: [
+              { role: { equals: 'Secretary', mode: 'insensitive' } },
+              { role: { equals: 'SECRETARY', mode: 'insensitive' } },
+              { officeBearerRoles: { some: { role: 'SECRETARY' } } },
+            ],
+          },
+          include: { officeBearerRoles: true },
+          take: 1,
+        },
       },
       orderBy: { createdAt: 'desc' },
+    });
+
+    return kilais.map((kilai) => {
+      const { cadres, ...rest } = kilai;
+      return {
+        ...rest,
+        secretary: cadres && cadres.length > 0 ? cadres[0] : null,
+      };
     });
   }
 

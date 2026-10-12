@@ -14,7 +14,6 @@ export class AuthController {
     return this.authService.register(
       body.userId,
       body.password,
-      body.unionId,
       body.role,
     );
   }

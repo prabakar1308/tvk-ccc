@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Plus, MapPin, Eye, Edit2, Trash2, Building2, Building, Store, LayoutGrid, List, Phone, Users, X } from "lucide-react";
+import { Search, Plus, MapPin, Edit2, Trash2, Building2, Building, Store, LayoutGrid, List, Phone, Users, X, ShieldCheck, UserCheck, Layers } from "lucide-react";
 import { Link } from '@/i18n/routing';
 import { useTranslations } from 'next-intl';
 import {
@@ -33,6 +33,7 @@ import { Label } from "@/components/ui/label";
 import { useUnions, useCreateUnion, useUpdateUnion, useDeleteUnion } from '@/hooks/use-unions';
 import { useDistricts } from '@/hooks/use-districts';
 import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
+import { UserAvatar } from '@/components/ui/user-avatar';
 
 export default function UnionsPage() {
   const t = useTranslations('Unions');
@@ -389,9 +390,9 @@ export default function UnionsPage() {
                           </TableCell>
                           <TableCell className="py-4">
                             {union.areasCovered && union.areasCovered.length > 0 ? (
-                              <div className="flex flex-wrap gap-1.5 max-w-[250px]">
+                              <div className="flex flex-wrap gap-1.5 max-w-[320px] items-center">
                                 {union.areasCovered.map((area: string, idx: number) => (
-                                  <span key={idx} className="inline-flex items-center text-[10px] font-bold tracking-wide uppercase bg-gray-50 dark:bg-zinc-800/50 text-gray-500 dark:text-zinc-400 border border-gray-200 dark:border-zinc-700/50 rounded-md px-1.5 py-0.5 shadow-sm">
+                                  <span key={idx} className="inline-flex items-center text-[11px] font-medium bg-zinc-50 dark:bg-zinc-800/60 text-zinc-700 dark:text-zinc-300 border border-zinc-200/80 dark:border-zinc-700/60 rounded-md px-2 py-0.5 shadow-2xs">
                                     {area}
                                   </span>
                                 ))}
@@ -424,88 +425,189 @@ export default function UnionsPage() {
                     const contactPhone = secretary ? secretary.phone : union.contactPhone;
                     const contactPhoto = secretary?.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(contactName || 'U')}&background=8F0A1B&color=fff&size=128`;
 
+                    // Theme by unit type
+                    const unitBadgeTheme = 
+                      union.unitType === 'TOWN' 
+                        ? { bg: 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200/60 dark:border-blue-900/40', dot: 'bg-blue-500' }
+                        : union.unitType === 'TOWN_PANCHAYAT'
+                        ? { bg: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-900/40', dot: 'bg-emerald-500' }
+                        : union.unitType === 'AREA'
+                        ? { bg: 'bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-200/60 dark:border-purple-900/40', dot: 'bg-purple-500' }
+                        : { bg: 'bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-200/60 dark:border-orange-900/40', dot: 'bg-orange-500' };
+
+                    const unitIconTheme =
+                      union.unitType === 'TOWN' 
+                        ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-900/40' 
+                        : union.unitType === 'TOWN_PANCHAYAT' 
+                        ? 'bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/40' 
+                        : union.unitType === 'AREA' 
+                        ? 'bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-900/40' 
+                        : 'bg-orange-50 text-orange-600 border-orange-100 dark:bg-orange-950/40 dark:text-orange-400 dark:border-orange-900/40';
+
                     return (
                     <div 
                       key={union.id} 
-                      className="flex flex-col h-full rounded-2xl border-2 border-[#f5e3e3] dark:border-zinc-800 hover:border-[#8F0A1B] dark:hover:border-[#8F0A1B] bg-zinc-50/90 dark:bg-zinc-900/90 backdrop-blur-sm hover:bg-white dark:hover:bg-zinc-900 shadow-md hover:shadow-xl dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] transition-all duration-300 group relative overflow-hidden hover:-translate-y-1"
+                      className="group relative flex flex-col h-full rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 hover:border-[#8F0A1B]/40 dark:hover:border-[#8F0A1B]/60 bg-gradient-to-b from-white via-white to-zinc-50/50 dark:from-zinc-900/90 dark:via-zinc-900/80 dark:to-zinc-950/90 shadow-sm hover:shadow-xl hover:shadow-[#8F0A1B]/6 dark:hover:shadow-[0_8px_30px_rgba(0,0,0,0.45)] transition-all duration-300 overflow-hidden hover:-translate-y-1"
                     >
-                      {/* Top Accent Line */}
-                      <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#8F0A1B]/80 to-[#8F0A1B] opacity-0 group-hover:opacity-100 transition-opacity" />
+                      {/* Ambient Accent Glow & Top Line */}
+                      <div className="absolute -top-16 -right-16 w-32 h-32 bg-gradient-to-br from-[#8F0A1B]/10 via-[#FFC72C]/10 to-transparent rounded-full blur-2xl group-hover:scale-150 group-hover:opacity-100 opacity-30 transition-all duration-500 pointer-events-none" />
+                      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#8F0A1B] via-[#D97706] to-[#FFC72C] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
                       {/* Action Buttons Overlay */}
-                      <div className="absolute top-3 right-3 flex items-center gap-1 opacity-100 md:opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-0 md:translate-x-2 group-hover:translate-x-0 z-10">
-                        <Button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleOpenEdit(union); }} variant="ghost" size="icon" className="h-8 w-8 text-[#8F0A1B] hover:text-white bg-[#8F0A1B]/10 hover:bg-[#8F0A1B] rounded-full transition-colors md:bg-[#8F0A1B]/5">
+                      <div className="absolute top-3.5 right-3.5 flex items-center gap-1.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-0 md:translate-x-1 group-hover:translate-x-0 z-10">
+                        <Button 
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleOpenEdit(union); }} 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-zinc-500 hover:text-[#8F0A1B] hover:bg-[#8F0A1B]/10 rounded-full transition-colors bg-white/80 dark:bg-zinc-800/80 shadow-xs border border-zinc-200/50 dark:border-zinc-700/50"
+                        >
                           <Edit2 className="h-3.5 w-3.5" />
                         </Button>
-                        <Button onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDelete(union.id); }} variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-white bg-destructive/10 hover:bg-destructive rounded-full transition-colors md:bg-destructive/5">
+                        <Button 
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDelete(union.id); }} 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-zinc-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-full transition-colors bg-white/80 dark:bg-zinc-800/80 shadow-xs border border-zinc-200/50 dark:border-zinc-700/50"
+                        >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                       
-                      <Link href={`/unions/${union.id}`} className="flex-1 flex flex-col cursor-pointer p-4">
+                      <Link href={`/unions/${union.id}`} className="flex-1 flex flex-col cursor-pointer p-5">
                         
                         {/* Header Section */}
-                        <div className="flex items-start gap-4 mb-3">
-                          <div className={`w-12 h-12 rounded-xl shadow-sm shrink-0 flex items-center justify-center transition-colors group-hover:scale-110 duration-300 ${
-                            union.unitType === 'TOWN' ? 'bg-blue-50 text-blue-600 border border-blue-100' :
-                            union.unitType === 'TOWN_PANCHAYAT' ? 'bg-green-50 text-green-600 border border-green-100' :
-                            union.unitType === 'AREA' ? 'bg-purple-50 text-purple-600 border border-purple-100' :
-                            'bg-orange-50 text-orange-600 border border-orange-100'
-                          }`}>
-                            {union.unitType === 'TOWN' ? <Building className="h-6 w-6" /> :
-                             union.unitType === 'TOWN_PANCHAYAT' ? <Store className="h-6 w-6" /> :
-                             union.unitType === 'AREA' ? <MapPin className="h-6 w-6" /> :
-                             <Building2 className="h-6 w-6" />}
+                        <div className="flex items-start gap-3.5 mb-4 pr-16">
+                          <div className={`w-11 h-11 rounded-xl shadow-xs shrink-0 flex items-center justify-center border transition-transform group-hover:scale-105 duration-300 ${unitIconTheme}`}>
+                            {union.unitType === 'TOWN' ? <Building className="h-5 w-5" /> :
+                             union.unitType === 'TOWN_PANCHAYAT' ? <Store className="h-5 w-5" /> :
+                             union.unitType === 'AREA' ? <MapPin className="h-5 w-5" /> :
+                             <Building2 className="h-5 w-5" />}
                           </div>
                           
-                          <div className="flex-1 pr-16 pt-0.5">
-                            <h3 className="font-extrabold text-[18px] text-gray-900 dark:text-white mb-1.5 line-clamp-2 leading-tight group-hover:text-[#8F0A1B] transition-colors">{union.name}</h3>
-                            <span className="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-widest uppercase bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-400">
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-extrabold text-[17px] sm:text-[18px] text-zinc-900 dark:text-zinc-50 leading-tight group-hover:text-[#8F0A1B] dark:group-hover:text-red-400 transition-colors line-clamp-1 mb-1.5">
+                              {union.name}
+                            </h3>
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border shadow-xs ${unitBadgeTheme.bg}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${unitBadgeTheme.dot}`}></span>
                               {union.unitType === 'TOWN_PANCHAYAT' ? 'Town Panchayat' : union.unitType || 'Union'}
                             </span>
                           </div>
                         </div>
 
-                        <div className="w-full h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-zinc-700 to-transparent my-2.5" />
-
-                        {/* Body Section (Secretary / Contact) */}
-                        <div className="flex-1 flex flex-col justify-center pt-1">
+                        {/* Leader / Secretary Executive Badge */}
+                        <div className="flex-1 flex flex-col justify-center my-1">
                           {(contactName || contactPhone) ? (
-                            <div className="flex items-center gap-3">
-                              <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white dark:border-zinc-800 shadow-sm shrink-0">
-                                <img src={contactPhoto} alt={contactName || 'Contact'} className="w-full h-full object-cover" />
-                              </div>
-                              <div className="flex flex-col flex-1 overflow-hidden">
-                                <span className="text-[11px] font-bold text-[#8F0A1B] uppercase tracking-wider mb-0.5">{secretary ? 'Secretary' : 'Contact Person'}</span>
-                                {contactName && (
-                                  <span className="text-base font-bold text-gray-900 dark:text-zinc-100 truncate leading-tight mb-1">{contactName}</span>
-                                )}
-                                {contactPhone && (
-                                  <button onClick={(e) => handleInitiateCall(contactPhone, contactName || '', e)} className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-600 dark:text-zinc-400 hover:text-[#8F0A1B] transition-colors w-max">
-                                    <Phone className="w-3.5 h-3.5" />
-                                    {contactPhone}
+                            <div className="flex items-center justify-between gap-3.5 bg-gradient-to-br from-zinc-50/90 to-white dark:from-zinc-900/90 dark:to-zinc-950/80 p-3.5 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 group-hover:border-[#8F0A1B]/25 dark:group-hover:border-[#8F0A1B]/40 transition-colors shadow-xs">
+                              <div className="flex flex-col flex-1 min-w-0 pr-1">
+                                <div className="flex items-center gap-1 mb-1">
+                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold tracking-wider uppercase ${
+                                    secretary 
+                                      ? 'bg-[#8F0A1B]/10 text-[#8F0A1B] dark:bg-[#8F0A1B]/25 dark:text-red-300' 
+                                      : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400'
+                                  }`}>
+                                    {secretary ? <ShieldCheck className="w-3 h-3 text-[#8F0A1B] dark:text-red-400" /> : <UserCheck className="w-3 h-3 text-zinc-500" />}
+                                    {secretary ? 'Secretary' : 'Contact Person'}
+                                  </span>
+                                </div>
+                                <h4 className="text-[15px] sm:text-[16px] font-bold text-zinc-900 dark:text-zinc-100 truncate leading-snug mb-2 group-hover:text-[#8F0A1B] transition-colors">
+                                  {contactName}
+                                </h4>
+                                {contactPhone ? (
+                                  <button 
+                                    onClick={(e) => handleInitiateCall(contactPhone, contactName || '', e)} 
+                                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 hover:bg-emerald-100/90 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 border border-emerald-200/80 dark:border-emerald-800/60 px-2.5 py-1 rounded-lg transition-all active:scale-95 shadow-xs w-max group/phone"
+                                  >
+                                    <Phone className="w-3 h-3 group-hover/phone:animate-bounce" />
+                                    <span>{contactPhone}</span>
                                   </button>
+                                ) : (
+                                  <span className="text-xs text-zinc-400 italic">No phone provided</span>
                                 )}
+                              </div>
+                              <div className="relative group-hover:scale-105 transition-transform duration-300 shrink-0">
+                                <UserAvatar 
+                                  src={secretary?.photoUrl} 
+                                  name={contactName || 'Contact'} 
+                                  size="xl" 
+                                  shape="square" 
+                                  ring="primary" 
+                                  elevation="md" 
+                                  imageClassName="group-hover:scale-105 transition-transform duration-500"
+                                />
                               </div>
                             </div>
                           ) : (
-                            <div className="flex flex-col items-center justify-center h-full py-2 opacity-50">
-                              <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-zinc-800 flex items-center justify-center mb-2">
-                                <Users className="w-5 h-5 text-gray-400" />
+                            <div className="flex items-center justify-between p-3.5 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/40">
+                              <div className="flex flex-col">
+                                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Leadership</span>
+                                <span className="text-sm font-semibold text-zinc-500 italic mt-0.5">{t('noContactProvided')}</span>
                               </div>
-                              <p className="text-sm italic font-medium text-gray-500">{t('noContactProvided')}</p>
+                              <div className="w-12 h-12 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-400">
+                                <Users className="w-5 h-5" />
+                              </div>
                             </div>
                           )}
+                        </div>
+
+                        {/* Quick Stats Bar (Kilais & Cadres) */}
+                        <div className="flex items-center gap-2 pt-2 text-xs">
+                          <div 
+                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#548777] text-white font-medium shadow-xs"
+                            style={{ backgroundColor: '#548777', color: 'white' }}
+                          >
+                            <Layers className="w-3.5 h-3.5 text-white" />
+                            <span className="text-white"><strong className="text-white font-bold">{union._count?.kilais || 0}</strong> Kilais</span>
+                          </div>
+                          <div 
+                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#548777] text-white font-medium shadow-xs"
+                            style={{ backgroundColor: '#548777', color: 'white' }}
+                          >
+                            <Users className="w-3.5 h-3.5 text-white" />
+                            <span className="text-white"><strong className="text-white font-bold">{union._count?.cadres || 0}</strong> Cadres</span>
+                          </div>
                         </div>
                         
                         {/* Areas Covered Section */}
                         {union.areasCovered && union.areasCovered.length > 0 && (
-                          <div className="mt-4 pt-3 border-t border-gray-100 dark:border-zinc-800/50 flex flex-wrap gap-1.5">
-                            {union.areasCovered.map((area: string, idx: number) => (
-                              <span key={idx} className="inline-flex items-center text-[10px] font-bold tracking-wide uppercase bg-white dark:bg-zinc-800/50 text-gray-500 dark:text-zinc-400 border border-gray-200 dark:border-zinc-700/50 rounded-md px-2 py-1 shadow-sm">
-                                {area}
+                          <div 
+                            className="mt-3.5 text-zinc-800"
+                            style={{
+                              background: '#e9edec',
+                              borderRadius: '15px',
+                              padding: '10px 5px',
+                              fontWeight: 'bold',
+                            }}
+                          >
+                            <div 
+                              className="flex items-center justify-between gap-2 mb-2"
+                              style={{
+                                background: '#d5dbd9',
+                                borderRadius: '4px',
+                                padding: '5px',
+                                fontWeight: 'bold',
+                              }}
+                            >
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <MapPin className="w-3.5 h-3.5 text-zinc-700 shrink-0" />
+                                <span className="text-[11px] font-bold text-zinc-800 uppercase tracking-wider truncate">
+                                  Areas Covered
+                                </span>
+                              </div>
+                              <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-white text-zinc-700 border border-zinc-300/60 shrink-0">
+                                {union.areasCovered.length}
                               </span>
-                            ))}
+                            </div>
+                            <div className="flex flex-wrap gap-1.5 items-center px-1">
+                              {union.areasCovered.map((area: string, idx: number) => (
+                                <span 
+                                  key={idx} 
+                                  className="inline-flex items-center text-[11px] font-medium bg-white text-zinc-800 border border-zinc-300/60 rounded-md px-2.5 py-1 shadow-2xs"
+                                >
+                                  {area}
+                                </span>
+                              ))}
+                            </div>
                           </div>
                         )}
                       </Link>

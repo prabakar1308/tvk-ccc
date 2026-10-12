@@ -13,6 +13,7 @@ import { Link } from '@/i18n/routing';
 import { useTranslations } from 'next-intl';
 import { useDashboardStats } from '@/hooks/use-dashboard';
 import { useCadres } from '@/hooks/use-cadres';
+import { UserAvatar } from '@/components/ui/user-avatar';
 
 export default function DashboardPage() {
   const t = useTranslations('Dashboard');
@@ -192,8 +193,14 @@ export default function DashboardPage() {
                   <div className="absolute top-0 right-0 w-12 h-12 bg-gradient-to-bl from-[#8F0A1B]/20 to-transparent rounded-tr-xl">
                     <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#8F0A1B] animate-pulse"></div>
                   </div>
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden mb-3 sm:mb-4 border-2 shadow-sm border-[#8F0A1B]">
-                    <img src={secretary.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(secretary.name)}&background=8F0A1B&color=fff&size=128`} alt={secretary.name} className="w-full h-full object-cover" />
+                  <div className="mb-3 sm:mb-4 group-hover:scale-105 transition-transform duration-300">
+                    <UserAvatar 
+                      src={secretary.photoUrl} 
+                      name={secretary.name} 
+                      size="xl" 
+                      ring="primary" 
+                      elevation="glow" 
+                    />
                   </div>
                   <h3 className="font-bold text-[14px] sm:text-[16px] text-gray-900 text-center leading-tight mb-1">{secretary.name}</h3>
                   <p className="text-[11px] sm:text-[12px] font-bold text-[#8F0A1B] bg-[#8F0A1B]/10 px-3 py-1 rounded-full mt-1">{secretary.role || t('roleSecretary')}</p>
@@ -220,8 +227,14 @@ export default function DashboardPage() {
                       <CarouselItem key={index} className="pl-2 md:pl-4 basis-[100%] sm:basis-1/2 md:basis-1/3 lg:basis-1/2 xl:basis-1/3">
                         <div className="p-1 h-full">
                           <div className="flex flex-col items-center justify-center p-5 sm:p-6 bg-[#F8F9FA] rounded-xl border border-gray-100 hover:border-[#8F0A1B]/20 hover:shadow-md transition-all duration-300 group cursor-pointer h-full">
-                            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden mb-3 sm:mb-4 border-2 border-white shadow-sm group-hover:border-[#8F0A1B] transition-colors">
-                              <img src={cadre.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(cadre.name)}&background=8F0A1B&color=fff&size=128`} alt={cadre.name} className="w-full h-full object-cover" />
+                            <div className="mb-3 sm:mb-4 group-hover:scale-105 transition-transform duration-300">
+                              <UserAvatar 
+                                src={cadre.photoUrl} 
+                                name={cadre.name} 
+                                size="xl" 
+                                ring="default" 
+                                elevation="md" 
+                              />
                             </div>
                             <h3 className="font-bold text-[14px] sm:text-[15px] text-gray-900 text-center leading-tight mb-1">{cadre.name}</h3>
                             <p className="text-[11px] sm:text-[12px] font-semibold text-[#8F0A1B] text-center">{cadre.role || t('roleCadre')}</p>
