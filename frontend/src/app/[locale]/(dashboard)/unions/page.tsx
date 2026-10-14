@@ -159,109 +159,114 @@ export default function UnionsPage() {
           >
             <Plus className="mr-2 h-5 w-5" /> {t('addNew')}
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>{editingId ? t('editUnion') : t('addNew')}</DialogTitle>
+          <DialogContent className="sm:max-w-[480px] max-h-[85vh] sm:max-h-[90vh] flex flex-col p-0 overflow-hidden rounded-2xl">
+            <DialogHeader className="p-5 pb-3.5 pr-12 shrink-0 border-b border-zinc-100 dark:border-zinc-800">
+              <DialogTitle className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
+                {editingId ? t('editUnion') : t('addNew')}
+              </DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">{t('unionName')} *</Label>
-                <Input 
-                  id="name" 
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  required 
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="group">{tForms('group')} *</Label>
-                <Select 
-                  value={formData.group} 
-                  onValueChange={(val) => setFormData({...formData, group: val || ''})}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder={tForms('selectGroup')}>
-                      {formData.group === 'KURINJIPADI' ? tCommon('kurinjipadi') : formData.group === 'CUDDALORE' ? tCommon('cuddalore') : formData.group || tForms('selectGroup')}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="KURINJIPADI">{tCommon('kurinjipadi')}</SelectItem>
-                    <SelectItem value="CUDDALORE">{tCommon('cuddalore')}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="unitType">{tForms('unitType') || 'Unit Type'} *</Label>
-                <Select 
-                  value={formData.unitType} 
-                  onValueChange={(val) => setFormData({...formData, unitType: val || ''})}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder={tForms('selectUnitType') || 'Select Unit Type'}>
-                      {formData.unitType === 'UNION' ? 'Union' : 
-                       formData.unitType === 'TOWN' ? 'Town' : 
-                       formData.unitType === 'TOWN_PANCHAYAT' ? 'Town Panchayat' : 
-                       formData.unitType === 'AREA' ? 'Area' : formData.unitType || 'Select Unit Type'}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="UNION">Union</SelectItem>
-                    <SelectItem value="TOWN">Town</SelectItem>
-                    <SelectItem value="TOWN_PANCHAYAT">Town Panchayat</SelectItem>
-                    <SelectItem value="AREA">Area</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Areas Covered</Label>
-                <div className="flex gap-2">
+            <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="overflow-y-auto px-6 py-4 space-y-4 flex-1 overscroll-contain">
+                <div className="space-y-2">
+                  <Label htmlFor="name">{t('unionName')} *</Label>
                   <Input 
-                    value={areaInput}
-                    onChange={(e) => setAreaInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleAddArea();
-                      }
-                    }}
-                    placeholder="Type area and press enter"
+                    id="name" 
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    required 
                   />
-                  <Button type="button" onClick={handleAddArea} size="icon" className="shrink-0 bg-primary text-white hover:bg-primary/90">
-                    <Plus className="h-4 w-4" />
-                  </Button>
                 </div>
-                {formData.areasCovered.length > 0 && (
-                  <div className="flex flex-wrap gap-2 pt-2">
-                    {formData.areasCovered.map((area, idx) => (
-                      <div key={idx} className="flex items-center gap-1 bg-primary/10 text-primary px-3 py-1.5 rounded-md text-sm">
-                        <span>{area}</span>
-                        <button type="button" onClick={() => handleRemoveArea(area)} className="text-primary hover:text-red-500 transition-colors rounded-full p-0.5 hover:bg-primary/10">
-                          <X className="h-3.5 w-3.5" />
-                        </button>
-                      </div>
-                    ))}
+                <div className="space-y-2">
+                  <Label htmlFor="group">{tForms('group')} *</Label>
+                  <Select 
+                    value={formData.group} 
+                    onValueChange={(val) => setFormData({...formData, group: val || ''})}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder={tForms('selectGroup')}>
+                        {formData.group === 'KURINJIPADI' ? tCommon('kurinjipadi') : formData.group === 'CUDDALORE' ? tCommon('cuddalore') : formData.group || tForms('selectGroup')}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="KURINJIPADI">{tCommon('kurinjipadi')}</SelectItem>
+                      <SelectItem value="CUDDALORE">{tCommon('cuddalore')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="unitType">{tForms('unitType') || 'Unit Type'} *</Label>
+                  <Select 
+                    value={formData.unitType} 
+                    onValueChange={(val) => setFormData({...formData, unitType: val || ''})}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder={tForms('selectUnitType') || 'Select Unit Type'}>
+                        {formData.unitType === 'UNION' ? 'Union' : 
+                         formData.unitType === 'TOWN' ? 'Town' : 
+                         formData.unitType === 'TOWN_PANCHAYAT' ? 'Town Panchayat' : 
+                         formData.unitType === 'AREA' ? 'Area' : formData.unitType || 'Select Unit Type'}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="UNION">Union</SelectItem>
+                      <SelectItem value="TOWN">Town</SelectItem>
+                      <SelectItem value="TOWN_PANCHAYAT">Town Panchayat</SelectItem>
+                      <SelectItem value="AREA">Area</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Areas Covered</Label>
+                  <div className="flex gap-2">
+                    <Input 
+                      value={areaInput}
+                      onChange={(e) => setAreaInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleAddArea();
+                        }
+                      }}
+                      placeholder="Type area and press enter"
+                    />
+                    <Button type="button" onClick={handleAddArea} size="icon" className="shrink-0 bg-primary text-white hover:bg-primary/90">
+                      <Plus className="h-4 w-4" />
+                    </Button>
                   </div>
-                )}
+                  {formData.areasCovered.length > 0 && (
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {formData.areasCovered.map((area, idx) => (
+                        <div key={idx} className="flex items-center gap-1 bg-primary/10 text-primary px-3 py-1.5 rounded-md text-sm">
+                          <span>{area}</span>
+                          <button type="button" onClick={() => handleRemoveArea(area)} className="text-primary hover:text-red-500 transition-colors rounded-full p-0.5 hover:bg-primary/10">
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="contactName">{tForms('contactName')}</Label>
+                  <Input 
+                    id="contactName" 
+                    value={formData.contactName}
+                    onChange={(e) => setFormData({...formData, contactName: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="contactPhone">{tForms('contactPhone')}</Label>
+                  <Input 
+                    id="contactPhone" 
+                    value={formData.contactPhone}
+                    onChange={(e) => setFormData({...formData, contactPhone: e.target.value})}
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="contactName">{tForms('contactName')}</Label>
-                <Input 
-                  id="contactName" 
-                  value={formData.contactName}
-                  onChange={(e) => setFormData({...formData, contactName: e.target.value})}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="contactPhone">{tForms('contactPhone')}</Label>
-                <Input 
-                  id="contactPhone" 
-                  value={formData.contactPhone}
-                  onChange={(e) => setFormData({...formData, contactPhone: e.target.value})}
-                />
-              </div>
-              <DialogFooter className="pt-4">
+
+              <DialogFooter className="m-0 px-6 py-4 pb-6 sm:pb-6 shrink-0 border-t border-zinc-100 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-900/80 flex items-center justify-end gap-2 sm:gap-3">
                 <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>{tCommon('cancel')}</Button>
-                <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
+                <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="bg-primary hover:bg-primary/90 text-white font-semibold">
                   {editingId ? tCommon('saveChanges') : t('createUnion')}
                 </Button>
               </DialogFooter>

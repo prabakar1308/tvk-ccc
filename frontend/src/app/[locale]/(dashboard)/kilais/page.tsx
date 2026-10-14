@@ -582,55 +582,54 @@ export default function KilaisPage() {
                       <div className="absolute -top-16 -right-16 w-32 h-32 bg-gradient-to-br from-[#8F0A1B]/10 via-[#FFC72C]/10 to-transparent rounded-full blur-2xl group-hover:scale-150 group-hover:opacity-100 opacity-30 transition-all duration-500 pointer-events-none" />
                       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#8F0A1B] via-[#D97706] to-[#FFC72C] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-                      {/* Action Buttons Overlay */}
-                      <div className="absolute top-3.5 right-3.5 flex items-center gap-1.5 opacity-100 md:opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-0 md:translate-x-1 group-hover:translate-x-0 z-10">
-                        <Button 
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleOpenEdit(kilai); }} 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 text-zinc-500 hover:text-[#8F0A1B] hover:bg-[#8F0A1B]/10 rounded-full transition-colors bg-white/80 dark:bg-zinc-800/80 shadow-xs border border-zinc-200/50 dark:border-zinc-700/50"
-                          title="Edit"
-                        >
-                          <Edit2 className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button 
-                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDelete(kilai.id); }} 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 text-zinc-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-full transition-colors bg-white/80 dark:bg-zinc-800/80 shadow-xs border border-zinc-200/50 dark:border-zinc-700/50"
-                          title="Delete"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-
                       <Link href={`/kilais/${kilai.id}`} className="flex-1 flex flex-col cursor-pointer p-5">
                         {/* Header Section */}
-                        <div className="flex items-start gap-3.5 mb-3.5 pr-14">
-                          <div className="w-11 h-11 rounded-xl shadow-xs shrink-0 flex items-center justify-center border bg-red-50 text-[#8F0A1B] border-red-100 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/40 transition-transform group-hover:scale-105 duration-300">
+                        <div className="flex items-start gap-3 mb-3.5">
+                          <div className="w-11 h-11 rounded-xl shadow-xs shrink-0 flex items-center justify-center border bg-red-50 text-[#8F0A1B] border-red-100 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/40 transition-transform group-hover:scale-105 duration-300 mt-0.5">
                             <Building2 className="h-5 w-5" />
                           </div>
                           
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-extrabold text-[16px] sm:text-[17px] text-zinc-900 dark:text-zinc-50 leading-tight group-hover:text-[#8F0A1B] dark:group-hover:text-red-400 transition-colors line-clamp-1 mb-1">
-                              {kilai.name}
-                            </h3>
-                            {kilai.tamilName && (
-                              <span className="text-xs font-normal text-zinc-500 dark:text-zinc-400 block truncate mb-1">
-                                ({kilai.tamilName})
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <h3 className="font-extrabold text-[16px] sm:text-[17px] text-zinc-900 dark:text-zinc-50 leading-tight group-hover:text-[#8F0A1B] dark:group-hover:text-red-400 transition-colors truncate">
+                                {kilai.name}
+                              </h3>
+                              <div className="flex items-center gap-1 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity">
+                                <button 
+                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleOpenEdit(kilai); }} 
+                                  className="p-1 text-zinc-400 hover:text-[#8F0A1B] hover:bg-[#8F0A1B]/10 rounded-md transition-colors"
+                                  title="Edit"
+                                >
+                                  <Edit2 className="h-3.5 w-3.5" />
+                                </button>
+                                <button 
+                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDelete(kilai.id); }} 
+                                  className="p-1 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                                  title="Delete"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center justify-between gap-2">
+                              {kilai.tamilName ? (
+                                <span className="text-xs font-normal text-zinc-500 dark:text-zinc-400 truncate">
+                                  ({kilai.tamilName})
+                                </span>
+                              ) : <span />}
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border shadow-2xs shrink-0 ${statusConfig.bg}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dot}`}></span>
+                                {kilai.status ? t(kilai.status.toLowerCase()) : statusConfig.label}
                               </span>
-                            )}
-                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border shadow-2xs ${statusConfig.bg}`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dot}`}></span>
-                              {kilai.status ? t(kilai.status.toLowerCase()) : statusConfig.label}
-                            </span>
+                            </div>
                           </div>
                         </div>
 
                         {/* Leader / Secretary Executive Badge */}
                         <div className="flex-1 flex flex-col justify-center my-2">
                           {(secretaryName || secretaryPhone) ? (
-                            <div className="flex items-center justify-between gap-3 bg-gradient-to-br from-zinc-50/90 to-white dark:from-zinc-900/90 dark:to-zinc-950/80 p-3 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 group-hover:border-[#8F0A1B]/25 dark:group-hover:border-[#8F0A1B]/40 transition-colors shadow-xs">
+                            <div className="flex items-center justify-between gap-3.5 bg-gradient-to-br from-zinc-50/90 to-white dark:from-zinc-900/90 dark:to-zinc-950/80 p-3.5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 group-hover:border-[#8F0A1B]/25 dark:group-hover:border-[#8F0A1B]/40 transition-colors shadow-xs">
                               <div className="flex flex-col flex-1 min-w-0 pr-1">
                                 <div className="flex items-center gap-1 mb-1">
                                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold tracking-wider uppercase bg-[#8F0A1B]/10 text-[#8F0A1B] dark:bg-[#8F0A1B]/25 dark:text-red-300">
@@ -670,13 +669,13 @@ export default function KilaisPage() {
                               </div>
                             </div>
                           ) : (
-                            <div className="flex items-center justify-between p-3 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/40">
+                            <div className="flex items-center justify-between p-3.5 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/40">
                               <div className="flex flex-col">
                                 <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Leadership</span>
                                 <span className="text-xs font-semibold text-zinc-500 italic mt-0.5">Not assigned</span>
                               </div>
-                              <div className="w-11 h-11 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-400">
-                                <Users className="w-5 h-5" />
+                              <div className="w-14 h-14 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-400">
+                                <Users className="w-6 h-6" />
                               </div>
                             </div>
                           )}

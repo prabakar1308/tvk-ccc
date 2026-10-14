@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Store, Building2, MapPin, ArrowRight, UserCog, Network, GraduationCap, Megaphone, BarChart2, FileText } from "lucide-react";
 import {
@@ -26,17 +27,46 @@ export default function DashboardPage() {
   return (
     <div className="space-y-4 sm:space-y-6 pt-4 sm:pt-6">
       {/* Hero Banner Image */}
-      <div className="w-full h-[180px] sm:h-[320px] rounded-[16px] sm:rounded-[24px] overflow-hidden shadow-sm relative bg-[#EBEBEB]">
-        <img 
-          src="/db_image_2.png" 
-          alt="TVK Leaders" 
-          className="w-full h-full object-cover object-top mix-blend-multiply opacity-90"
-        />
-        {/* We use mix-blend and opacity to make the background of image blend if it has a white bg, or just give a slight tint. The provided image already seems to have this grey tone background. */}
+      <div className="w-full rounded-[16px] sm:rounded-[24px] overflow-hidden shadow-sm relative bg-[#8F0A1B]">
+        {/* Mobile View Image (< 640px) */}
+        <div className="relative aspect-[940/1672] w-full overflow-hidden block sm:hidden">
+          <Image
+            src="/db_image_mobile.png"
+            alt="TVK Leaders - வெற்றி தமிழ்நாடு"
+            fill
+            priority
+            sizes="(max-width: 640px) 100vw, 420px"
+            className="object-cover object-top"
+          />
+        </div>
+
+        {/* Tablet View Image (640px - 1023px) */}
+        <div className="relative aspect-[1536/1024] w-full overflow-hidden hidden sm:block lg:hidden">
+          <Image
+            src="/db_image_tablet.png"
+            alt="TVK Leaders - வெற்றி தமிழ்நாடு"
+            fill
+            priority
+            sizes="(max-width: 1024px) 100vw, 768px"
+            className="object-cover object-top"
+          />
+        </div>
+
+        {/* Desktop View Image (>= 1024px) */}
+        <div className="relative aspect-[1945/808] w-full overflow-hidden hidden lg:block">
+          <Image
+            src="/db_image_desktop.png"
+            alt="TVK Leaders - வெற்றி தமிழ்நாடு"
+            fill
+            priority
+            sizes="(min-width: 1024px) 90vw, 1400px"
+            className="object-cover object-top"
+          />
+        </div>
       </div>
 
       {/* Stats Row */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 xl:grid-cols-2 2xl:grid-cols-4">
         {/* Card 1: Total Unions */}
         <Link href="/unions" className="block">
           <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-gray-100 flex items-center gap-3 sm:gap-4 hover:scale-[1.02] transition-transform cursor-pointer">
