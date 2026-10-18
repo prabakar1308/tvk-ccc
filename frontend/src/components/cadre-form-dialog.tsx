@@ -20,9 +20,28 @@ import { cn } from "@/lib/utils";
 import { CreateCadreDto } from '@/services/api/cadres';
 import { uploadApi } from '@/services/api/upload';
 import { useCreateCadre, useUpdateCadre } from '@/hooks/use-cadres';
+import { useDistricts } from '@/hooks/use-districts';
 import { useBooths, useBoothAreas } from '@/hooks/use-booths';
 import { useUnions } from '@/hooks/use-unions';
 import { useKilais } from '@/hooks/use-kilais';
+
+export interface CadreFormData {
+  name: string;
+  memberId: string;
+  phone?: string | null;
+  role?: string | null;
+  level: 'DISTRICT' | 'GROUP' | 'UNION' | 'KILAI';
+  districtId?: string | null;
+  unionId?: string | null;
+  homeKilaiId?: string | null;
+  aadhaarNumber?: string | null;
+  voterId?: string | null;
+  photoUrl?: string | null;
+  attachments?: { aadhaarPhoto?: string; voterIdPhoto?: string };
+  area?: string | null;
+  boothNo?: string | null;
+  wingId?: string | null;
+}
 
 export interface CadreFormDialogProps {
   isOpen: boolean;
@@ -30,6 +49,7 @@ export interface CadreFormDialogProps {
   editingId?: string | null;
   cadres?: any[]; // list of existing cadres (needed to find the one being edited)
   defaultLevel?: 'KILAI' | 'UNION' | 'DISTRICT' | 'GROUP';
+  lockLevel?: boolean;
   defaultDistrictId?: string;
   defaultUnionId?: string;
   defaultKilaiId?: string;
@@ -45,7 +65,8 @@ export function CadreFormDialog({
   onOpenChange,
   editingId,
   cadres = [],
-  defaultLevel = 'KILAI',
+  defaultLevel = 'DISTRICT',
+  lockLevel = false,
   defaultDistrictId,
   defaultUnionId,
   defaultKilaiId,
@@ -58,19 +79,20 @@ export function CadreFormDialog({
   const createMutation = useCreateCadre();
   const updateMutation = useUpdateCadre();
   
+  const { data: districts = [] } = useDistricts();
   const { data: booths = [] } = useBooths();
   const { data: areas = [] } = useBoothAreas();
   const { data: unions = [] } = useUnions();
   const { data: kilais = [] } = useKilais();
 
 
-  const initialFormData: CreateCadreDto = {
+  const initialFormData: CadreFormData = {
     name: '',
     memberId: '',
     phone: '',
     role: defaultRole || '',
     level: defaultLevel,
-    districtId: defaultDistrictId,
+    districtId: defaultDistrictId || (districts.length > 0 ? districts[0].id : undefined),
     unionId: defaultUnionId,
     homeKilaiId: defaultKilaiId,
     aadhaarNumber: '',
@@ -79,9 +101,9 @@ export function CadreFormDialog({
     area: defaultArea || '',
     boothNo: defaultBoothNo || '',
     wingId: defaultWingId,
-  } as any;
+  };
 
-  const [formData, setFormData] = useState<CreateCadreDto>(initialFormData);
+  const [formData, setFormData] = useState<CadreFormData>(initialFormData);
 
   const filteredKilais = kilais.filter((k: any) => k.unionId === formData.unionId);
 
@@ -106,7 +128,10 @@ export function CadreFormDialog({
             phone: cadre.phone || '',
             role: cadre.role || '',
             level: cadre.level || defaultLevel,
-            unionId: cadre.unionId || defaultUnionId,
+            districtId: (cadre.districtId || defaultDistrictId || (districts.length > 0 ? districts[0].id : '')) || undefined,
+            unionId: cadre.unionId || defaultUnionId || undefined,
+            homeKilaiId: cadre.homeKilaiId || defaultKilaiId || undefined,
+            wingId: cadre.wingId || defaultWingId || undefined,
             aadhaarNumber: cadre.aadhaarNumber || '',
             voterId: cadre.voterId || '',
             photoUrl: cadre.photoUrl || '',
@@ -119,7 +144,7 @@ export function CadreFormDialog({
         setFormData({ 
           ...initialFormData, 
           level: defaultLevel, 
-          districtId: defaultDistrictId,
+          districtId: defaultDistrictId || (districts.length > 0 ? districts[0].id : undefined),
           unionId: defaultUnionId, 
           homeKilaiId: defaultKilaiId,
           boothNo: defaultBoothNo || '',
@@ -132,6 +157,15 @@ export function CadreFormDialog({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, editingId]);
+
+  useEffect(() => {
+    if (isOpen && !formData.districtId && districts.length > 0 && formData.level === 'DISTRICT') {
+      setFormData((prev) => ({
+        ...prev,
+        districtId: defaultDistrictId || districts[0].id,
+      }));
+    }
+  }, [isOpen, districts, formData.level, formData.districtId, defaultDistrictId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -161,9 +195,9 @@ export function CadreFormDialog({
         aadhaarNumber: formData.aadhaarNumber || undefined,
         voterId: formData.voterId || undefined,
         phone: formData.phone || undefined,
-        districtId: formData.level === 'DISTRICT' ? formData.districtId : undefined,
-        unionId: (formData.level === 'UNION' || formData.level === 'KILAI') ? formData.unionId : undefined,
-        homeKilaiId: formData.level === 'KILAI' ? formData.homeKilaiId : undefined,
+        districtId: formData.level === 'DISTRICT' ? (formData.districtId || undefined) : (editingId ? null : undefined),
+        unionId: (formData.level === 'UNION' || formData.level === 'KILAI') ? (formData.unionId || undefined) : (editingId ? null : undefined),
+        homeKilaiId: formData.level === 'KILAI' ? (formData.homeKilaiId || undefined) : (editingId ? null : undefined),
         attachments: {
           aadhaarPhoto: aadhaarPhoto || undefined,
           voterIdPhoto: voterIdPhoto || undefined,
@@ -264,27 +298,59 @@ export function CadreFormDialog({
               <Label htmlFor="level">Level *</Label>
               <Select 
                 value={formData.level} 
-                onValueChange={(val: any) => setFormData({...formData, level: val})}
-                disabled={!!defaultLevel}
+                onValueChange={(val: any) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    level: val,
+                    districtId: val === 'DISTRICT' ? (prev.districtId || defaultDistrictId || (districts[0]?.id ?? '')) : undefined,
+                    unionId: (val === 'UNION' || val === 'KILAI') ? (prev.unionId || defaultUnionId || '') : undefined,
+                    homeKilaiId: val === 'KILAI' ? (prev.homeKilaiId || defaultKilaiId || '') : undefined,
+                  }));
+                }}
+                disabled={lockLevel}
               >
                 <SelectTrigger className="w-full">
                   <SelectValue placeholder="Select level" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="DISTRICT">District</SelectItem>
-                  <SelectItem value="GROUP">Group</SelectItem>
+                  {/* <SelectItem value="GROUP">Group</SelectItem> */}
                   <SelectItem value="UNION">Union</SelectItem>
                   <SelectItem value="KILAI">Kilai</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+            {formData.level === 'DISTRICT' && districts.length > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="districtId">District *</Label>
+                <Select 
+                  value={formData.districtId || ''} 
+                  onValueChange={(val) => setFormData(prev => ({ ...prev, districtId: val }))}
+                  required
+                  disabled={!!defaultDistrictId}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select district">
+                      {formData.districtId ? districts.find((d: any) => String(d.id) === formData.districtId)?.name : "Select district"}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {districts.map((d: any) => (
+                      <SelectItem key={d.id} value={String(d.id)}>
+                        {d.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             {(formData.level === 'UNION' || formData.level === 'KILAI') && (
               <div className="space-y-2">
                 <Label htmlFor="unionId">Union *</Label>
                 <Select 
                   key={`union-${unions.length}`}
                   value={formData.unionId || ''} 
-                  onValueChange={(val) => setFormData({...formData, unionId: val, homeKilaiId: ''} as any)}
+                  onValueChange={(val) => setFormData(prev => ({...prev, unionId: val, homeKilaiId: ''} as any))}
                   required
                   disabled={!!defaultUnionId}
                 >
@@ -309,7 +375,7 @@ export function CadreFormDialog({
                 <Select 
                   key={`kilai-${filteredKilais.length}`}
                   value={formData.homeKilaiId || ''} 
-                  onValueChange={(val) => setFormData({...formData, homeKilaiId: val} as any)}
+                  onValueChange={(val) => setFormData(prev => ({...prev, homeKilaiId: val} as any))}
                   required
                   disabled={!formData.unionId}
                 >

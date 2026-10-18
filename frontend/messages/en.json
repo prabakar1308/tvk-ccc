@@ -38,10 +38,18 @@
     "totalCadres": "Total Administrators",
     "activeCadres": "Active Administrators",
     "totalBooths": "Total Booths",
-    "districtCadres": "District Administrators",
+    "districtCadres": "District Leadership & Cadres",
     "noDistrictCadres": "No district administrators found.",
     "roleSecretary": "Secretary",
-    "roleCadre": "Cadre"
+    "roleCadre": "Cadre",
+    "orgUnitsOverview": "Organizational Units Overview",
+    "orgUnitsDescription": "Active grassroots administration across the constituency",
+    "viewAll": "View All",
+    "quickAccess": "Quick Access Hub",
+    "quickAccessDesc": "Instant navigation across critical administration tools",
+    "commandCenterActive": "Command Centre Active",
+    "leadershipDirectory": "View Cadre Directory",
+    "analytics": "Live Analytics"
   },
   "Common": {
     "add": "Add",

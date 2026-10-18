@@ -25,6 +25,10 @@ export interface Cadre {
       name: string;
     };
   };
+  district?: {
+    id: string;
+    name: string;
+  };
   union?: {
     name: string;
   };

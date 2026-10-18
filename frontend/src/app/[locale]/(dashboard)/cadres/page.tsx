@@ -196,6 +196,8 @@ export default function CadresPage() {
         onOpenChange={setIsModalOpen}
         editingId={editingId}
         cadres={cadres}
+        defaultLevel="DISTRICT"
+        lockLevel={false}
       />
       
       <CadreViewDialog

@@ -1,12 +1,16 @@
 'use client';
 
+import { useState } from 'react';
 import Image from 'next/image';
 import dbImageMobile from '../../../../public/db_image_mobile.png';
 import dbImageTablet from '../../../../public/db_image_tablet.png';
 import dbImageDesktop from '../../../../public/db_image_desktop.png';
 import dbImageDesktopLarge from '../../../../public/db_image_desktop_large.png';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Store, Building2, MapPin, ArrowRight, UserCog, Network, GraduationCap, Megaphone, BarChart2, FileText } from "lucide-react";
+import { 
+  Users, Store, Building2, Building, MapPin, ArrowRight, 
+  Network, Megaphone, BarChart2, Phone, 
+  ShieldCheck, UserCheck, Layers, Sparkles, ChevronRight
+} from "lucide-react";
 import {
   Carousel,
   CarouselContent,
@@ -18,20 +22,55 @@ import { Link } from '@/i18n/routing';
 import { useTranslations } from 'next-intl';
 import { useDashboardStats } from '@/hooks/use-dashboard';
 import { useCadres } from '@/hooks/use-cadres';
+import { useUser } from '@/contexts/user-context';
 import { UserAvatar } from '@/components/ui/user-avatar';
+import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
+import { Button } from '@/components/ui/button';
 
 export default function DashboardPage() {
   const t = useTranslations('Dashboard');
+  const tCommon = useTranslations('Common');
+  const { user } = useUser();
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: districtCadres, isLoading: cadresLoading } = useCadres({ level: 'DISTRICT' });
+  
+  const [callPerson, setCallPerson] = useState<{ name: string; phone: string } | null>(null);
+
+  const handleInitiateCall = (phone: string, name: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCallPerson({ phone, name });
+  };
   
   const secretary = districtCadres?.find(c => c.role === 'SECRETARY' || c.role?.toLowerCase() === 'secretary') || districtCadres?.[0];
   const otherCadres = districtCadres?.filter(c => c.id !== secretary?.id) || [];
 
   return (
-    <div className="space-y-4 sm:space-y-6 pt-4 sm:pt-6">
+    <div className="space-y-6 sm:space-y-8 pt-2 sm:pt-4 pb-12 animate-in fade-in slide-in-from-bottom-3 duration-500 fill-mode-both">
+      {/* Simple Executive Welcome Bar */}
+      <div className="flex items-center justify-between gap-3 bg-gradient-to-r from-[#8F0A1B]/5 via-[#FFC72C]/10 to-transparent p-3.5 sm:p-4 rounded-2xl border border-[#8F0A1B]/15 shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[#8F0A1B] text-white flex items-center justify-center shadow-xs shrink-0">
+            <Sparkles className="w-5 h-5 text-[#FFC72C]" />
+          </div>
+          <div>
+            <h2 className="text-base sm:text-lg font-extrabold text-zinc-900 dark:text-zinc-100 leading-tight">
+              {user?.name ? `Welcome, ${user.name}` : 'Welcome, TVK Cadre'}
+            </h2>
+            <p className="text-xs font-semibold text-muted-foreground mt-0.5">
+              Kurinjipadi Assembly Constituency • Cuddalore East District
+            </p>
+          </div>
+        </div>
+
+        {/* <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] sm:text-[11px] font-bold uppercase tracking-wider bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-900/40 shrink-0">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          {t('commandCenterActive', { fallback: 'Live' })}
+        </span> */}
+      </div>
+
       {/* Hero Banner Image */}
-      <div className="w-full rounded-[16px] sm:rounded-[24px] overflow-hidden shadow-sm relative bg-[#8F0A1B]">
+      <div className="w-full rounded-[20px] sm:rounded-[24px] overflow-hidden shadow-md relative bg-[#8F0A1B] border border-[#8F0A1B]/20 group">
         {/* Mobile View Image (< 640px) */}
         <div className="relative aspect-[941/1672] w-full overflow-hidden block sm:hidden">
           <Image
@@ -40,7 +79,7 @@ export default function DashboardPage() {
             fill
             priority
             sizes="(max-width: 640px) 100vw, 420px"
-            className="object-cover object-top"
+            className="object-cover object-top group-hover:scale-[1.01] transition-transform duration-700"
           />
         </div>
 
@@ -52,7 +91,7 @@ export default function DashboardPage() {
             fill
             priority
             sizes="(max-width: 1024px) 100vw, 768px"
-            className="object-cover object-top"
+            className="object-cover object-top group-hover:scale-[1.01] transition-transform duration-700"
           />
         </div>
 
@@ -64,7 +103,7 @@ export default function DashboardPage() {
             fill
             priority
             sizes="(max-width: 1600px) 100vw, 1400px"
-            className="object-cover object-top"
+            className="object-cover object-top group-hover:scale-[1.01] transition-transform duration-700"
           />
         </div>
 
@@ -76,227 +115,531 @@ export default function DashboardPage() {
             fill
             priority
             sizes="(min-width: 1601px) 100vw, 1920px"
-            className="object-cover object-top"
+            className="object-cover object-top group-hover:scale-[1.01] transition-transform duration-700"
           />
         </div>
       </div>
 
-      {/* Stats Row */}
-      <div className="grid gap-4 grid-cols-1 xl:grid-cols-2 2xl:grid-cols-4">
-        {/* Card 1: Total Unions */}
-        <Link href="/unions" className="block">
-          <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-gray-100 flex items-center gap-3 sm:gap-4 hover:scale-[1.02] transition-transform cursor-pointer">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-blue-50 flex items-center justify-center shrink-0">
-              <Users className="w-6 h-6 sm:w-8 sm:h-8 text-blue-500" />
-            </div>
-            <div className="flex-1 grid grid-cols-[1fr_auto] items-center sm:block">
-              <p className="text-[16px] sm:text-[16px] font-semibold text-gray-800 col-start-1 row-start-1">{t('totalUnions')}</p>
-              <h3 className="text-[22px] sm:text-[28px] font-bold text-gray-900 leading-tight col-start-2 row-start-1 row-span-2 text-right sm:text-left">
-                {statsLoading ? '...' : stats?.totalUnions || 0}
-              </h3>
-              <p className="text-[12px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1 col-start-1 row-start-2">{t('acrossConstituency')}</p>
-            </div>
-            <ArrowRight className="w-4 h-4 text-gray-300 hidden sm:block" />
-          </div>
-        </Link>
+      {/* Main KPI Stats Row - Matching Org Units Cards Design */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg sm:text-xl font-extrabold text-zinc-900 dark:text-zinc-50 flex items-center gap-2">
+            <div className="w-2 h-5 bg-[#8F0A1B] rounded-sm"></div>
+            Constituency Overview
+          </h2>
+          <span className="text-xs font-semibold text-muted-foreground">
+            {t('acrossConstituency')}
+          </span>
+        </div>
 
-        {/* Card 2: Total Kilais */}
-        <Link href="/kilais" className="block">
-          <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-gray-100 flex items-center gap-3 sm:gap-4 hover:scale-[1.02] transition-transform cursor-pointer">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-green-50 flex items-center justify-center shrink-0">
-              <Store className="w-6 h-6 sm:w-8 sm:h-8 text-green-500" />
-            </div>
-            <div className="flex-1 grid grid-cols-[1fr_auto] items-center sm:block">
-              <p className="text-[16px] sm:text-[16px] font-semibold text-gray-800 col-start-1 row-start-1">{t('totalKilais')}</p>
-              <h3 className="text-[22px] sm:text-[28px] font-bold text-gray-900 leading-tight col-start-2 row-start-1 row-span-2 text-right sm:text-left">
-                {statsLoading ? '...' : stats?.totalKilais || 0}
-              </h3>
-              <p className="text-[12px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1 col-start-1 row-start-2">{t('registeredKilais')}</p>
-            </div>
-            <ArrowRight className="w-4 h-4 text-gray-300 hidden sm:block" />
-          </div>
-        </Link>
+        <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
+          {/* Card 1: Total Org Units */}
+          <Link href="/unions" className="block h-full group/card cursor-pointer">
+            <div className="group relative flex flex-col justify-between h-full rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 hover:border-[#8F0A1B]/40 dark:hover:border-[#8F0A1B]/60 bg-gradient-to-b from-white via-white to-zinc-50/50 dark:from-zinc-900/90 dark:via-zinc-900/80 dark:to-zinc-950/90 shadow-md hover:shadow-2xl hover:shadow-[#8F0A1B]/15 dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] transition-all duration-300 overflow-hidden hover:-translate-y-1 p-5">
+              {/* Ambient Accent Glow & Top Line */}
+              <div className="absolute -top-16 -right-16 w-32 h-32 bg-gradient-to-br from-[#8F0A1B]/10 via-[#FFC72C]/10 to-transparent rounded-full blur-2xl group-hover:scale-150 group-hover:opacity-100 opacity-30 transition-all duration-500 pointer-events-none" />
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#8F0A1B] via-[#D97706] to-[#FFC72C] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-        {/* Card 3: Total Administrators */}
-        <Link href="/cadres" className="block">
-          <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-gray-100 flex items-center gap-3 sm:gap-4 hover:scale-[1.02] transition-transform cursor-pointer">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-purple-50 flex items-center justify-center shrink-0">
-              <UserCog className="w-6 h-6 sm:w-8 sm:h-8 text-purple-500" />
-            </div>
-            <div className="flex-1 grid grid-cols-[1fr_auto] items-center sm:block">
-              <p className="text-[16px] sm:text-[16px] font-semibold text-gray-800 col-start-1 row-start-1">{t('totalCadres')}</p>
-              <h3 className="text-[22px] sm:text-[28px] font-bold text-gray-900 leading-tight col-start-2 row-start-1 row-span-2 text-right sm:text-left">
-                {statsLoading ? '...' : stats?.totalCadres || 0}
-              </h3>
-              <p className="text-[12px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1 col-start-1 row-start-2">{t('activeCadres')}</p>
-            </div>
-            <ArrowRight className="w-4 h-4 text-gray-300 hidden sm:block" />
-          </div>
-        </Link>
+              <div>
+                {/* Header Row */}
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div className="w-11 h-11 rounded-xl shadow-xs shrink-0 flex items-center justify-center border transition-transform group-hover:scale-105 duration-300 bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-900/40">
+                    <Building2 className="h-5 w-5" />
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border shadow-xs bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200/60 dark:border-blue-900/40">
+                    <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                    Constituency Units
+                  </span>
+                </div>
 
-        {/* Card 4: Total Booths */}
-        <Link href="/booths" className="block">
-          <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-gray-100 flex items-center gap-3 sm:gap-4 hover:scale-[1.02] transition-transform cursor-pointer">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-orange-50 flex items-center justify-center shrink-0">
-              <Building2 className="w-6 h-6 sm:w-8 sm:h-8 text-orange-500" />
+                {/* Metric & Label */}
+                <h3 className="font-extrabold text-[30px] sm:text-[34px] text-zinc-900 dark:text-zinc-50 leading-tight group-hover:text-[#8F0A1B] dark:group-hover:text-red-400 transition-colors my-1 tracking-tight">
+                  {statsLoading ? '...' : (stats?.totalUnions || 0)}
+                </h3>
+                <h4 className="text-[15px] sm:text-[16px] font-bold text-zinc-800 dark:text-zinc-200">
+                  {t('totalUnions')}
+                </h4>
+                <p className="text-[12px] font-medium text-muted-foreground mt-0.5">
+                  Unions, towns & areas active
+                </p>
+              </div>
+
+              {/* Bottom Quick Stats Pill Bar */}
+              <div className="flex items-center justify-between pt-3 mt-4 border-t border-zinc-100 dark:border-zinc-800/80 text-xs">
+                <div 
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-white font-bold text-[11px] shadow-xs"
+                  style={{ backgroundColor: '#548777' }}
+                >
+                  <Building className="w-3.5 h-3.5 text-white" />
+                  <span>{stats?.totalUnions || 0} Org Units</span>
+                </div>
+                <span className="inline-flex items-center text-xs font-semibold text-zinc-500 group-hover:text-[#8F0A1B] dark:group-hover:text-red-400 transition-colors">
+                  View Units <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
+                </span>
+              </div>
             </div>
-            <div className="flex-1 grid grid-cols-[1fr_auto] items-center sm:block">
-              <p className="text-[16px] sm:text-[16px] font-semibold text-gray-800 col-start-1 row-start-1">{t('totalBooths')}</p>
-              <h3 className="text-[22px] sm:text-[28px] font-bold text-gray-900 leading-tight col-start-2 row-start-1 row-span-2 text-right sm:text-left">
-                {statsLoading ? '...' : stats?.totalBooths || 0}
-              </h3>
-              <p className="text-[12px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1 col-start-1 row-start-2">{t('acrossConstituency')}</p>
+          </Link>
+
+          {/* Card 2: Total Kilais */}
+          <Link href="/kilais" className="block h-full group/card cursor-pointer">
+            <div className="group relative flex flex-col justify-between h-full rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 hover:border-[#8F0A1B]/40 dark:hover:border-[#8F0A1B]/60 bg-gradient-to-b from-white via-white to-zinc-50/50 dark:from-zinc-900/90 dark:via-zinc-900/80 dark:to-zinc-950/90 shadow-md hover:shadow-2xl hover:shadow-[#8F0A1B]/15 dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] transition-all duration-300 overflow-hidden hover:-translate-y-1 p-5">
+              {/* Ambient Accent Glow & Top Line */}
+              <div className="absolute -top-16 -right-16 w-32 h-32 bg-gradient-to-br from-[#8F0A1B]/10 via-[#FFC72C]/10 to-transparent rounded-full blur-2xl group-hover:scale-150 group-hover:opacity-100 opacity-30 transition-all duration-500 pointer-events-none" />
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#8F0A1B] via-[#D97706] to-[#FFC72C] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+              <div>
+                {/* Header Row */}
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div className="w-11 h-11 rounded-xl shadow-xs shrink-0 flex items-center justify-center border transition-transform group-hover:scale-105 duration-300 bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/40">
+                    <Store className="h-5 w-5" />
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border shadow-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-900/40">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    Grassroots Network
+                  </span>
+                </div>
+
+                {/* Metric & Label */}
+                <h3 className="font-extrabold text-[30px] sm:text-[34px] text-zinc-900 dark:text-zinc-50 leading-tight group-hover:text-[#8F0A1B] dark:group-hover:text-red-400 transition-colors my-1 tracking-tight">
+                  {statsLoading ? '...' : (stats?.totalKilais || 0)}
+                </h3>
+                <h4 className="text-[15px] sm:text-[16px] font-bold text-zinc-800 dark:text-zinc-200">
+                  {t('totalKilais')}
+                </h4>
+                <p className="text-[12px] font-medium text-muted-foreground mt-0.5">
+                  {t('registeredKilais')} in villages & wards
+                </p>
+              </div>
+
+              {/* Bottom Quick Stats Pill Bar */}
+              <div className="flex items-center justify-between pt-3 mt-4 border-t border-zinc-100 dark:border-zinc-800/80 text-xs">
+                <div 
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-white font-bold text-[11px] shadow-xs"
+                  style={{ backgroundColor: '#548777' }}
+                >
+                  <Layers className="w-3.5 h-3.5 text-white" />
+                  <span>{stats?.totalKilais || 0} Kilais</span>
+                </div>
+                <span className="inline-flex items-center text-xs font-semibold text-zinc-500 group-hover:text-[#8F0A1B] dark:group-hover:text-red-400 transition-colors">
+                  Explore Kilais <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
+                </span>
+              </div>
             </div>
-            <ArrowRight className="w-4 h-4 text-gray-300 hidden sm:block" />
-          </div>
-        </Link>
+          </Link>
+
+          {/* Card 3: Total Cadres */}
+          <Link href="/cadres" className="block h-full group/card cursor-pointer">
+            <div className="group relative flex flex-col justify-between h-full rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 hover:border-[#8F0A1B]/40 dark:hover:border-[#8F0A1B]/60 bg-gradient-to-b from-white via-white to-zinc-50/50 dark:from-zinc-900/90 dark:via-zinc-900/80 dark:to-zinc-950/90 shadow-md hover:shadow-2xl hover:shadow-[#8F0A1B]/15 dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] transition-all duration-300 overflow-hidden hover:-translate-y-1 p-5">
+              {/* Ambient Accent Glow & Top Line */}
+              <div className="absolute -top-16 -right-16 w-32 h-32 bg-gradient-to-br from-[#8F0A1B]/10 via-[#FFC72C]/10 to-transparent rounded-full blur-2xl group-hover:scale-150 group-hover:opacity-100 opacity-30 transition-all duration-500 pointer-events-none" />
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#8F0A1B] via-[#D97706] to-[#FFC72C] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+              <div>
+                {/* Header Row */}
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div className="w-11 h-11 rounded-xl shadow-xs shrink-0 flex items-center justify-center border transition-transform group-hover:scale-105 duration-300 bg-purple-50 text-purple-600 border-purple-100 dark:bg-purple-950/40 dark:text-purple-400 dark:border-purple-900/40">
+                    <Users className="h-5 w-5" />
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border shadow-xs bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-200/60 dark:border-purple-900/40">
+                    <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                    Leadership Cadres
+                  </span>
+                </div>
+
+                {/* Metric & Label */}
+                <h3 className="font-extrabold text-[30px] sm:text-[34px] text-zinc-900 dark:text-zinc-50 leading-tight group-hover:text-[#8F0A1B] dark:group-hover:text-red-400 transition-colors my-1 tracking-tight">
+                  {statsLoading ? '...' : (stats?.totalCadres || 0).toLocaleString()}
+                </h3>
+                <h4 className="text-[15px] sm:text-[16px] font-bold text-zinc-800 dark:text-zinc-200">
+                  {t('totalCadres')}
+                </h4>
+                <p className="text-[12px] font-medium text-muted-foreground mt-0.5">
+                  {t('activeCadres')} & office bearers
+                </p>
+              </div>
+
+              {/* Bottom Quick Stats Pill Bar */}
+              <div className="flex items-center justify-between pt-3 mt-4 border-t border-zinc-100 dark:border-zinc-800/80 text-xs">
+                <div 
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-white font-bold text-[11px] shadow-xs"
+                  style={{ backgroundColor: '#548777' }}
+                >
+                  <Users className="w-3.5 h-3.5 text-white" />
+                  <span>{stats?.totalCadres || 0} Cadres</span>
+                </div>
+                <span className="inline-flex items-center text-xs font-semibold text-zinc-500 group-hover:text-[#8F0A1B] dark:group-hover:text-red-400 transition-colors">
+                  Directory <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
+                </span>
+              </div>
+            </div>
+          </Link>
+
+          {/* Card 4: Total Booths */}
+          <Link href="/booths" className="block h-full group/card cursor-pointer">
+            <div className="group relative flex flex-col justify-between h-full rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 hover:border-[#8F0A1B]/40 dark:hover:border-[#8F0A1B]/60 bg-gradient-to-b from-white via-white to-zinc-50/50 dark:from-zinc-900/90 dark:via-zinc-900/80 dark:to-zinc-950/90 shadow-md hover:shadow-2xl hover:shadow-[#8F0A1B]/15 dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] transition-all duration-300 overflow-hidden hover:-translate-y-1 p-5">
+              {/* Ambient Accent Glow & Top Line */}
+              <div className="absolute -top-16 -right-16 w-32 h-32 bg-gradient-to-br from-[#8F0A1B]/10 via-[#FFC72C]/10 to-transparent rounded-full blur-2xl group-hover:scale-150 group-hover:opacity-100 opacity-30 transition-all duration-500 pointer-events-none" />
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#8F0A1B] via-[#D97706] to-[#FFC72C] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+              <div>
+                {/* Header Row */}
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div className="w-11 h-11 rounded-xl shadow-xs shrink-0 flex items-center justify-center border transition-transform group-hover:scale-105 duration-300 bg-orange-50 text-orange-600 border-orange-100 dark:bg-orange-950/40 dark:text-orange-400 dark:border-orange-900/40">
+                    <MapPin className="h-5 w-5" />
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border shadow-xs bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-200/60 dark:border-orange-900/40">
+                    <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
+                    Polling Stations
+                  </span>
+                </div>
+
+                {/* Metric & Label */}
+                <h3 className="font-extrabold text-[30px] sm:text-[34px] text-zinc-900 dark:text-zinc-50 leading-tight group-hover:text-[#8F0A1B] dark:group-hover:text-red-400 transition-colors my-1 tracking-tight">
+                  {statsLoading ? '...' : (stats?.totalBooths || 0)}
+                </h3>
+                <h4 className="text-[15px] sm:text-[16px] font-bold text-zinc-800 dark:text-zinc-200">
+                  {t('totalBooths')}
+                </h4>
+                <p className="text-[12px] font-medium text-muted-foreground mt-0.5">
+                  Electoral booths allocated
+                </p>
+              </div>
+
+              {/* Bottom Quick Stats Pill Bar */}
+              <div className="flex items-center justify-between pt-3 mt-4 border-t border-zinc-100 dark:border-zinc-800/80 text-xs">
+                <div 
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-white font-bold text-[11px] shadow-xs"
+                  style={{ backgroundColor: '#548777' }}
+                >
+                  <MapPin className="w-3.5 h-3.5 text-white" />
+                  <span>{stats?.totalBooths || 0} Booths</span>
+                </div>
+                <span className="inline-flex items-center text-xs font-semibold text-zinc-500 group-hover:text-[#8F0A1B] dark:group-hover:text-red-400 transition-colors">
+                  Coverage <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
+                </span>
+              </div>
+            </div>
+          </Link>
+        </div>
       </div>
 
-      {/* Bottom Content Area */}
-      <div className="grid gap-4 sm:gap-6 lg:grid-cols-1">
-        {/* Constituency Details */}
-        {/* <div className="bg-[#FEFBF4] rounded-2xl p-8 shadow-sm border border-[#F2E8D5]">
-          <div className="flex items-center gap-3 mb-8 text-[#8F0A1B] border-b border-[#F2E8D5] pb-4">
-            <MapPin className="w-6 h-6 fill-[#8F0A1B] text-white" />
-            <h2 className="text-[18px] font-bold tracking-wide">Kurinjipadi Assembly Constituency</h2>
-            <div className="ml-auto flex items-center gap-1">
-               <div className="w-1 h-1 rounded-full bg-[#8F0A1B] opacity-50"></div>
-               <div className="w-2 h-2 rounded-full bg-[#8F0A1B] opacity-50 flex items-center justify-center"><div className="w-1 h-1 bg-[#8F0A1B] rounded-full"></div></div>
-               <div className="w-1 h-1 rounded-full bg-[#8F0A1B] opacity-50"></div>
-            </div>
+      {/* District Cadres Leadership Section */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          <div>
+            <h2 className="text-xl font-extrabold text-zinc-900 dark:text-zinc-50 flex items-center gap-2">
+              <div className="w-2 h-6 bg-[#8F0A1B] rounded-sm"></div>
+              {t('districtCadres')}
+              <span className="ml-2 text-xs font-bold px-2.5 py-0.5 rounded-full bg-[#8F0A1B]/10 text-[#8F0A1B] border border-[#8F0A1B]/20">
+                {districtCadres?.length || 0}
+              </span>
+            </h2>
+            <p className="text-sm font-medium text-muted-foreground mt-0.5">
+              Cuddalore East District Executive Leadership & Core Committee
+            </p>
           </div>
-          
-          <div className="flex flex-col sm:flex-row gap-10 items-center">
-       
-            <div className="w-[200px] h-[220px] shrink-0 relative flex flex-col items-center justify-center">
-              
-              <svg viewBox="0 0 100 120" className="absolute inset-0 w-full h-full text-[#FDEAB3] drop-shadow-sm">
-                <path fill="currentColor" stroke="#F1D17A" strokeWidth="1" d="M30,10 L50,5 L70,15 L80,30 L90,45 L85,60 L95,75 L80,90 L60,110 L45,115 L25,105 L15,90 L5,70 L10,50 L5,35 L15,20 Z" />
-              </svg>
-              <div className="relative z-10 flex flex-col items-center mt-4">
-                <MapPin className="w-8 h-8 text-[#8F0A1B] fill-[#8F0A1B]" />
-                <div className="w-2 h-1 bg-black/20 rounded-[50%] mt-1 blur-[1px]"></div>
-                <p className="text-[#8F0A1B] font-bold text-[13px] mt-2">Kurinjipadi</p>
-              </div>
-            </div>
-            
-            <div className="flex-1 w-full space-y-5">
-              <div className="flex justify-between items-center py-2 border-b border-black/5">
-                <div className="flex items-center gap-3 text-gray-600">
-                  <UserCog className="w-5 h-5 text-[#8F0A1B]" />
-                  <span className="text-[14px] font-medium">Total Administrators</span>
-                </div>
-                <span className="font-bold text-gray-900 text-[15px]">2,45,678</span>
-              </div>
-              
-              <div className="flex justify-between items-center py-2 border-b border-black/5">
-                <div className="flex items-center gap-3 text-gray-600">
-                  <Store className="w-5 h-5 text-[#8F0A1B]" />
-                  <span className="text-[14px] font-medium">Total Kilais</span>
-                </div>
-                <span className="font-bold text-gray-900 text-[15px]">412</span>
-              </div>
-              
-              <div className="flex justify-between items-center py-2 border-b border-black/5">
-                <div className="flex items-center gap-3 text-gray-600">
-                  <Building2 className="w-5 h-5 text-[#8F0A1B]" />
-                  <span className="text-[14px] font-medium">Total Booths</span>
-                </div>
-                <span className="font-bold text-gray-900 text-[15px]">12</span>
-              </div>
-              
-              <div className="flex justify-between items-center py-2 border-b border-black/5">
-                <div className="flex items-center gap-3 text-gray-600">
-                  <Users className="w-5 h-5 text-[#8F0A1B]" />
-                  <span className="text-[14px] font-medium">Total Representatives</span>
-                </div>
-                <span className="font-bold text-gray-900 text-[15px]">77</span>
-              </div>
 
-              <div className="flex justify-between items-center py-2">
-                <div className="flex items-center gap-3 text-gray-600">
-                  <svg className="w-5 h-5 text-[#8F0A1B]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" /></svg>
-                  <span className="text-[14px] font-medium">Total Unions</span>
-                </div>
-                <span className="font-bold text-gray-900 text-[15px]">3</span>
-              </div>
-            </div>
-          </div>
-        </div> */}
+          <Link href="/cadres?level=DISTRICT">
+            <Button variant="outline" size="sm" className="h-9 px-4 rounded-xl border-primary/20 text-primary hover:bg-primary/5 font-semibold text-xs shadow-2xs">
+              View All Cadres
+              <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+            </Button>
+          </Link>
+        </div>
 
-        {/* District Cadres Section */}
-        <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-8 shadow-sm border border-gray-100 flex flex-col justify-center">
-          <div className="flex items-center justify-between mb-4 sm:mb-6">
-             <h2 className="text-[16px] sm:text-[18px] font-bold text-gray-900 tracking-wide">{t('districtCadres')}</h2>
-          </div>
-          
-          <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
-            
-            {/* Fixed Secretary Tile */}
-            <div className="w-full lg:w-1/3 xl:w-1/4 shrink-0">
-              {secretary ? (
-                <div className="flex flex-col items-center justify-center p-5 sm:p-6 rounded-xl border bg-gradient-to-b from-[#8F0A1B]/10 to-[#8F0A1B]/5 border-[#8F0A1B]/30 shadow-sm relative h-full">
-                  <div className="absolute top-0 right-0 w-12 h-12 bg-gradient-to-bl from-[#8F0A1B]/20 to-transparent rounded-tr-xl">
-                    <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#8F0A1B] animate-pulse"></div>
+        <div className="flex flex-col lg:flex-row gap-5 items-stretch">
+          {/* Highlighted District Secretary Spotlight Card */}
+          <div className="w-full lg:w-1/3 xl:w-1/4 shrink-0">
+            {secretary ? (
+              <div className="group relative flex flex-col items-center justify-between px-4 py-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 hover:border-[#8F0A1B]/40 dark:hover:border-[#8F0A1B]/60 bg-gradient-to-b from-white via-white to-zinc-50/50 dark:from-zinc-900/90 dark:via-zinc-900/80 dark:to-zinc-950/90 shadow-md hover:shadow-2xl hover:shadow-[#8F0A1B]/15 dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] transition-all duration-300 overflow-hidden h-full">
+                {/* Ambient Glow & Top Bar */}
+                <div className="absolute -top-16 -right-16 w-36 h-36 bg-gradient-to-br from-[#8F0A1B]/15 via-[#FFC72C]/15 to-transparent rounded-full blur-2xl group-hover:scale-150 transition-all duration-500 pointer-events-none" />
+                <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#8F0A1B] via-[#D97706] to-[#FFC72C]" />
+
+                <div className="w-full flex justify-between items-center mb-3">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-[#8F0A1B]/10 text-[#8F0A1B] border border-[#8F0A1B]/20 shadow-xs">
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#8F0A1B]" />
+                    {t('roleSecretary')}
+                  </span>
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                    District Head
+                  </span>
+                </div>
+
+                <div className="my-3 relative group-hover:scale-105 transition-transform duration-300">
+                  <UserAvatar 
+                    src={secretary.photoUrl} 
+                    name={secretary.name} 
+                    size="2xl" 
+                    ring="primary" 
+                    elevation="glow" 
+                    shape="square"
+                    imageClassName="group-hover:scale-105 transition-transform duration-500"
+                  />
+                </div>
+
+                <div className="text-center w-full my-2">
+                  <h3 className="font-extrabold text-[17px] sm:text-[18px] text-zinc-900 dark:text-zinc-50 leading-tight mb-1 group-hover:text-[#8F0A1B] transition-colors">
+                    {secretary.name}
+                  </h3>
+                  <p className="text-xs font-semibold text-muted-foreground">
+                    Cuddalore East District
+                  </p>
+                  {secretary.memberId && (
+                    <span className="inline-block mt-1 text-[10px] font-bold text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-2.5 py-0.5 rounded-full uppercase tracking-wider font-mono">
+                      {secretary.memberId}
+                    </span>
+                  )}
+                </div>
+
+                {secretary.phone ? (
+                  <button 
+                    onClick={(e) => handleInitiateCall(secretary.phone || '', secretary.name, e)} 
+                    className="w-full mt-3 inline-flex items-center justify-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 border border-emerald-200/80 dark:border-emerald-800/60 py-2.5 px-4 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer group/call"
+                  >
+                    <Phone className="w-3.5 h-3.5 group-hover/call:animate-bounce" />
+                    <span>{secretary.phone}</span>
+                  </button>
+                ) : (
+                  <div className="w-full mt-3 py-2 text-center text-xs text-zinc-400 italic border border-dashed rounded-xl">
+                    No phone recorded
                   </div>
-                  <div className="mb-3 sm:mb-4 group-hover:scale-105 transition-transform duration-300">
-                    <UserAvatar 
-                      src={secretary.photoUrl} 
-                      name={secretary.name} 
-                      size="xl" 
-                      ring="primary" 
-                      elevation="glow" 
-                    />
-                  </div>
-                  <h3 className="font-bold text-[14px] sm:text-[16px] text-gray-900 text-center leading-tight mb-1">{secretary.name}</h3>
-                  <p className="text-[11px] sm:text-[12px] font-bold text-[#8F0A1B] bg-[#8F0A1B]/10 px-3 py-1 rounded-full mt-1">{secretary.role || t('roleSecretary')}</p>
-                </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center p-5 sm:p-6 rounded-xl border border-dashed border-gray-300 h-full text-center">
-                  <p className="text-gray-500 font-medium">{t('noDistrictCadres')}</p>
-                </div>
-              )}
-            </div>
-
-            {/* Other Cadres Carousel */}
-            {otherCadres.length > 0 && (
-              <div className="flex-1 min-w-0 px-8 sm:px-12 relative flex flex-col justify-center">
-                <Carousel
-                  opts={{
-                    align: "start",
-                    loop: false,
-                  }}
-                  className="w-full"
-                >
-                  <CarouselContent className="-ml-2 md:-ml-4">
-                    {otherCadres.map((cadre, index) => (
-                      <CarouselItem key={index} className="pl-2 md:pl-4 basis-[100%] sm:basis-1/2 md:basis-1/3 lg:basis-1/2 xl:basis-1/3">
-                        <div className="p-1 h-full">
-                          <div className="flex flex-col items-center justify-center p-5 sm:p-6 bg-[#F8F9FA] rounded-xl border border-gray-100 hover:border-[#8F0A1B]/20 hover:shadow-md transition-all duration-300 group cursor-pointer h-full">
-                            <div className="mb-3 sm:mb-4 group-hover:scale-105 transition-transform duration-300">
-                              <UserAvatar 
-                                src={cadre.photoUrl} 
-                                name={cadre.name} 
-                                size="xl" 
-                                ring="default" 
-                                elevation="md" 
-                              />
-                            </div>
-                            <h3 className="font-bold text-[14px] sm:text-[15px] text-gray-900 text-center leading-tight mb-1">{cadre.name}</h3>
-                            <p className="text-[11px] sm:text-[12px] font-semibold text-[#8F0A1B] text-center">{cadre.role || t('roleCadre')}</p>
-                          </div>
-                        </div>
-                      </CarouselItem>
-                    ))}
-                  </CarouselContent>
-                  <CarouselPrevious className="flex -left-4 sm:-left-6 lg:-left-8" />
-                  <CarouselNext className="flex -right-4 sm:-right-6 lg:-right-8" />
-                </Carousel>
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center p-6 rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-800 h-full text-center bg-white/50">
+                <p className="text-zinc-500 font-medium text-sm">{t('noDistrictCadres')}</p>
               </div>
             )}
           </div>
+
+          {/* List of Other District Cadres */}
+          {otherCadres.length > 0 ? (
+            <div className="flex-1 min-w-0 px-2 sm:px-6 relative flex flex-col justify-center">
+              <Carousel
+                opts={{
+                  align: "start",
+                  loop: false,
+                }}
+                className="w-full"
+              >
+                <CarouselContent className="-ml-3 md:-ml-4">
+                  {otherCadres.map((cadre, index) => (
+                    <CarouselItem key={index} className="pl-3 md:pl-4 basis-[100%] sm:basis-1/2 md:basis-1/3 lg:basis-1/2 xl:basis-1/3">
+                      <div className="p-1 h-full">
+                        <div className="group relative flex flex-col items-center justify-between p-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 hover:border-[#8F0A1B]/40 dark:hover:border-[#8F0A1B]/60 bg-gradient-to-b from-white via-white to-zinc-50/50 dark:from-zinc-900/90 dark:via-zinc-900/80 dark:to-zinc-950/90 shadow-md hover:shadow-2xl hover:shadow-[#8F0A1B]/15 dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] transition-all duration-300 overflow-hidden h-full hover:-translate-y-1">
+                          {/* Ambient Glow & Top Bar */}
+                          <div className="absolute -top-12 -right-12 w-24 h-24 bg-gradient-to-br from-[#8F0A1B]/10 via-[#FFC72C]/10 to-transparent rounded-full blur-xl group-hover:scale-150 transition-all duration-500 pointer-events-none" />
+                          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#8F0A1B] via-[#D97706] to-[#FFC72C] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                          <div className="w-full flex justify-between items-center mb-2">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
+                              <UserCheck className="w-3 h-3 text-[#8F0A1B]" />
+                              {cadre.role || t('roleCadre')}
+                            </span>
+                            
+                          </div>
+
+                          <div className="my-3 group-hover:scale-105 transition-transform duration-300">
+                            <UserAvatar 
+                              src={cadre.photoUrl} 
+                              name={cadre.name} 
+                              size="xl" 
+                              ring="primary" 
+                              elevation="md" 
+                              shape="square"
+                            />
+                          </div>
+
+                          <div className="text-center w-full my-1">
+                            <h4 className="font-extrabold text-[15px] sm:text-[16px] text-zinc-900 dark:text-zinc-100 line-clamp-1 leading-snug group-hover:text-[#8F0A1B] transition-colors">
+                              {cadre.name}
+                            </h4>
+                            {cadre.memberId && (
+                              <span className="text-[10px] font-mono text-zinc-400">
+                                {cadre.memberId}
+                              </span>
+                            )}
+                          </div>
+
+                          {cadre.phone ? (
+                            <button 
+                              onClick={(e) => handleInitiateCall(cadre?.phone || '', cadre.name, e)} 
+                              className="w-full mt-3 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 hover:bg-emerald-100/90 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 py-2 rounded-xl transition-all active:scale-95 shadow-2xs cursor-pointer group/itemcall"
+                            >
+                              <Phone className="w-3 h-3 group-hover/itemcall:animate-bounce" />
+                              <span>{cadre.phone}</span>
+                            </button>
+                          ) : (
+                            <span className="text-[11px] text-zinc-400 italic mt-3">No contact number</span>
+                          )}
+                        </div>
+                      </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious className="flex -left-3 sm:-left-5 lg:-left-6 bg-white shadow-md border-zinc-200 hover:bg-[#8F0A1B] hover:text-white transition-colors" />
+                <CarouselNext className="flex -right-3 sm:-right-5 lg:-right-6 bg-white shadow-md border-zinc-200 hover:bg-[#8F0A1B] hover:text-white transition-colors" />
+              </Carousel>
+            </div>
+          ) : (
+            <div className="flex-1 min-w-0 flex flex-col items-center justify-center p-8 rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-800 text-center bg-white/70 dark:bg-zinc-900/40 min-h-[240px] shadow-sm">
+              <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-400 mb-3">
+                <Users className="w-6 h-6" />
+              </div>
+              <p className="text-sm font-bold text-zinc-700 dark:text-zinc-300">No other district administrators registered</p>
+              <p className="text-xs text-muted-foreground mt-1 max-w-xs">
+                Additional district committee members and office bearers will be listed here.
+              </p>
+              <Link href="/cadres" className="mt-4">
+                <Button variant="outline" size="sm" className="rounded-xl text-xs font-semibold border-primary/20 text-primary hover:bg-primary/5">
+                  <Users className="w-3.5 h-3.5 mr-1.5" />
+                  Manage District Cadres
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Quick Access Modules Hub - Styled in Org Units Cards Style */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-extrabold text-zinc-900 dark:text-zinc-50 flex items-center gap-2">
+              <div className="w-2 h-6 bg-[#8F0A1B] rounded-sm"></div>
+              {t('quickAccess', { fallback: 'Quick Access Hub' })}
+            </h2>
+            <p className="text-sm font-medium text-muted-foreground mt-0.5">
+              {t('quickAccessDesc', { fallback: 'Instant navigation across critical administration modules' })}
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+          {/* Module 1: Wings */}
+          <Link href="/wings" className="block h-full group/card cursor-pointer">
+            <div className="group relative flex flex-col justify-between h-full rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 hover:border-[#8F0A1B]/40 dark:hover:border-[#8F0A1B]/60 bg-gradient-to-b from-white via-white to-zinc-50/50 dark:from-zinc-900/90 dark:via-zinc-900/80 dark:to-zinc-950/90 shadow-md hover:shadow-2xl hover:shadow-[#8F0A1B]/15 dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] transition-all duration-300 overflow-hidden hover:-translate-y-1 p-5">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#8F0A1B] to-[#FFC72C] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-11 h-11 rounded-xl shadow-xs shrink-0 flex items-center justify-center border bg-purple-50 text-purple-600 border-purple-100 group-hover:scale-105 transition-transform">
+                    <Network className="h-5 w-5" />
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-700 border border-purple-200/60">
+                    Fronts & Wings
+                  </span>
+                </div>
+                <h3 className="font-extrabold text-[16px] text-zinc-900 dark:text-zinc-100 group-hover:text-[#8F0A1B] transition-colors mb-1">
+                  Specialised Wings
+                </h3>
+                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                  Youth, Women, Students, IT & other affiliated party wings.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between pt-3 mt-4 border-t border-zinc-100 dark:border-zinc-800 text-xs font-semibold text-zinc-500 group-hover:text-[#8F0A1B] transition-colors">
+                <span>Manage Wings</span>
+                <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
+          </Link>
+
+          {/* Module 2: Polling Booths */}
+          <Link href="/booths" className="block h-full group/card cursor-pointer">
+            <div className="group relative flex flex-col justify-between h-full rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 hover:border-[#8F0A1B]/40 dark:hover:border-[#8F0A1B]/60 bg-gradient-to-b from-white via-white to-zinc-50/50 dark:from-zinc-900/90 dark:via-zinc-900/80 dark:to-zinc-950/90 shadow-md hover:shadow-2xl hover:shadow-[#8F0A1B]/15 dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] transition-all duration-300 overflow-hidden hover:-translate-y-1 p-5">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#8F0A1B] to-[#FFC72C] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-11 h-11 rounded-xl shadow-xs shrink-0 flex items-center justify-center border bg-orange-50 text-orange-600 border-orange-100 group-hover:scale-105 transition-transform">
+                    <MapPin className="h-5 w-5" />
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-700 border border-orange-200/60">
+                    Electoral
+                  </span>
+                </div>
+                <h3 className="font-extrabold text-[16px] text-zinc-900 dark:text-zinc-100 group-hover:text-[#8F0A1B] transition-colors mb-1">
+                  Polling Booths
+                </h3>
+                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                  Booth allocations, voters coverage & booth level in-charges.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between pt-3 mt-4 border-t border-zinc-100 dark:border-zinc-800 text-xs font-semibold text-zinc-500 group-hover:text-[#8F0A1B] transition-colors">
+                <span>Booth Mapping</span>
+                <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
+          </Link>
+
+          {/* Module 3: Announcements */}
+          <Link href="/announcements" className="block h-full group/card cursor-pointer">
+            <div className="group relative flex flex-col justify-between h-full rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 hover:border-[#8F0A1B]/40 dark:hover:border-[#8F0A1B]/60 bg-gradient-to-b from-white via-white to-zinc-50/50 dark:from-zinc-900/90 dark:via-zinc-900/80 dark:to-zinc-950/90 shadow-md hover:shadow-2xl hover:shadow-[#8F0A1B]/15 dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] transition-all duration-300 overflow-hidden hover:-translate-y-1 p-5">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#8F0A1B] to-[#FFC72C] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-11 h-11 rounded-xl shadow-xs shrink-0 flex items-center justify-center border bg-amber-50 text-amber-600 border-amber-100 group-hover:scale-105 transition-transform">
+                    <Megaphone className="h-5 w-5" />
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 border border-amber-200/60">
+                    Official
+                  </span>
+                </div>
+                <h3 className="font-extrabold text-[16px] text-zinc-900 dark:text-zinc-100 group-hover:text-[#8F0A1B] transition-colors mb-1">
+                  Announcements
+                </h3>
+                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                  Press releases, party directives & official communications.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between pt-3 mt-4 border-t border-zinc-100 dark:border-zinc-800 text-xs font-semibold text-zinc-500 group-hover:text-[#8F0A1B] transition-colors">
+                <span>View Bulletins</span>
+                <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
+          </Link>
+
+          {/* Module 4: Analytics */}
+          <Link href="/analytics" className="block h-full group/card cursor-pointer">
+            <div className="group relative flex flex-col justify-between h-full rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 hover:border-[#8F0A1B]/40 dark:hover:border-[#8F0A1B]/60 bg-gradient-to-b from-white via-white to-zinc-50/50 dark:from-zinc-900/90 dark:via-zinc-900/80 dark:to-zinc-950/90 shadow-md hover:shadow-2xl hover:shadow-[#8F0A1B]/15 dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] transition-all duration-300 overflow-hidden hover:-translate-y-1 p-5">
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#8F0A1B] to-[#FFC72C] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="w-11 h-11 rounded-xl shadow-xs shrink-0 flex items-center justify-center border bg-emerald-50 text-emerald-600 border-emerald-100 group-hover:scale-105 transition-transform">
+                    <BarChart2 className="h-5 w-5" />
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 border border-emerald-200/60">
+                    Insights
+                  </span>
+                </div>
+                <h3 className="font-extrabold text-[16px] text-zinc-900 dark:text-zinc-100 group-hover:text-[#8F0A1B] transition-colors mb-1">
+                  Analytics & Reports
+                </h3>
+                <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+                  Constituency growth trends, cadre metrics & coverage reports.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-between pt-3 mt-4 border-t border-zinc-100 dark:border-zinc-800 text-xs font-semibold text-zinc-500 group-hover:text-[#8F0A1B] transition-colors">
+                <span>View Analytics</span>
+                <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </div>
+            </div>
+          </Link>
+        </div>
+      </div>
+
+      {/* Shared Call Confirmation Dialog */}
+      <CallConfirmationDialog 
+        person={callPerson} 
+        onOpenChange={(open) => !open && setCallPerson(null)} 
+      />
     </div>
   );
 }

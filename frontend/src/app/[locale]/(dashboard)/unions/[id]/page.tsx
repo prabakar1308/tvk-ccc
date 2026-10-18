@@ -222,6 +222,7 @@ export default function UnionDetailsPage() {
         editingId={editingId}
         cadres={union.unionCadres}
         defaultLevel="UNION"
+        lockLevel={true}
         defaultUnionId={union.id}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['unions', id] });

@@ -38,10 +38,18 @@
     "totalCadres": "மொத்த நிர்வாகிகள்",
     "activeCadres": "செயலிலுள்ள நிர்வாகிகள்",
     "totalBooths": "மொத்த சாவடிகள்",
-    "districtCadres": "மாவட்ட நிர்வாகிகள்",
+    "districtCadres": "மாவட்ட தலைமை மற்றும் நிர்வாகிகள்",
     "noDistrictCadres": "மாவட்ட நிர்வாகிகள் காணப்படவில்லை.",
     "roleSecretary": "செயலாளர்",
-    "roleCadre": "தொண்டர்"
+    "roleCadre": "தொண்டர்",
+    "orgUnitsOverview": "அமைப்பு அலகுகளின் கண்ணோட்டம்",
+    "orgUnitsDescription": "தொகுதி முழுவதும் தீவிர கள நிர்வாகப் பணிகள்",
+    "viewAll": "அனைத்தையும் காண்க",
+    "quickAccess": "விரைவு அணுகல் மையம்",
+    "quickAccessDesc": "முக்கிய நிர்வாகப் பகுதிகளுக்கான உடனடி அணுகல்",
+    "commandCenterActive": "கட்டளை மையம் செயல்பாட்டில் உள்ளது",
+    "leadershipDirectory": "நிர்வாகிகள் பட்டியல்",
+    "analytics": "நேரடி பகுப்பாய்வு"
   },
   "Common": {
     "add": "சேர்க்க",

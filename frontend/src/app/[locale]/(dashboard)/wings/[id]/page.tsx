@@ -592,6 +592,7 @@ export default function WingDetailsPage() {
         editingId={editingId}
         cadres={members}
         defaultLevel={level.toUpperCase() as any}
+        lockLevel={true}
         defaultDistrictId={level === 'district' ? orgId : undefined}
         defaultUnionId={level === 'union' ? orgId : undefined}
         defaultWingId={wingId}

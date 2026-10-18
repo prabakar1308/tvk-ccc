@@ -175,6 +175,7 @@ export default function KilaiDetailsPage() {
         isOpen={isModalOpen}
         onOpenChange={setIsModalOpen}
         defaultLevel="KILAI"
+        lockLevel={true}
         defaultKilaiId={kilaiData.id}
         defaultUnionId={kilaiData.unionId}
         defaultBoothNo={kilaiData.booths?.[0]?.boothNo}

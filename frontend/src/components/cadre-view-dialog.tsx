@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { useUnions } from '@/hooks/use-unions';
 import { useKilais } from '@/hooks/use-kilais';
 import { useBooths } from '@/hooks/use-booths';
+import { useDistricts } from '@/hooks/use-districts';
 import { useState } from 'react';
 import { FileText, X } from "lucide-react";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -27,6 +28,7 @@ export function CadreViewDialog({
   onOpenChange,
   cadre
 }: CadreViewDialogProps) {
+  const { data: districts = [] } = useDistricts();
   const { data: unions = [] } = useUnions();
   const { data: kilais = [] } = useKilais();
   const { data: booths = [] } = useBooths();
@@ -36,6 +38,7 @@ export function CadreViewDialog({
 
   if (!cadre) return null;
 
+  const district = districts.find((d: any) => String(d.id) === cadre.districtId);
   const union = unions.find((u: any) => String(u.id || u._id) === cadre.unionId);
   const kilai = kilais.find((k: any) => String(k.id || k._id) === cadre.homeKilaiId);
   const booth = booths.find((b: any) => b.boothNo === cadre.boothNo);
@@ -112,6 +115,13 @@ export function CadreViewDialog({
               <Label className="text-muted-foreground text-xs uppercase tracking-wider">Level</Label>
               <div className="font-medium text-gray-900 capitalize">{cadre.level?.toLowerCase() || '-'}</div>
             </div>
+
+            {cadre.level === 'DISTRICT' && (
+              <div className="space-y-1">
+                <Label className="text-muted-foreground text-xs uppercase tracking-wider">District</Label>
+                <div className="font-medium text-gray-900">{district?.name || '-'}</div>
+              </div>
+            )}
 
             {(cadre.level === 'UNION' || cadre.level === 'KILAI') && (
               <div className="space-y-1">
