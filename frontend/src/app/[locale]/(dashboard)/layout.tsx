@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import { useTranslations } from 'next-intl';
 import { Link, usePathname } from '@/i18n/routing';
@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useUser } from '@/contexts/user-context';
 import { useUnions } from '@/hooks/use-unions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Bell, Mail, Menu, ChevronDown } from 'lucide-react';
+import { Bell, Mail, Menu, ChevronDown, X } from 'lucide-react';
 import Image from 'next/image';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import {
@@ -34,8 +34,26 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const { user, activeUnionId, setActiveUnionId, logout, hasPermission } = useUser();
   const { data: unions } = useUnions();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isOverlayOpen, setIsOverlayOpen] = useState(false);
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
+
+  useEffect(() => {
+    // In md - lg range (768px <= width < 1024px), sidebar should be visible as overlay by default
+    const isTabletRange = () => window.innerWidth >= 768 && window.innerWidth < 1024;
+    
+    if (isTabletRange()) {
+      setIsOverlayOpen(true);
+    }
+
+    const mediaQuery = window.matchMedia('(min-width: 768px) and (max-width: 1023px)');
+    const handleMediaChange = (e: MediaQueryListEvent) => {
+      setIsOverlayOpen(e.matches);
+    };
+
+    mediaQuery.addEventListener('change', handleMediaChange);
+    return () => mediaQuery.removeEventListener('change', handleMediaChange);
+  }, []);
+
   const navItems = [
     { name: tSidebar('home'), href: '/', icon: 'home', permission: null },
     { name: tSidebar('unions'), href: '/unions', icon: 'building', permission: 'unions:read' },
@@ -51,7 +69,16 @@ export default function DashboardLayout({
 
   const SidebarContent = () => (
     <>
-        <div className="flex flex-col items-center justify-center py-6">
+        <div className="flex flex-col items-center justify-center py-6 relative">
+          {/* Close button for overlay (< lg) */}
+          <button 
+            onClick={() => setIsOverlayOpen(false)}
+            className="lg:hidden absolute top-4 right-4 p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            aria-label="Close menu"
+          >
+            <X className="w-5 h-5" />
+          </button>
+
           <div className="flex items-center gap-3">
             <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center overflow-hidden">
               <Image src="/TVK Connect1.png" alt="CCC Logo" width={64} height={64} className="object-cover" />
@@ -64,7 +91,7 @@ export default function DashboardLayout({
           {navItems.map((item) => {
             const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
             return (
-              <Link key={item.name} href={item.href} onClick={() => setIsMobileMenuOpen(false)}>
+              <Link key={item.name} href={item.href} onClick={() => setIsOverlayOpen(false)}>
                 <div
                   className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
                     isActive
@@ -95,23 +122,23 @@ export default function DashboardLayout({
 
   return (
     <div className="min-h-screen flex bg-[#F8F9FA] dark:bg-black font-sans relative">
-      {/* Mobile Sidebar Overlay */}
-      {isMobileMenuOpen && (
+      {/* Overlay Backdrop (< lg) */}
+      {isOverlayOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40 md:hidden" 
-          onClick={() => setIsMobileMenuOpen(false)}
+          className="fixed inset-0 bg-black/40 backdrop-blur-[1px] z-40 lg:hidden transition-opacity duration-300" 
+          onClick={() => setIsOverlayOpen(false)}
         />
       )}
 
-      {/* Sidebar - Desktop */}
-      <aside className={`bg-[#8F0A1B] flex-col hidden md:flex text-white shadow-xl z-20 shrink-0 transition-all duration-300 ${isDesktopSidebarOpen ? 'w-[280px]' : 'w-0 overflow-hidden'}`}>
+      {/* Sidebar - Desktop (>= lg: docked in layout) */}
+      <aside className={`bg-[#8F0A1B] flex-col hidden lg:flex text-white shadow-xl z-20 shrink-0 transition-all duration-300 ${isDesktopSidebarOpen ? 'w-[280px]' : 'w-0 overflow-hidden'}`}>
         <div className="w-[280px] h-full flex flex-col">
           <SidebarContent />
         </div>
       </aside>
 
-      {/* Sidebar - Mobile */}
-      <aside className={`fixed top-0 left-0 bottom-0 w-[280px] bg-[#8F0A1B] flex flex-col text-white shadow-xl z-50 transform transition-transform duration-300 md:hidden ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+      {/* Sidebar - Overlay (< lg: mobile & md-lg tablet) */}
+      <aside className={`fixed top-0 left-0 bottom-0 w-[280px] bg-[#8F0A1B] flex flex-col text-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out lg:hidden ${isOverlayOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <SidebarContent />
       </aside>
 
@@ -119,13 +146,21 @@ export default function DashboardLayout({
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden bg-[#F8F9FA]">
         {/* Top Header */}
         <header className="h-[72px] bg-[#F8F9FA] flex items-center justify-between px-4 md:px-8 z-10 shrink-0">
-          <div className="flex items-center gap-4">
-            {/* Mobile menu button */}
-            <button className="text-gray-700 hover:text-black md:hidden" onClick={() => setIsMobileMenuOpen(true)}>
+          <div className="flex items-center gap-1 md:gap-2">
+            {/* Mobile & Tablet menu button (< lg) */}
+            <button 
+              className="text-gray-700 hover:text-black lg:hidden p-1 rounded-md hover:bg-black/5 transition-colors cursor-pointer" 
+              onClick={() => setIsOverlayOpen(!isOverlayOpen)}
+              aria-label="Toggle Navigation Menu"
+            >
               <Menu className="w-6 h-6" />
             </button>
-            {/* Desktop menu button */}
-            <button className="text-gray-700 hover:text-black hidden md:block" onClick={() => setIsDesktopSidebarOpen(!isDesktopSidebarOpen)}>
+            {/* Desktop menu button (>= lg) */}
+            <button 
+              className="text-gray-700 hover:text-black hidden lg:block p-1 rounded-md hover:bg-black/5 transition-colors cursor-pointer" 
+              onClick={() => setIsDesktopSidebarOpen(!isDesktopSidebarOpen)}
+              aria-label="Toggle Desktop Sidebar"
+            >
               <Menu className="w-6 h-6" />
             </button>
             <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-[#8F0A1B] truncate">{tHeader('constituencyName')}</h1>
@@ -153,9 +188,9 @@ export default function DashboardLayout({
                   size="md" 
                   ring="primary" 
                   elevation="sm" 
-                  className="w-10 h-10 md:w-11 md:h-11"
+                  className="w-8 h-8 sm:w-10 sm:h-10 md:w-11 md:h-11"
                   badge={
-                    <span className="w-3 h-3 bg-emerald-500 rounded-full border-2 border-white dark:border-zinc-900 block" title="Online" />
+                    <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-500 rounded-full border-2 border-white dark:border-zinc-900 block" title="Online" />
                   }
                 />
                 <div className="flex-col hidden sm:flex text-left">

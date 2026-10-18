@@ -49,18 +49,35 @@ async function main() {
   console.log(`Found ${unions.length} unions.`);
   for (const union of unions) {
     let translations = (union.translations as any) || {};
+    let needsUpdate = false;
     if (!translations.ta) {
+      translations.ta = {};
+    }
+    if (!translations.ta.name) {
       console.log(`Translating Union: ${union.name}`);
       const taName = await translateText(union.name);
-      
       if (taName) {
-        translations.ta = { name: taName };
-        await prisma.union.update({
-          where: { id: union.id },
-          data: { translations }
-        });
-        await delay(2000);
+        translations.ta.name = taName;
+        needsUpdate = true;
       }
+    }
+    if (union.areasCovered && union.areasCovered.length > 0 && !translations.ta.areasCovered) {
+      console.log(`Translating areasCovered for Union: ${union.name}`);
+      const taAreas: string[] = [];
+      for (const area of union.areasCovered) {
+        const translated = await translateText(area);
+        taAreas.push(translated || area);
+        await delay(1000);
+      }
+      translations.ta.areasCovered = taAreas;
+      needsUpdate = true;
+    }
+    if (needsUpdate) {
+      await prisma.union.update({
+        where: { id: union.id },
+        data: { translations }
+      });
+      await delay(2000);
     }
   }
 

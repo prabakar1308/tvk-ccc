@@ -1,6 +1,10 @@
 'use client';
 
 import Image from 'next/image';
+import dbImageMobile from '../../../../public/db_image_mobile.png';
+import dbImageTablet from '../../../../public/db_image_tablet.png';
+import dbImageDesktop from '../../../../public/db_image_desktop.png';
+import dbImageDesktopLarge from '../../../../public/db_image_desktop_large.png';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Store, Building2, MapPin, ArrowRight, UserCog, Network, GraduationCap, Megaphone, BarChart2, FileText } from "lucide-react";
 import {
@@ -29,9 +33,9 @@ export default function DashboardPage() {
       {/* Hero Banner Image */}
       <div className="w-full rounded-[16px] sm:rounded-[24px] overflow-hidden shadow-sm relative bg-[#8F0A1B]">
         {/* Mobile View Image (< 640px) */}
-        <div className="relative aspect-[940/1672] w-full overflow-hidden block sm:hidden">
+        <div className="relative aspect-[941/1672] w-full overflow-hidden block sm:hidden">
           <Image
-            src="/db_image_mobile.png"
+            src={dbImageMobile}
             alt="TVK Leaders - வெற்றி தமிழ்நாடு"
             fill
             priority
@@ -41,9 +45,9 @@ export default function DashboardPage() {
         </div>
 
         {/* Tablet View Image (640px - 1023px) */}
-        <div className="relative aspect-[1536/1024] w-full overflow-hidden hidden sm:block lg:hidden">
+        <div className="relative aspect-[1586/992] w-full overflow-hidden hidden sm:block lg:hidden">
           <Image
-            src="/db_image_tablet.png"
+            src={dbImageTablet}
             alt="TVK Leaders - வெற்றி தமிழ்நாடு"
             fill
             priority
@@ -52,14 +56,26 @@ export default function DashboardPage() {
           />
         </div>
 
-        {/* Desktop View Image (>= 1024px) */}
-        <div className="relative aspect-[1945/808] w-full overflow-hidden hidden lg:block">
+        {/* Desktop View Image (1024px - 1600px) */}
+        <div className="relative aspect-[1945/808] w-full overflow-hidden hidden [@media(min-width:1024px)_and_(max-width:1600px)]:block">
           <Image
-            src="/db_image_desktop.png"
+            src={dbImageDesktop}
             alt="TVK Leaders - வெற்றி தமிழ்நாடு"
             fill
             priority
-            sizes="(min-width: 1024px) 90vw, 1400px"
+            sizes="(max-width: 1600px) 100vw, 1400px"
+            className="object-cover object-top"
+          />
+        </div>
+
+        {/* Large Desktop View Image (> 1600px) */}
+        <div className="relative aspect-[1942/809] w-full overflow-hidden hidden min-[1601px]:block">
+          <Image
+            src={dbImageDesktopLarge}
+            alt="TVK Leaders - வெற்றி தமிழ்நாடு"
+            fill
+            priority
+            sizes="(min-width: 1601px) 100vw, 1920px"
             className="object-cover object-top"
           />
         </div>

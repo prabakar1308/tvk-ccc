@@ -1,3 +1,7 @@
+param(
+    [switch]$MigrateDb = $true
+)
+
 $ErrorActionPreference = "Stop"
 
 $ProjectId = "tvk-command-centre-uat"
@@ -21,8 +25,6 @@ Write-Host "Image Tag: $Tag" -ForegroundColor Gray
 Write-Host "`nAuthorizing Docker with gcloud..." -ForegroundColor Yellow
 gcloud auth configure-docker $GarLocation --quiet
 
-
-
 # 2. BACKEND DEPLOYMENT
 Write-Host "`n----------------------------------------" -ForegroundColor Cyan
 Write-Host "2. BACKEND DEPLOYMENT" -ForegroundColor Yellow
@@ -31,7 +33,13 @@ $BackendImage = "$GarLocation/$ProjectId/$Repository/tcc-backend-staging:$Tag"
 Write-Host "Remotely building Backend Image using Google Cloud Build..." -ForegroundColor Green
 gcloud builds submit ./backend --tag $BackendImage --project $ProjectId --quiet
 
-Write-Host "Parsing backend/.env.staging..." -ForegroundColor Gray
+# Database Migration
+if ($MigrateDb) {
+    Write-Host "`nExecuting Database Migration & Seed..." -ForegroundColor Yellow
+    & ".\migrate-db-staging.ps1" -BuildImage:$false -ImageTag $Tag
+}
+
+Write-Host "`nParsing backend/.env.staging..." -ForegroundColor Gray
 $BackendEnvArgs = ""
 if (Test-Path "backend/.env.staging") {
     $BackendVars = @()

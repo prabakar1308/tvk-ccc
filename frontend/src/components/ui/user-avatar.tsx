@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { User, ZoomIn } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export interface UserAvatarProps {
   src?: string | null;
@@ -51,43 +52,43 @@ function getInitials(name: string = ''): string {
 
 const SIZE_CONFIGS = {
   xs: {
-    container: 'w-7 h-7 min-w-[1.75rem]',
+    container: 'w-7 h-7',
     text: 'text-[11px] font-bold',
     icon: 'w-3.5 h-3.5',
     zoomIcon: 'w-2.5 h-2.5',
   },
   sm: {
-    container: 'w-9 h-9 min-w-[2.25rem]',
+    container: 'w-9 h-9',
     text: 'text-xs font-bold',
     icon: 'w-4 h-4',
     zoomIcon: 'w-3 h-3',
   },
   md: {
-    container: 'w-12 h-12 min-w-[3rem]',
+    container: 'w-12 h-12',
     text: 'text-sm font-extrabold',
     icon: 'w-5 h-5',
     zoomIcon: 'w-3.5 h-3.5',
   },
   lg: {
-    container: 'w-16 h-16 min-w-[4rem]',
+    container: 'w-16 h-16',
     text: 'text-base font-extrabold',
     icon: 'w-7 h-7',
     zoomIcon: 'w-4 h-4',
   },
   xl: {
-    container: 'w-20 h-20 sm:w-24 sm:h-24 min-w-[5rem]',
+    container: 'w-20 h-20 sm:w-24 sm:h-24',
     text: 'text-lg sm:text-xl font-black tracking-wide',
     icon: 'w-9 h-9',
     zoomIcon: 'w-5 h-5',
   },
   '2xl': {
-    container: 'w-28 h-28 sm:w-32 sm:h-32 min-w-[7rem]',
+    container: 'w-28 h-28 sm:w-32 sm:h-32',
     text: 'text-2xl sm:text-3xl font-black tracking-wider',
     icon: 'w-12 h-12',
     zoomIcon: 'w-6 h-6',
   },
   '3xl': {
-    container: 'w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 min-w-[8rem]',
+    container: 'w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40',
     text: 'text-3xl sm:text-4xl font-black tracking-wider',
     icon: 'w-14 h-14',
     zoomIcon: 'w-7 h-7',
@@ -97,8 +98,8 @@ const SIZE_CONFIGS = {
 const RING_CONFIGS = {
   none: '',
   default: 'ring-2 ring-white/90 dark:ring-zinc-800 shadow-sm',
-  primary: 'ring-4 ring-offset-2 ring-offset-background ring-[#8F0A1B]/25 hover:ring-[#8F0A1B]/50 transition-all duration-300',
-  gold: 'ring-4 ring-offset-2 ring-offset-background ring-[#FFC72C]/40 hover:ring-[#FFC72C]/70 transition-all duration-300',
+  primary: 'ring-2 sm:ring-4 ring-offset-1 sm:ring-offset-2 ring-offset-background ring-[#8F0A1B]/25 hover:ring-[#8F0A1B]/50 transition-all duration-300',
+  gold: 'ring-2 sm:ring-4 ring-offset-1 sm:ring-offset-2 ring-offset-background ring-[#FFC72C]/40 hover:ring-[#FFC72C]/70 transition-all duration-300',
 };
 
 const ELEVATION_CONFIGS = {
@@ -138,7 +139,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
 
   return (
     <div
-      className={`relative inline-block shrink-0 select-none ${sizeConfig.container} ${className}`}
+      className={cn('relative inline-block shrink-0 select-none', sizeConfig.container, className)}
       onClick={(e) => {
         if (onZoomClick) {
           e.stopPropagation();

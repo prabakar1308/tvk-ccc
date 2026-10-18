@@ -6,18 +6,20 @@ import {
 } from '@nestjs/common';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { translateAreaToTamil } from '../area-translations';
 
 @Injectable()
 export class TranslationInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
-    // Use the Accept-Language header, or a custom x-lang header. Default to 'en'.
-    // Example: Accept-Language: ta-IN,ta;q=0.9,en-US;q=0.8
+    // Use x-lang, Accept-Language header, or query param lang. Default to 'en'.
     let lang = 'en';
-    const acceptLang = request.headers['accept-language'];
-    if (acceptLang) {
-      // Very basic parser: takes the first two characters of the first language code
-      lang = acceptLang.split(',')[0].split('-')[0].toLowerCase();
+    const reqLang =
+      request.headers['x-lang'] ||
+      request.headers['accept-language'] ||
+      request.query?.lang;
+    if (reqLang && typeof reqLang === 'string') {
+      lang = reqLang.split(',')[0].split('-')[0].trim().toLowerCase();
     }
 
     return next.handle().pipe(map((data) => this.translateData(data, lang)));
@@ -52,6 +54,13 @@ export class TranslationInterceptor implements NestInterceptor {
 
       // Optional: Delete the translations payload so it's not exposed to the frontend
       delete translatedData.translations;
+    }
+
+    // Ensure areasCovered items are translated when Tamil is requested
+    if (lang === 'ta' && Array.isArray(translatedData.areasCovered)) {
+      translatedData.areasCovered = translatedData.areasCovered.map((area: any) => {
+        return typeof area === 'string' ? translateAreaToTamil(area) : area;
+      });
     }
 
     // Recursively process nested objects (like relations: district.unions)

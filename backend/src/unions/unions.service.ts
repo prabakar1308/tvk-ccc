@@ -2,13 +2,28 @@ import { Injectable } from '@nestjs/common';
 import { CreateUnionDto } from './dto/create-union.dto';
 import { UpdateUnionDto } from './dto/update-union.dto';
 import { PrismaService } from '../prisma/prisma.service';
+import { translateAreaToTamil } from '../i18n/area-translations';
 
 @Injectable()
 export class UnionsService {
   constructor(private readonly prisma: PrismaService) {}
-  create(createUnionDto: CreateUnionDto) {
+
+  async create(createUnionDto: CreateUnionDto) {
+    const data: any = { ...createUnionDto };
+
+    if (data.areasCovered && Array.isArray(data.areasCovered)) {
+      const taAreas = data.areasCovered.map((a: string) => translateAreaToTamil(a));
+      data.translations = {
+        ...(data.translations || {}),
+        ta: {
+          ...(data.translations?.ta || {}),
+          areasCovered: taAreas,
+        },
+      };
+    }
+
     return this.prisma.union.create({
-      data: createUnionDto as any,
+      data: data as any,
     });
   }
 
@@ -126,10 +141,30 @@ export class UnionsService {
     };
   }
 
-  update(id: string, updateUnionDto: UpdateUnionDto) {
+  async update(id: string, updateUnionDto: UpdateUnionDto) {
+    const data: any = { ...updateUnionDto };
+
+    if (data.areasCovered && Array.isArray(data.areasCovered)) {
+      const existing = await this.prisma.union.findUnique({
+        where: { id },
+        select: { translations: true },
+      });
+      const currentTranslations = (existing?.translations as any) || {};
+      const taAreas = data.areasCovered.map((a: string) => translateAreaToTamil(a));
+      data.translations = {
+        ...currentTranslations,
+        ...(data.translations || {}),
+        ta: {
+          ...(currentTranslations.ta || {}),
+          ...(data.translations?.ta || {}),
+          areasCovered: taAreas,
+        },
+      };
+    }
+
     return this.prisma.union.update({
       where: { id },
-      data: updateUnionDto as any,
+      data: data as any,
     });
   }
 
