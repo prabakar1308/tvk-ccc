@@ -24,7 +24,12 @@
     "language": "Language",
     "signOut": "Sign Out",
     "admin": "Admin",
-    "secretary": "Secretary"
+    "secretary": "Secretary",
+    "roleSuperAdmin": "Super Admin",
+    "roleDistrictLeader": "District Admin",
+    "roleUnionLeader": "Union Admin",
+    "roleKilaiLeader": "Kilai Admin",
+    "roleCadre": "Cadre"
   },
   "Footer": {
     "partyName": "Tamizhaga Vetri Kazhagam",

@@ -26,6 +26,7 @@ import { useUser } from '@/contexts/user-context';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
 import { Button } from '@/components/ui/button';
+import { CadreViewDialog } from '@/components/cadre-view-dialog';
 
 export default function DashboardPage() {
   const t = useTranslations('Dashboard');
@@ -35,6 +36,7 @@ export default function DashboardPage() {
   const { data: districtCadres, isLoading: cadresLoading } = useCadres({ level: 'DISTRICT' });
   
   const [callPerson, setCallPerson] = useState<{ name: string; phone: string } | null>(null);
+  const [viewingCadre, setViewingCadre] = useState<any | null>(null);
 
   const handleInitiateCall = (phone: string, name: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -351,7 +353,18 @@ export default function DashboardPage() {
           {/* Highlighted District Secretary Spotlight Card */}
           <div className="w-full lg:w-1/3 xl:w-1/4 shrink-0">
             {secretary ? (
-              <div className="group relative flex flex-col items-center justify-between px-4 py-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 hover:border-[#8F0A1B]/40 dark:hover:border-[#8F0A1B]/60 bg-gradient-to-b from-white via-white to-zinc-50/50 dark:from-zinc-900/90 dark:via-zinc-900/80 dark:to-zinc-950/90 shadow-md hover:shadow-2xl hover:shadow-[#8F0A1B]/15 dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] transition-all duration-300 overflow-hidden h-full">
+              <div 
+                onClick={() => setViewingCadre(secretary)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setViewingCadre(secretary);
+                  }
+                }}
+                className="group relative flex flex-col items-center justify-between px-4 py-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 hover:border-[#8F0A1B]/40 dark:hover:border-[#8F0A1B]/60 bg-gradient-to-b from-white via-white to-zinc-50/50 dark:from-zinc-900/90 dark:via-zinc-900/80 dark:to-zinc-950/90 shadow-md hover:shadow-2xl hover:shadow-[#8F0A1B]/15 dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] transition-all duration-300 overflow-hidden h-full cursor-pointer hover:-translate-y-1 select-none"
+              >
                 {/* Ambient Glow & Top Bar */}
                 <div className="absolute -top-16 -right-16 w-36 h-36 bg-gradient-to-br from-[#8F0A1B]/15 via-[#FFC72C]/15 to-transparent rounded-full blur-2xl group-hover:scale-150 transition-all duration-500 pointer-events-none" />
                 <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#8F0A1B] via-[#D97706] to-[#FFC72C]" />
@@ -374,7 +387,6 @@ export default function DashboardPage() {
                     ring="primary" 
                     elevation="glow" 
                     shape="square"
-                    imageClassName="group-hover:scale-105 transition-transform duration-500"
                   />
                 </div>
 
@@ -427,7 +439,18 @@ export default function DashboardPage() {
                   {otherCadres.map((cadre, index) => (
                     <CarouselItem key={index} className="pl-3 md:pl-4 basis-[100%] sm:basis-1/2 md:basis-1/3 lg:basis-1/2 xl:basis-1/3">
                       <div className="p-1 h-full">
-                        <div className="group relative flex flex-col items-center justify-between p-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 hover:border-[#8F0A1B]/40 dark:hover:border-[#8F0A1B]/60 bg-gradient-to-b from-white via-white to-zinc-50/50 dark:from-zinc-900/90 dark:via-zinc-900/80 dark:to-zinc-950/90 shadow-md hover:shadow-2xl hover:shadow-[#8F0A1B]/15 dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] transition-all duration-300 overflow-hidden h-full hover:-translate-y-1">
+                        <div 
+                          onClick={() => setViewingCadre(cadre)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              setViewingCadre(cadre);
+                            }
+                          }}
+                          className="group relative flex flex-col items-center justify-between p-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 hover:border-[#8F0A1B]/40 dark:hover:border-[#8F0A1B]/60 bg-gradient-to-b from-white via-white to-zinc-50/50 dark:from-zinc-900/90 dark:via-zinc-900/80 dark:to-zinc-950/90 shadow-md hover:shadow-2xl hover:shadow-[#8F0A1B]/15 dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] transition-all duration-300 overflow-hidden h-full hover:-translate-y-1 cursor-pointer select-none"
+                        >
                           {/* Ambient Glow & Top Bar */}
                           <div className="absolute -top-12 -right-12 w-24 h-24 bg-gradient-to-br from-[#8F0A1B]/10 via-[#FFC72C]/10 to-transparent rounded-full blur-xl group-hover:scale-150 transition-all duration-500 pointer-events-none" />
                           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#8F0A1B] via-[#D97706] to-[#FFC72C] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
@@ -639,6 +662,13 @@ export default function DashboardPage() {
       <CallConfirmationDialog 
         person={callPerson} 
         onOpenChange={(open) => !open && setCallPerson(null)} 
+      />
+
+      {/* Administrator Details View Dialog */}
+      <CadreViewDialog
+        isOpen={!!viewingCadre}
+        onOpenChange={(open) => !open && setViewingCadre(null)}
+        cadre={viewingCadre}
       />
     </div>
   );

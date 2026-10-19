@@ -67,6 +67,24 @@ export default function DashboardLayout({
     { name: tSidebar('settings'), href: '/settings', icon: 'settings', permission: 'settings:read' },
   ].filter(item => !item.permission || hasPermission(item.permission));
 
+  const getRoleDisplayName = (role?: string | null) => {
+    if (!role) return '';
+    switch (role.toUpperCase()) {
+      case 'SUPER_ADMIN':
+        return tHeader('roleSuperAdmin');
+      case 'DISTRICT_LEADER':
+        return tHeader('roleDistrictLeader');
+      case 'UNION_LEADER':
+        return tHeader('roleUnionLeader');
+      case 'KILAI_LEADER':
+        return tHeader('roleKilaiLeader');
+      case 'CADRE':
+        return tHeader('roleCadre');
+      default:
+        return role;
+    }
+  };
+
   const SidebarContent = () => (
     <>
         <div className="flex flex-col items-center justify-center py-6 relative">
@@ -143,63 +161,98 @@ export default function DashboardLayout({
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden bg-[#F8F9FA]">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden bg-[#f3f3ef]">
         {/* Top Header */}
-        <header className="h-[72px] bg-[#F8F9FA] flex items-center justify-between px-4 md:px-8 z-10 shrink-0">
-          <div className="flex items-center gap-1 md:gap-2">
+        <header 
+          style={{ 
+            background: 'linear-gradient(180deg, rgba(255, 255, 255, 0.12) 0%, rgba(0, 0, 0, 0.12) 100%), linear-gradient(90deg, rgba(143, 10, 27, 1) 13%, rgba(242, 200, 48, 1) 48%, rgba(143, 10, 27, 1) 87%)' 
+          }}
+          className="relative h-[72px] flex items-center justify-between px-4 md:px-8 z-10 shrink-0 text-white border-b border-black/15 shadow-[0_4px_25px_-4px_rgba(143,10,27,0.4)]"
+        >
+          {/* Top Edge Refined Glass Sheen */}
+          <div className="absolute top-0 left-0 right-0 h-[1px] bg-gradient-to-r from-white/30 via-white/60 to-white/30 pointer-events-none" />
+
+          {/* Left Brand & Menu Area */}
+          <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
             {/* Mobile & Tablet menu button (< lg) */}
             <button 
-              className="text-gray-700 hover:text-black lg:hidden p-1 rounded-md hover:bg-black/5 transition-colors cursor-pointer" 
+              className="text-white lg:hidden h-10 w-10 flex items-center justify-center rounded-xl bg-white/15 hover:bg-white/25 active:scale-95 border border-white/25 shadow-xs transition-colors cursor-pointer" 
               onClick={() => setIsOverlayOpen(!isOverlayOpen)}
               aria-label="Toggle Navigation Menu"
             >
-              <Menu className="w-6 h-6" />
+              <Menu className="w-5 h-5 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]" />
             </button>
+
             {/* Desktop menu button (>= lg) */}
             <button 
-              className="text-gray-700 hover:text-black hidden lg:block p-1 rounded-md hover:bg-black/5 transition-colors cursor-pointer" 
+              className="text-white hidden lg:flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 hover:bg-white/25 active:scale-95 border border-white/25 shadow-xs transition-colors cursor-pointer" 
               onClick={() => setIsDesktopSidebarOpen(!isDesktopSidebarOpen)}
               aria-label="Toggle Desktop Sidebar"
             >
-              <Menu className="w-6 h-6" />
+              <Menu className="w-5 h-5 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]" />
             </button>
-            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-[#8F0A1B] truncate">{tHeader('constituencyName')}</h1>
+
+            <div className="flex flex-col min-w-0">
+              <span className="text-[10px] sm:text-[11px] font-bold text-white/85 uppercase tracking-widest leading-none drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
+                TVK Connect
+              </span>
+              <h1 className="text-base sm:text-lg md:text-xl font-black text-white tracking-tight drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)] truncate mt-0.5">
+                {tHeader('constituencyName')}
+              </h1>
+            </div>
           </div>
           
-          <div className="flex items-center gap-4 md:gap-6">
-            <button className="text-gray-600 hover:text-black relative hidden sm:block">
-              <Bell className="w-5 h-5" />
-              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[#8F0A1B] text-white text-[9px] font-bold flex items-center justify-center rounded-full border-2 border-[#F8F9FA]">3</span>
+          {/* Right Action Icons & User Profile */}
+          <div className="flex items-center gap-2 sm:gap-3 md:gap-4">
+            <button 
+              className="h-10 w-10 rounded-xl bg-white/15 hover:bg-white/25 active:scale-95 border border-white/25 flex items-center justify-center text-white transition-colors shadow-xs relative hidden sm:flex cursor-pointer"
+              title="Notifications"
+            >
+              <Bell className="w-4.5 h-4.5 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]" />
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-[#8F0A1B] text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+                3
+              </span>
             </button>
-            <button className="text-gray-600 hover:text-black relative hidden sm:block">
-              <Mail className="w-5 h-5" />
-              <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[#8F0A1B] text-white text-[9px] font-bold flex items-center justify-center rounded-full border-2 border-[#F8F9FA]">5</span>
+
+            <button 
+              className="h-10 w-10 rounded-xl bg-white/15 hover:bg-white/25 active:scale-95 border border-white/25 flex items-center justify-center text-white transition-colors shadow-xs relative hidden sm:flex cursor-pointer"
+              title="Messages"
+            >
+              <Mail className="w-4.5 h-4.5 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]" />
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 bg-[#8F0A1B] text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+                5
+              </span>
             </button>
             
-            <div className="hidden md:block">
-              <LanguageSwitcher />
+            <div className="hidden md:flex items-center">
+              <LanguageSwitcher className="bg-white/15 text-white border-white/25 hover:bg-white/25 focus:ring-white/50 shadow-xs font-semibold rounded-xl text-xs py-1.5 px-2.5 h-10 cursor-pointer [&>option]:text-zinc-900 [&>option]:bg-white" />
             </div>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger className="flex items-center gap-2 md:gap-3 outline-none cursor-pointer">
-                <UserAvatar 
-                  src={user?.photoUrl} 
-                  name={user?.name || user?.userId || 'User'} 
-                  size="md" 
-                  ring="primary" 
-                  elevation="sm" 
-                  className="w-8 h-8 sm:w-10 sm:h-10 md:w-11 md:h-11"
-                  badge={
-                    <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-emerald-500 rounded-full border-2 border-white dark:border-zinc-900 block" title="Online" />
-                  }
-                />
-                <div className="flex-col hidden sm:flex text-left">
-                  <span className="text-[16px] font-bold text-gray-900 leading-tight">{user?.name || user?.userId || 'User'}</span>
-                  <span className="text-[14px] text-[#8F0A1B] font-semibold">{user?.role === 'SUPER_ADMIN' ? tHeader('admin') : tHeader('secretary')}</span>
+            <DropdownMenu modal={false}>
+              <DropdownMenuTrigger className="flex items-center gap-2.5 sm:gap-3 py-1.5 px-2 sm:px-3 rounded-2xl bg-white/15 hover:bg-white/25 border border-white/25 shadow-xs transition-colors outline-none cursor-pointer group active:scale-[0.98]">
+                <div className="relative shrink-0">
+                  <UserAvatar 
+                    src={user?.photoUrl} 
+                    name={user?.name || user?.userId || 'User'} 
+                    size="sm" 
+                    shape="circle"
+                    ring="none" 
+                    elevation="none" 
+                    className="w-9 h-9 sm:w-10 sm:h-10 rounded-full"
+                  />
+                  <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full border-2 border-white shadow-xs block" title="Online" />
                 </div>
-                <ChevronDown className="w-4 h-4 text-gray-500 hidden sm:block" />
+                <div className="flex-col hidden sm:flex text-left">
+                  <span className="text-[14px] font-extrabold text-white leading-tight drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]">
+                    {user?.name || user?.userId || 'User'}
+                  </span>
+                  <span className="text-[11px] text-white/90 font-semibold tracking-wide drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)] mt-0.5">
+                    {getRoleDisplayName(user?.role)}
+                  </span>
+                </div>
+                <ChevronDown className="w-4 h-4 text-white/80 group-hover:text-white group-hover:translate-y-0.5 transition-all hidden sm:block drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]" />
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 mt-2">
+              <DropdownMenuContent align="end" sideOffset={8} className="w-56">
                 <DropdownMenuGroup>
                   <DropdownMenuLabel>{tHeader('myAccount')}</DropdownMenuLabel>
                 </DropdownMenuGroup>
@@ -219,7 +272,7 @@ export default function DashboardLayout({
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto px-4 md:px-8 pb-4 md:pb-8 relative">
+        <main className="flex-1 overflow-y-auto px-4 md:px-8 py-4 md:pb-8 relative mb-4">
           <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both h-full">
             {children}
           </div>

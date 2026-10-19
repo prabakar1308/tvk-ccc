@@ -5,6 +5,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -65,6 +66,9 @@ export function CadreViewDialog({
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>View Administrator Details</DialogTitle>
+          <DialogDescription className="text-xs text-muted-foreground">
+            Administrative credentials, contact information, and organizational assignments.
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-6 pt-4">
@@ -75,7 +79,7 @@ export function CadreViewDialog({
                  name={cadre.name} 
                  size="2xl" 
                  ring="primary" 
-                 elevation="glow"
+                 elevation="glow" 
                  showZoomOnHover={Boolean(cadre.photoUrl)}
                  onZoomClick={cadre.photoUrl ? () => openPreview(cadre.photoUrl, cadre.name) : undefined}
                />
@@ -103,48 +107,48 @@ export function CadreViewDialog({
           <div className="grid grid-cols-2 gap-x-4 gap-y-6">
             <div className="space-y-1">
               <Label className="text-muted-foreground text-xs uppercase tracking-wider">Phone No</Label>
-              <div className="font-medium text-gray-900">{cadre.phone || '-'}</div>
+              <div className="font-medium text-gray-900 dark:text-zinc-100">{cadre.phone || '-'}</div>
             </div>
             
             <div className="space-y-1">
               <Label className="text-muted-foreground text-xs uppercase tracking-wider">Aadhaar No</Label>
-              <div className="font-medium text-gray-900">{cadre.aadhaarNumber || '-'}</div>
+              <div className="font-medium text-gray-900 dark:text-zinc-100">{cadre.aadhaarNumber || '-'}</div>
             </div>
 
             <div className="space-y-1">
               <Label className="text-muted-foreground text-xs uppercase tracking-wider">Level</Label>
-              <div className="font-medium text-gray-900 capitalize">{cadre.level?.toLowerCase() || '-'}</div>
+              <div className="font-medium text-gray-900 dark:text-zinc-100 capitalize">{cadre.level?.toLowerCase() || '-'}</div>
             </div>
 
             {cadre.level === 'DISTRICT' && (
               <div className="space-y-1">
                 <Label className="text-muted-foreground text-xs uppercase tracking-wider">District</Label>
-                <div className="font-medium text-gray-900">{district?.name || '-'}</div>
+                <div className="font-medium text-gray-900 dark:text-zinc-100">{district?.name || cadre.district?.name || 'Cuddalore East'}</div>
               </div>
             )}
 
             {(cadre.level === 'UNION' || cadre.level === 'KILAI') && (
               <div className="space-y-1">
                 <Label className="text-muted-foreground text-xs uppercase tracking-wider">Union</Label>
-                <div className="font-medium text-gray-900">{union?.name || '-'}</div>
+                <div className="font-medium text-gray-900 dark:text-zinc-100">{union?.name || cadre.union?.name || '-'}</div>
               </div>
             )}
 
             {cadre.level === 'KILAI' && (
               <div className="space-y-1">
                 <Label className="text-muted-foreground text-xs uppercase tracking-wider">Kilai</Label>
-                <div className="font-medium text-gray-900">{kilai?.name || '-'}</div>
+                <div className="font-medium text-gray-900 dark:text-zinc-100">{kilai?.name || cadre.homeKilai?.name || '-'}</div>
               </div>
             )}
 
             <div className="space-y-1">
               <Label className="text-muted-foreground text-xs uppercase tracking-wider">Place / Area</Label>
-              <div className="font-medium text-gray-900">{cadre.area || '-'}</div>
+              <div className="font-medium text-gray-900 dark:text-zinc-100">{cadre.area || '-'}</div>
             </div>
 
             <div className="space-y-1">
               <Label className="text-muted-foreground text-xs uppercase tracking-wider">Booth No.</Label>
-              <div className="font-medium text-gray-900">
+              <div className="font-medium text-gray-900 dark:text-zinc-100">
                 {cadre.boothNo ? (booth ? `${booth.boothNo} - ${booth.area || booth.name}` : cadre.boothNo) : '-'}
               </div>
             </div>

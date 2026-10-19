@@ -582,47 +582,37 @@ export default function KilaisPage() {
                       <div className="absolute -top-16 -right-16 w-32 h-32 bg-gradient-to-br from-[#8F0A1B]/10 via-[#FFC72C]/10 to-transparent rounded-full blur-2xl group-hover:scale-150 group-hover:opacity-100 opacity-30 transition-all duration-500 pointer-events-none" />
                       <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#8F0A1B] via-[#D97706] to-[#FFC72C] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-                      <Link href={`/kilais/${kilai.id}`} className="flex-1 flex flex-col cursor-pointer p-5">
+                      {/* Desktop Action Buttons Overlay (Top-Right on Hover) */}
+                      <div className="hidden md:flex absolute top-3.5 right-3.5 items-center gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-1 group-hover:translate-x-0 z-10">
+                        <Button 
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleOpenEdit(kilai); }} 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-zinc-500 hover:text-[#8F0A1B] hover:bg-[#8F0A1B]/10 rounded-full transition-colors bg-white/80 dark:bg-zinc-800/80 shadow-xs border border-zinc-200/50 dark:border-zinc-700/50"
+                        >
+                          <Edit2 className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button 
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDelete(kilai.id); }} 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-zinc-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-full transition-colors bg-white/80 dark:bg-zinc-800/80 shadow-xs border border-zinc-200/50 dark:border-zinc-700/50"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+
+                      <Link href={`/kilais/${kilai.id}`} className="flex-1 flex flex-col cursor-pointer p-5 pb-4 md:pb-5">
                         {/* Header Section */}
-                        <div className="flex items-start gap-3 mb-3.5">
+                        <div className="flex items-center gap-3 mb-3.5 pr-0 md:pr-16">
                           <div className="w-11 h-11 rounded-xl shadow-xs shrink-0 flex items-center justify-center border bg-red-50 text-[#8F0A1B] border-red-100 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/40 transition-transform group-hover:scale-105 duration-300 mt-0.5">
                             <Building2 className="h-5 w-5" />
                           </div>
                           
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between gap-2 mb-1">
-                              <h3 className="font-extrabold text-[16px] sm:text-[17px] text-zinc-900 dark:text-zinc-50 leading-tight group-hover:text-[#8F0A1B] dark:group-hover:text-red-400 transition-colors truncate">
-                                {kilai.name}
-                              </h3>
-                              <div className="flex items-center gap-1 shrink-0 opacity-70 group-hover:opacity-100 transition-opacity">
-                                <button 
-                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleOpenEdit(kilai); }} 
-                                  className="p-1 text-zinc-400 hover:text-[#8F0A1B] hover:bg-[#8F0A1B]/10 rounded-md transition-colors"
-                                  title="Edit"
-                                >
-                                  <Edit2 className="h-3.5 w-3.5" />
-                                </button>
-                                <button 
-                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDelete(kilai.id); }} 
-                                  className="p-1 text-zinc-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                                  title="Delete"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                              </div>
-                            </div>
-
-                            <div className="flex items-center justify-between gap-2">
-                              {kilai.tamilName ? (
-                                <span className="text-xs font-normal text-zinc-500 dark:text-zinc-400 truncate">
-                                  ({kilai.tamilName})
-                                </span>
-                              ) : <span />}
-                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border shadow-2xs shrink-0 ${statusConfig.bg}`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dot}`}></span>
-                                {kilai.status ? t(kilai.status.toLowerCase()) : statusConfig.label}
-                              </span>
-                            </div>
+                            <h3 className="font-extrabold text-[16px] sm:text-[17px] text-zinc-900 dark:text-zinc-50 leading-tight group-hover:text-[#8F0A1B] dark:group-hover:text-red-400 transition-colors line-clamp-2 md:line-clamp-1 mb-1 break-words">
+                              {kilai.name}
+                            </h3>
                           </div>
                         </div>
 
@@ -664,7 +654,6 @@ export default function KilaisPage() {
                                   shape="square" 
                                   ring="primary" 
                                   elevation="md" 
-                                  imageClassName="group-hover:scale-105 transition-transform duration-500"
                                 />
                               </div>
                             </div>
@@ -723,6 +712,33 @@ export default function KilaisPage() {
                           </div>
                         </div>
                       </Link>
+
+                      {/* Mobile Actions Footer */}
+                      <div className="flex md:hidden items-center justify-between gap-2 px-4 py-2.5 border-t border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/70 dark:bg-zinc-900/60 mt-auto">
+                        <span className="text-[11px] font-semibold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
+                          {tCommon('actions')}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleOpenEdit(kilai); }} 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-8 px-2.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:text-[#8F0A1B] hover:border-[#8F0A1B]/40 hover:bg-[#8F0A1B]/5 rounded-lg transition-colors border-zinc-200/80 dark:border-zinc-700/80 bg-white dark:bg-zinc-800 shadow-2xs gap-1.5"
+                          >
+                            <Edit2 className="h-3.5 w-3.5 text-[#8F0A1B]" />
+                            <span>{tCommon('edit')}</span>
+                          </Button>
+                          <Button 
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleDelete(kilai.id); }} 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-8 px-2.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:text-red-600 hover:border-red-300 hover:bg-red-50 dark:hover:bg-red-950/50 rounded-lg transition-colors border-zinc-200/80 dark:border-zinc-700/80 bg-white dark:bg-zinc-800 shadow-2xs gap-1.5"
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-red-600" />
+                            <span>{tCommon('delete')}</span>
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   );
                 })}

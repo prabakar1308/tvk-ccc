@@ -17,6 +17,7 @@ export interface UserAvatarProps {
   onZoomClick?: () => void;
   badge?: React.ReactNode;
   alt?: string;
+  objectPosition?: 'top' | 'center' | 'bottom' | string;
 }
 
 // Generate harmonious gradients based on name
@@ -123,6 +124,7 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
   onZoomClick,
   badge,
   alt,
+  objectPosition = 'top',
 }) => {
   const [hasError, setHasError] = useState(false);
   const sizeConfig = SIZE_CONFIGS[size] || SIZE_CONFIGS.md;
@@ -137,9 +139,18 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
       ? 'rounded-2xl sm:rounded-3xl'
       : 'rounded-full';
 
+  const positionClass =
+    objectPosition === 'top'
+      ? 'object-top'
+      : objectPosition === 'center'
+      ? 'object-center'
+      : objectPosition === 'bottom'
+      ? 'object-bottom'
+      : objectPosition;
+
   return (
     <div
-      className={cn('relative inline-block shrink-0 select-none', sizeConfig.container, className)}
+      className={cn('relative inline-block shrink-0 select-none', borderRadius, sizeConfig.container, className)}
       onClick={(e) => {
         if (onZoomClick) {
           e.stopPropagation();
@@ -157,7 +168,11 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
             src={src}
             alt={alt || name || 'User profile'}
             onError={() => setHasError(true)}
-            className={`w-full h-full object-cover transition-transform duration-500 group-hover/avatar:scale-105 ${imageClassName}`}
+            className={cn(
+              'w-full h-full object-cover origin-top transition-transform duration-500',
+              positionClass,
+              imageClassName
+            )}
             loading="lazy"
           />
         ) : (

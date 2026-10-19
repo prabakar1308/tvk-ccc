@@ -545,7 +545,6 @@ export default function CadresPage() {
                         size="2xl" 
                         ring="primary" 
                         elevation="glow" 
-                        imageClassName="group-hover:scale-110 transition-transform duration-500"
                       />
                     </div>
                     

@@ -4,7 +4,9 @@ import { useLocale } from 'next-intl';
 import { usePathname, useRouter } from 'next/navigation';
 import { ChangeEvent, useTransition } from 'react';
 
-export default function LanguageSwitcher() {
+import { cn } from '@/lib/utils';
+
+export default function LanguageSwitcher({ className }: { className?: string }) {
   const [isPending, startTransition] = useTransition();
   const locale = useLocale();
   const router = useRouter();
@@ -29,10 +31,13 @@ export default function LanguageSwitcher() {
         defaultValue={locale}
         disabled={isPending}
         onChange={(e) => onSelectChange(e.target.value)}
-        className="bg-transparent border border-gray-300 dark:border-gray-700 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className={cn(
+          "bg-transparent border border-gray-300 dark:border-gray-700 rounded px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer",
+          className
+        )}
       >
-        <option value="en">English</option>
-        <option value="ta">தமிழ்</option>
+        <option value="en" className="text-zinc-900 bg-white">English</option>
+        <option value="ta" className="text-zinc-900 bg-white">தமிழ்</option>
       </select>
     </div>
   );

@@ -179,7 +179,6 @@ export default function UnionDetailsPage() {
                     size="2xl" 
                     ring={highlight ? "primary" : "default"} 
                     elevation={highlight ? "glow" : "md"} 
-                    imageClassName="group-hover:scale-110 transition-transform duration-500"
                   />
                 </div>
                 

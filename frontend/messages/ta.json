@@ -24,7 +24,12 @@
     "language": "மொழி",
     "signOut": "வெளியேறு",
     "admin": "நிர்வாகி",
-    "secretary": "செயலாளர்"
+    "secretary": "செயலாளர்",
+    "roleSuperAdmin": "தலைமை நிர்வாகி",
+    "roleDistrictLeader": "மாவட்ட நிர்வாகி",
+    "roleUnionLeader": "ஒன்றிய நிர்வாகி",
+    "roleKilaiLeader": "கிளை நிர்வாகி",
+    "roleCadre": "நிர்வாகி"
   },
   "Footer": {
     "partyName": "தமிழக வெற்றி கழகம்",
