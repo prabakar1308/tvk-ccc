@@ -245,18 +245,18 @@ export function MultiAutocomplete<T>({
   return (
     <div className={`relative w-full ${className}`} ref={containerRef}>
       <div 
-        className="relative flex min-h-10 w-full flex-wrap items-center gap-1.5 rounded-md border border-input bg-background px-2 py-1.5 text-sm ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
+        className="relative flex min-h-12 w-full flex-wrap items-center gap-2 rounded-xl border border-input bg-background px-3 py-2 text-sm sm:text-base ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2"
         onClick={() => {
           setIsOpen(true);
           inputRef.current?.focus();
         }}
       >
-        <Search className="h-4 w-4 text-muted-foreground ml-1 shrink-0" />
+        <Search className="h-4 w-4 text-muted-foreground ml-0.5 shrink-0" />
         
         {value.map((item, idx) => (
           <span 
             key={`${getOptionValue(item)}-${idx}`} 
-            className="flex items-center gap-1 rounded bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
+            className="flex items-center gap-1.5 rounded-lg bg-primary/10 px-2.5 py-1 text-xs sm:text-sm font-semibold text-primary"
           >
             {getOptionLabel(item)}
             <button
@@ -264,7 +264,7 @@ export function MultiAutocomplete<T>({
               onClick={(e) => handleRemove(e, item)}
               className="rounded-full p-0.5 hover:bg-primary/20 focus:bg-primary/20 focus:outline-none"
             >
-              <X className="h-3 w-3" />
+              <X className="h-3.5 w-3.5" />
             </button>
           </span>
         ))}
@@ -272,7 +272,7 @@ export function MultiAutocomplete<T>({
         <input
           ref={inputRef}
           type="text"
-          className="flex-1 min-w-[120px] bg-transparent py-0.5 outline-none placeholder:text-muted-foreground"
+          className="flex-1 min-w-[140px] bg-transparent py-1 outline-none placeholder:text-muted-foreground text-sm sm:text-base font-medium"
           placeholder={value.length === 0 ? placeholder : ''}
           value={searchTerm}
           onChange={(e) => {
@@ -283,14 +283,14 @@ export function MultiAutocomplete<T>({
       </div>
 
       {isOpen && searchTerm.length >= minChars && (
-        <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-md border bg-popover py-1 text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95">
+        <div className="absolute z-50 mt-1 max-h-60 w-full overflow-auto rounded-xl border bg-popover py-1.5 text-popover-foreground shadow-lg animate-in fade-in-0 zoom-in-95">
           {isLoading ? (
-            <div className="flex items-center justify-center py-6 text-sm text-muted-foreground">
+            <div className="flex items-center justify-center py-6 text-sm sm:text-base text-muted-foreground">
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Loading...
             </div>
           ) : options.length === 0 ? (
-            <div className="py-6 text-center text-sm text-muted-foreground">
+            <div className="py-6 text-center text-sm sm:text-base text-muted-foreground">
               No results found.
             </div>
           ) : (
@@ -299,15 +299,15 @@ export function MultiAutocomplete<T>({
               return (
                 <div
                   key={`${getOptionValue(option)}-${index}`}
-                  className={`relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground ${
-                    isSelected ? 'bg-accent/50' : ''
+                  className={`relative flex cursor-default select-none items-center rounded-lg mx-1 px-3 py-2 text-sm sm:text-base outline-none transition-colors hover:bg-accent hover:text-accent-foreground ${
+                    isSelected ? 'bg-accent/50 font-bold' : ''
                   }`}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleSelect(option);
                   }}
                 >
-                  <div className="mr-2 flex h-4 w-4 items-center justify-center">
+                  <div className="mr-2.5 flex h-4 w-4 items-center justify-center shrink-0">
                     {isSelected && <Check className="h-4 w-4" />}
                   </div>
                   {getOptionLabel(option)}
@@ -319,7 +319,7 @@ export function MultiAutocomplete<T>({
       )}
       
       {isOpen && searchTerm.length > 0 && searchTerm.length < minChars && (
-        <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover py-3 text-center text-sm text-muted-foreground shadow-md">
+        <div className="absolute z-50 mt-1 w-full rounded-xl border bg-popover py-3 text-center text-sm sm:text-base text-muted-foreground shadow-md">
           Please enter at least {minChars} characters to search
         </div>
       )}

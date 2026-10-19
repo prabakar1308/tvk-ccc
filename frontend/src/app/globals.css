@@ -158,3 +158,32 @@
     transform: translate(0px, 0px) scale(1);
   }
 }
+
+/* Custom sleek horizontal role scrollbar */
+.roles-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(143, 10, 27, 0.25) transparent;
+}
+.roles-scrollbar::-webkit-scrollbar {
+  height: 5px;
+}
+.roles-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.roles-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(143, 10, 27, 0.25);
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
+}
+.roles-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(143, 10, 27, 0.65);
+}
+.dark .roles-scrollbar {
+  scrollbar-color: rgba(255, 199, 44, 0.25) transparent;
+}
+.dark .roles-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 199, 44, 0.25);
+}
+.dark .roles-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 199, 44, 0.65);
+}
