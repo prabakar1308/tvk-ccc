@@ -35,6 +35,7 @@ import { CadreFormDialog } from '@/components/cadre-form-dialog';
 import { CadreViewDialog } from '@/components/cadre-view-dialog';
 import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
 import { UserAvatar } from '@/components/ui/user-avatar';
+import { CadreCard } from '@/components/cadre-card';
 
 export default function CadresPage() {
   const t = useTranslations('Cadres');
@@ -518,71 +519,20 @@ export default function CadresPage() {
                 </TableBody>
               </Table>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5 p-2">
+              <div className="grid gap-5 sm:gap-6 p-2 [grid-template-columns:repeat(auto-fill,minmax(240px,1fr))]">
                 {filteredCadres.map((cadre) => (
-                  <div 
-                    key={cadre.id} 
-                    onClick={() => handleOpenView(cadre)}
-                    className="flex flex-col items-center pt-6 px-4 pb-5 rounded-2xl bg-zinc-50/90 backdrop-blur-sm hover:bg-white dark:bg-zinc-900/90 dark:hover:bg-zinc-900 border-2 border-[#f5e3e3] dark:border-zinc-800 hover:border-primary dark:hover:border-primary shadow-md hover:shadow-xl dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] dark:hover:shadow-[0_8px_30px_rgba(255,255,255,0.05)] transition-all duration-300 group cursor-pointer h-full relative overflow-hidden hover:-translate-y-1"
-                  >
-                    {/* Top Accent Line */}
-                    <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-primary/80 to-primary opacity-0 group-hover:opacity-100 transition-opacity" />
-                    
-                    {/* Desktop Actions (Top Right Hover) */}
-                    <div className="hidden md:flex absolute top-3 right-3 gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-x-2 group-hover:translate-x-0">
-                      <Button onClick={(e) => handleOpenEdit(e, cadre)} variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-white hover:bg-primary rounded-full transition-colors bg-primary/5">
-                        <Edit2 className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button onClick={(e) => handleDelete(e, cadre.id)} variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-white hover:bg-destructive rounded-full transition-colors bg-destructive/5">
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                    
-                    <div className="relative mb-4 mt-2 group-hover:scale-105 transition-transform duration-300">
-                      <UserAvatar 
-                        src={cadre.photoUrl} 
-                        name={cadre.name} 
-                        size="2xl" 
-                        ring="primary" 
-                        elevation="glow" 
-                      />
-                    </div>
-                    
-                    <h3 className="font-extrabold text-[15px] sm:text-[17px] text-gray-900 dark:text-zinc-100 text-center leading-tight mb-1 group-hover:text-primary transition-colors">{cadre.name}</h3>
-                    
-                    <div className="flex items-center gap-2 mb-3">
-                       <span className="text-[11px] font-semibold text-muted-foreground bg-gray-100 dark:bg-zinc-800 px-2.5 py-0.5 rounded-full uppercase tracking-wider">{cadre.memberId}</span>
-                    </div>
-
-                    <div className="w-full h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-zinc-700 to-transparent my-1" />
-
-                    <div className="mt-3 w-full flex flex-col items-center gap-2">
-                      <div className="flex flex-col items-center">
-                        {getRoleBadge(cadre.role, cadre.level, true)}
-                        {cadre.wing && <div className="mt-1.5 text-[10px] text-center font-semibold text-muted-foreground leading-tight px-2">{cadre.wing.name}</div>}
-                      </div>
-                      
-                      {cadre.phone && (
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); setCallConfirmation({ name: cadre.name, phone: cadre.phone || '' }); }}
-                          className="flex items-center justify-center gap-1.5 text-[12px] font-semibold text-gray-600 dark:text-zinc-400 hover:text-primary dark:hover:text-primary transition-colors mt-1"
-                        >
-                          <Phone className="w-3.5 h-3.5" />
-                          {cadre.phone}
-                        </button>
-                      )}
-                    </div>
-                    
-                    {/* Mobile Actions (Bottom Inline) */}
-                    <div className="flex md:hidden w-full justify-center gap-6 mt-5 pt-3 border-t border-gray-100 dark:border-zinc-800">
-                      <Button onClick={(e) => handleOpenEdit(e, cadre)} variant="ghost" size="icon" className="h-9 w-9 text-primary bg-primary/5 hover:bg-primary/10 rounded-full">
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                      <Button onClick={(e) => handleDelete(e, cadre.id)} variant="ghost" size="icon" className="h-9 w-9 text-destructive bg-destructive/5 hover:bg-destructive/10 rounded-full">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
+                  <CadreCard
+                    key={cadre.id}
+                    cadre={cadre}
+                    minWidth="240px"
+                    showMemberId={true}
+                    showLevelBadge={levelFilter === 'ALL'}
+                    showLocation={true}
+                    onView={(c) => handleOpenView(c)}
+                    onEdit={(e, c) => handleOpenEdit(e, c)}
+                    onDelete={(e, id) => handleDelete(e, id)}
+                    onCall={(person) => setCallConfirmation(person)}
+                  />
                 ))}
               </div>
             )}

@@ -11,15 +11,38 @@ import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
-import { UserAvatar } from '@/components/ui/user-avatar';
+import { CadreCard } from '@/components/cadre-card';
+import { useDeleteCadre } from '@/hooks/use-cadres';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 export default function KilaiDetailsPage() {
   const { id } = useParams();
   const { data: kilai, isLoading } = useKilai(id as string);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null);
   const [callConfirmation, setCallConfirmation] = useState<{name: string, phone: string} | null>(null);
   const [viewingCadre, setViewingCadre] = useState<any | null>(null);
   const queryClient = useQueryClient();
+  const deleteMutation = useDeleteCadre();
+
+  const handleOpenEdit = (e: React.MouseEvent, cadre: any) => {
+    e.stopPropagation();
+    setEditingId(cadre.id);
+    setIsModalOpen(true);
+  };
+
+  const handleDelete = (e: React.MouseEvent, cadreId: string) => {
+    e.stopPropagation();
+    setDeleteConfirmation(cadreId);
+  };
 
   if (isLoading) return <div className="p-8 text-center text-gray-500 font-medium">Loading kilai details...</div>;
   if (!kilai) return <div className="p-8 text-center text-red-500 font-bold">Kilai not found</div>;
@@ -109,61 +132,28 @@ export default function KilaiDetailsPage() {
         <h2 className="text-lg font-bold text-gray-900 tracking-wide mb-6">Kilai Cadres (Office Bearers)</h2>
         
         {!kilaiData.kilaiCadres || kilaiData.kilaiCadres.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">No administrators registered for this Kilai yet.</div>
+          <div className="text-center py-12 text-zinc-500 font-medium bg-zinc-50 dark:bg-zinc-800/40 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800">
+            No administrators registered for this Kilai yet.
+          </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-6">
+          <div className="grid gap-5 sm:gap-6 [grid-template-columns:repeat(auto-fill,minmax(240px,1fr))]">
             {kilaiData.kilaiCadres.map((cadre: any, index: number) => {
               const rawRole = cadre.officeBearerRoles?.[0]?.role || cadre.role || 'Member';
-              const designation = rawRole.replace(/_/g, ' ').replace(/\w\S*/g, (txt: string) => txt.charAt(0).toUpperCase() + txt.substring(1).toLowerCase());
-              const photoUrl = cadre.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(cadre.name || 'User')}&background=8F0A1B&color=fff&size=128`;
-              const highlight = index === 0 && rawRole.includes('SECRETARY'); // Example highlight logic
-              
+              const isSecretary = rawRole.toUpperCase().includes('SECRETARY') || rawRole.toUpperCase().includes('PRESIDENT');
+              const highlight = index === 0 && isSecretary;
+
               return (
-                <div 
-                  key={cadre.id || index} 
-                  onClick={() => setViewingCadre(cadre)}
-                  className={`flex flex-col items-center pt-6 px-4 pb-5 rounded-2xl border-2 transition-all duration-300 group cursor-pointer h-full relative overflow-hidden hover:-translate-y-1 shadow-md hover:shadow-xl dark:shadow-[0_4px_20px_rgba(0,0,0,0.3)] dark:hover:shadow-[0_8px_30px_rgba(255,255,255,0.05)] ${
-                    highlight 
-                      ? "bg-gradient-to-b from-[#8F0A1B]/10 to-zinc-50/90 dark:to-zinc-900/90 backdrop-blur-sm border-[#8F0A1B]/40 hover:border-[#8F0A1B]" 
-                      : "bg-zinc-50/90 backdrop-blur-sm hover:bg-white dark:bg-zinc-900/90 dark:hover:bg-zinc-900 border-[#f5e3e3] dark:border-zinc-800 hover:border-[#8F0A1B] dark:hover:border-[#8F0A1B]"
-                  }`}
-                >
-                  {/* Top Accent Line */}
-                  <div className={`absolute top-0 left-0 w-full h-1.5 transition-opacity ${highlight ? "bg-gradient-to-r from-[#8F0A1B]/80 to-[#8F0A1B] opacity-100" : "bg-gradient-to-r from-gray-200 to-gray-300 dark:from-zinc-700 dark:to-zinc-600 opacity-0 group-hover:opacity-100"}`} />
-
-                  {highlight && (
-                    <div className="absolute top-0 right-0 w-12 h-12 bg-gradient-to-bl from-[#8F0A1B]/20 to-transparent pointer-events-none">
-                      <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#8F0A1B] animate-pulse"></div>
-                    </div>
-                  )}
-
-                  <div className="relative mb-4 mt-2 group-hover:scale-105 transition-transform duration-300">
-                    <UserAvatar 
-                      src={cadre.photoUrl} 
-                      name={cadre.name || 'Administrator'} 
-                      size="2xl" 
-                      ring={highlight ? "primary" : "default"} 
-                      elevation={highlight ? "glow" : "md"} 
-                    />
-                  </div>
-
-                  <h3 className="font-extrabold text-[15px] sm:text-[17px] text-gray-900 dark:text-zinc-100 text-center leading-tight mb-2 group-hover:text-[#8F0A1B] transition-colors">{cadre.name || 'Unknown Name'}</h3>
-                  
-                  <div className="w-full h-px bg-gradient-to-r from-transparent via-gray-200 dark:via-zinc-700 to-transparent my-1" />
-
-                  <div className="mt-3 w-full flex flex-col items-center gap-2">
-                    <p className={`text-[11px] sm:text-[12px] font-semibold text-center inline-block px-3 py-1 rounded-full uppercase tracking-wider ${
-                      highlight ? "text-[#8F0A1B] bg-[#8F0A1B]/10" : "text-gray-600 dark:text-zinc-400 bg-gray-100 dark:bg-zinc-800"
-                    }`}>{designation}</p>
-                    
-                    {cadre.phone && (
-                      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCallConfirmation({ name: cadre.name || 'Unknown Name', phone: cadre.phone }); }} className="flex items-center justify-center gap-1.5 text-[12px] font-semibold text-gray-600 dark:text-zinc-400 hover:text-[#8F0A1B] dark:hover:text-[#8F0A1B] transition-colors mt-1">
-                        <Phone className="w-3.5 h-3.5" />
-                        {cadre.phone}
-                      </button>
-                    )}
-                  </div>
-                </div>
+                <CadreCard
+                  key={cadre.id || index}
+                  cadre={cadre}
+                  highlight={highlight}
+                  minWidth="240px"
+                  showLocation={true}
+                  onView={(c) => setViewingCadre(c)}
+                  onEdit={(e, c) => handleOpenEdit(e, c)}
+                  onDelete={(e, cadreId) => handleDelete(e, cadreId)}
+                  onCall={(person) => setCallConfirmation(person)}
+                />
               );
             })}
           </div>
@@ -172,7 +162,12 @@ export default function KilaiDetailsPage() {
 
       <CadreFormDialog 
         isOpen={isModalOpen}
-        onOpenChange={setIsModalOpen}
+        onOpenChange={(open) => {
+          setIsModalOpen(open);
+          if (!open) setEditingId(null);
+        }}
+        editingId={editingId}
+        cadres={kilaiData.kilaiCadres}
         defaultLevel="KILAI"
         lockLevel={true}
         defaultKilaiId={kilaiData.id}
@@ -194,6 +189,36 @@ export default function KilaiDetailsPage() {
         person={callConfirmation} 
         onOpenChange={(open) => !open && setCallConfirmation(null)} 
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteConfirmation} onOpenChange={(open) => !open && setDeleteConfirmation(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>Delete Administrator</DialogTitle>
+            <DialogDescription className="pt-2">
+              Are you sure you want to delete this administrator? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setDeleteConfirmation(null)}>Cancel</Button>
+            <Button 
+              variant="destructive"
+              onClick={() => {
+                if (deleteConfirmation) {
+                  deleteMutation.mutate(deleteConfirmation, {
+                    onSuccess: () => {
+                      setDeleteConfirmation(null);
+                      queryClient.invalidateQueries({ queryKey: ['kilais', id] });
+                    }
+                  });
+                }
+              }}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
