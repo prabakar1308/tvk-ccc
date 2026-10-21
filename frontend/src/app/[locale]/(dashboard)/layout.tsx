@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { useUser } from '@/contexts/user-context';
 import { useUnions } from '@/hooks/use-unions';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Bell, Mail, Menu, ChevronDown, X } from 'lucide-react';
+import { Bell, Mail, Menu, ChevronDown, X, User as UserIcon, KeyRound, LogOut } from 'lucide-react';
 import Image from 'next/image';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import {
@@ -21,6 +21,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { UserAvatar } from '@/components/ui/user-avatar';
+import { MyAccountDialog } from '@/components/my-account-dialog';
+import { ChangePasswordDialog } from '@/components/change-password-dialog';
 
 export default function DashboardLayout({
   children,
@@ -36,6 +38,8 @@ export default function DashboardLayout({
   const { data: unions } = useUnions();
   const [isOverlayOpen, setIsOverlayOpen] = useState(false);
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
+  const [isMyAccountOpen, setIsMyAccountOpen] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
   useEffect(() => {
     // In md - lg range (768px <= width < 1024px), sidebar should be visible as overlay by default
@@ -252,19 +256,50 @@ export default function DashboardLayout({
                 </div>
                 <ChevronDown className="w-4 h-4 text-white/80 group-hover:text-white group-hover:translate-y-0.5 transition-all hidden sm:block drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]" />
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" sideOffset={8} className="w-56">
-                <DropdownMenuGroup>
-                  <DropdownMenuLabel>{tHeader('myAccount')}</DropdownMenuLabel>
-                </DropdownMenuGroup>
-                <DropdownMenuSeparator />
-                
-                <div className="md:hidden flex items-center justify-between px-2 py-2 border-b mb-1">
-                  <span className="text-sm font-medium">{tHeader('language')}</span>
+              <DropdownMenuContent align="end" sideOffset={8} className="w-60 p-1.5 shadow-xl rounded-2xl border-zinc-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-950">
+                <div className="px-3 py-2.5 bg-zinc-50 dark:bg-zinc-900/60 rounded-xl mb-1.5 border border-zinc-100 dark:border-zinc-800/60">
+                  <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">
+                    {user?.name || user?.userId || 'User'}
+                  </p>
+                  <p className="text-[11px] text-zinc-500 font-mono truncate mt-0.5">
+                    {user?.userId}
+                  </p>
+                  <div className="mt-1.5">
+                    <span className="inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#8F0A1B]/10 text-[#8F0A1B] dark:bg-[#8F0A1B]/20 dark:text-red-400">
+                      {getRoleDisplayName(user?.role)}
+                    </span>
+                  </div>
+                </div>
+
+                <DropdownMenuItem
+                  onClick={() => setIsMyAccountOpen(true)}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl cursor-pointer font-medium text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 focus:bg-zinc-100 dark:focus:bg-zinc-800 transition-colors"
+                >
+                  <UserIcon className="w-4 h-4 text-[#8F0A1B]" />
+                  <span>{tHeader('myAccount')}</span>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem
+                  onClick={() => setIsChangePasswordOpen(true)}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl cursor-pointer font-medium text-xs text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 focus:bg-zinc-100 dark:focus:bg-zinc-800 transition-colors"
+                >
+                  <KeyRound className="w-4 h-4 text-amber-600" />
+                  <span>{tHeader('changePassword')}</span>
+                </DropdownMenuItem>
+
+                <div className="md:hidden flex items-center justify-between px-3 py-2 border-t border-b border-zinc-100 dark:border-zinc-800 my-1">
+                  <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400">{tHeader('language')}</span>
                   <LanguageSwitcher />
                 </div>
 
-                <DropdownMenuItem onClick={() => { logout(); window.location.href = '/en/login'; }} className="text-red-600 cursor-pointer font-medium hover:bg-red-50 focus:bg-red-50 focus:text-red-700 mt-1">
-                  {tHeader('signOut')}
+                <DropdownMenuSeparator className="my-1" />
+
+                <DropdownMenuItem
+                  onClick={() => { logout(); window.location.href = '/en/login'; }}
+                  className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-red-600 cursor-pointer font-medium text-xs hover:bg-red-50 dark:hover:bg-red-950/30 focus:bg-red-50 dark:focus:bg-red-950/30 focus:text-red-700 transition-colors"
+                >
+                  <LogOut className="w-4 h-4 text-red-600" />
+                  <span>{tHeader('signOut')}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -291,6 +326,20 @@ export default function DashboardLayout({
           </div>
         </footer>
       </div>
+
+      {/* Account & Security Dialogs */}
+      <MyAccountDialog
+        isOpen={isMyAccountOpen}
+        onOpenChange={setIsMyAccountOpen}
+        onChangePasswordClick={() => {
+          setIsMyAccountOpen(false);
+          setIsChangePasswordOpen(true);
+        }}
+      />
+      <ChangePasswordDialog
+        isOpen={isChangePasswordOpen}
+        onOpenChange={setIsChangePasswordOpen}
+      />
     </div>
   );
 }

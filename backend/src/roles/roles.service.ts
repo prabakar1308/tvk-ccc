@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as bcrypt from 'bcrypt';
 
@@ -73,16 +73,46 @@ export class RolesService {
 
       // If Cadre already has a user account, update the role
       if (existingUser) {
+        const mobileNumber = cadre.phone?.trim();
+        const updateData: { roleId: string | null; userId?: string } = {
+          roleId: targetRoleId,
+        };
+
+        // If existing user account has a different userId (e.g. memberId/voterId) and cadre has a mobile number,
+        // update it to mobile number if there's no collision
+        if (mobileNumber && existingUser.userId !== mobileNumber) {
+          const conflicting = await this.prisma.user.findUnique({ where: { userId: mobileNumber } });
+          if (!conflicting || conflicting.id === existingUser.id) {
+            updateData.userId = mobileNumber;
+          }
+        }
+
         await this.prisma.user.update({
           where: { id: existingUser.id },
-          data: { roleId: targetRoleId }
+          data: updateData,
         });
       } else if (targetRoleId) {
-        // Otherwise create a user account for the cadre ONLY if assigning a role
-        const loginId = cadre.memberId || cadre.phone || cadre.id;
+        // Otherwise create a user account for the cadre ONLY if assigning a role.
+        // userId must be the mobile number, not the member ID/voter ID.
+        const mobileNumber = cadre.phone?.trim();
+        if (!mobileNumber) {
+          throw new BadRequestException(
+            `Cannot assign role to "${cadre.name}" (${cadre.memberId}): Cadre does not have a registered mobile number. A mobile number is required as the User ID.`
+          );
+        }
+
+        const existingUserWithPhone = await this.prisma.user.findUnique({
+          where: { userId: mobileNumber }
+        });
+        if (existingUserWithPhone) {
+          throw new BadRequestException(
+            `Cannot create user for "${cadre.name}": A user account with mobile number "${mobileNumber}" already exists.`
+          );
+        }
+
         await this.prisma.user.create({
           data: {
-            userId: loginId,
+            userId: mobileNumber,
             passwordHash,
             roleId: targetRoleId,
             cadreId: cadre.id,
