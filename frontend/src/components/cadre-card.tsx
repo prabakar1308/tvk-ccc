@@ -45,8 +45,17 @@ export interface CadreCardProps {
 function formatDesignation(rawRole?: string): string {
   if (!rawRole) return 'Administrator';
   
-  const upper = rawRole.toUpperCase();
-  if (upper === 'EXECUTIVE_COMMITTEE_MEMBER') return 'EC Member';
+  const upper = rawRole.toUpperCase().trim();
+  if (
+    upper === 'EXECUTIVE_COMMITTEE_MEMBER' || 
+    upper === 'EXECUTIVE COMMITTEE MEMBER' ||
+    upper.includes('EXECUTIVE') ||
+    upper === 'EC' ||
+    upper === 'EC MEMBER' ||
+    upper === 'EC_MEMBER'
+  ) {
+    return 'EC Member';
+  }
   if (upper === 'DISTRICT_SECRETARY') return 'District Secretary';
   if (upper === 'UNION_SECRETARY') return 'Union Secretary';
   if (upper === 'KILAI_SECRETARY') return 'Kilai Secretary';
@@ -77,7 +86,16 @@ function formatArea(area?: string): string | null {
  * Return styled badge configs based on role prominence and cadre level
  */
 function getRoleBadgeConfig(designation: string, level?: string) {
-  const lower = designation.toLowerCase();
+  const lower = designation.toLowerCase().trim();
+
+  // Treasurer / Joint / Deputy / Incharge (Order before secretary so Joint/Deputy Secretary don't trigger general secretary)
+  if (lower.includes('joint') || lower.includes('deputy') || lower.includes('treasurer') || lower.includes('incharge')) {
+    return {
+      style: 'bg-gradient-to-r from-amber-500/20 via-[#FFC72C]/25 to-amber-500/20 text-amber-900 dark:text-amber-200 border border-amber-500/40 font-bold',
+      icon: Award,
+      isLeader: false,
+    };
+  }
 
   // Secretary / President / Convener (High Leadership)
   if (lower.includes('secretary') || lower.includes('president') || lower.includes('leader') || lower.includes('convener')) {
@@ -85,15 +103,6 @@ function getRoleBadgeConfig(designation: string, level?: string) {
       style: 'bg-gradient-to-r from-[#8F0A1B] to-[#B81930] text-white shadow-xs border border-[#8F0A1B]/40',
       icon: Shield,
       isLeader: true,
-    };
-  }
-
-  // Treasurer / Joint / Deputy / Incharge
-  if (lower.includes('treasurer') || lower.includes('joint') || lower.includes('deputy') || lower.includes('incharge')) {
-    return {
-      style: 'bg-gradient-to-r from-amber-500/20 via-[#FFC72C]/25 to-amber-500/20 text-amber-900 dark:text-amber-200 border border-amber-500/40 font-bold',
-      icon: Award,
-      isLeader: false,
     };
   }
 
