@@ -33,12 +33,16 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 
+interface ParsedCadre extends CreateCadreDto {
+  fatherName?: string;
+}
+
 export default function ImportCadresPage() {
   const router = useRouter();
   const [importLevel, setImportLevel] = useState<string>('KILAI');
   const [importUnionId, setImportUnionId] = useState<string>('');
   const [importKilaiId, setImportKilaiId] = useState<string>('');
-  const [parsedCadres, setParsedCadres] = useState<CreateCadreDto[]>([]);
+  const [parsedCadres, setParsedCadres] = useState<ParsedCadre[]>([]);
   const [importError, setImportError] = useState<string | null>(null);
   const [duplicateErrors, setDuplicateErrors] = useState<any[]>([]);
 
@@ -47,7 +51,7 @@ export default function ImportCadresPage() {
   const [selectedBooths, setSelectedBooths] = useState<string[]>([]);
   
   // Dialog Edit State
-  const [editingRow, setEditingRow] = useState<(CreateCadreDto & { index: number }) | null>(null);
+  const [editingRow, setEditingRow] = useState<(ParsedCadre & { index: number }) | null>(null);
 
   const { data: unions = [] } = useUnions();
   const { data: kilais = [] } = useKilais();
@@ -57,94 +61,222 @@ export default function ImportCadresPage() {
 
   const filteredKilais = importUnionId ? kilais.filter((k: any) => String(k.unionId) === importUnionId) : kilais;
 
+  const isTableHeaderRow = (row: any[]): boolean => {
+    if (!row || !Array.isArray(row)) return false;
+    const rowStr = row.map(cell => String(cell || '').trim().toLowerCase()).join(' ');
+    const hasName = rowStr.includes('பெயர்') || rowStr.includes('name');
+    const hasOtherHeaders = 
+      rowStr.includes('வ.எண்') || 
+      rowStr.includes('வரிசை') || 
+      rowStr.includes('s.no') || 
+      rowStr.includes('sl.no') || 
+      rowStr.includes('sno') || 
+      rowStr.includes('பதவி') || 
+      rowStr.includes('role') || 
+      rowStr.includes('வாக்காளர்') || 
+      rowStr.includes('voter') || 
+      rowStr.includes('ஆதார்') || 
+      rowStr.includes('aadhaar');
+    
+    const isTopMetadata = rowStr.includes('மாவட்ட செயலாளர்') || rowStr.includes('ஒன்றிய செயலாளர்');
+    return hasName && hasOtherHeaders && !isTopMetadata;
+  };
+
+  const translateRole = (role: string) => {
+    if (!role) return '';
+    const trimmed = role.trim();
+    const lower = trimmed.toLowerCase();
+    
+    if (lower.includes('செயலாளர்') && lower.includes('இணை')) return 'Joint Secretary';
+    if (lower.includes('செயலாளர்') && lower.includes('துணை')) return 'Deputy Secretary';
+    if (lower.includes('செயலாளர்')) return 'Secretary';
+    if (lower.includes('பொருளாளர்')) return 'Treasurer';
+    if (lower.includes('செயற்குழு') || lower.includes('உறுப்பினர்')) return 'Executive Committee Member';
+
+    if (lower === 'secretary') return 'Secretary';
+    if (lower === 'joint secretary') return 'Joint Secretary';
+    if (lower === 'deputy secretary') return 'Deputy Secretary';
+    if (lower === 'treasurer') return 'Treasurer';
+    if (lower === 'executive committee member' || lower === 'ec member') return 'Executive Committee Member';
+
+    return trimmed;
+  };
+
+  const mapArea = (rawArea: string) => {
+    if (!rawArea) return '';
+    const enArea = cleanRomanize(rawArea);
+    const cleanEn = enArea.toLowerCase().replace(/[^a-z0-9]/g, '');
+    
+    if (!cleanEn) return enArea;
+
+    const found = allAreas.find((a: string) => {
+       const cleanA = a.toLowerCase().replace(/[^a-z0-9]/g, '');
+       return cleanA === cleanEn;
+    });
+    if (found) return found;
+    
+    const fuzzyFound = allAreas.find((a: string) => {
+       const cleanA = a.toLowerCase().replace(/[^a-z0-9]/g, '');
+       return cleanA.includes(cleanEn) || cleanEn.includes(cleanA);
+    });
+    
+    return fuzzyFound || enArea;
+  };
+
   const processCadreData = (data: any[][], isPaste = false) => {
     try {
-      // Filter out empty rows and header rows
-      const rows = data.filter(row => {
-        if (!row || row.length === 0 || !row[1]) return false;
-        const nameCol = String(row[1]).trim();
-        if (nameCol === 'பெயர்' || nameCol === 'Name') return false;
-        return true;
-      });
-      
-      const translateRole = (role: string) => {
-        if (!role) return '';
-        const lower = role.trim().toLowerCase();
-        if (lower.includes('செயலாளர்') && lower.includes('இணை')) return 'Joint Secretary';
-        if (lower.includes('செயலாளர்') && lower.includes('துணை')) return 'Deputy Secretary';
-        if (lower.includes('செயலாளர்')) return 'Secretary';
-        if (lower.includes('பொருளாளர்')) return 'Treasurer';
-        if (lower.includes('செயற்குழு')) return 'Executive Committee Member';
-        if (lower.includes('உறுப்பினர்')) return 'Executive Committee Member';
-        return role;
-      };
+      if (!data || data.length === 0) return;
 
+      // 1. Detect table header row
+      const headerRowIndex = data.findIndex(isTableHeaderRow);
 
+      // Default column indices based on template:
+      // col 1 - S.no (0)
+      // col 2 - Name (1)
+      // col 3 - Father's Name (2)
+      // col 4 - Role (3)
+      // col 5 - Area (4)
+      // col 6 - Booth No (5)
+      // col 7 - Phone no (6)
+      // col 8 - Aadhaar (7)
+      // col 9 - Member/Voter Id (8)
+      let nameIdx = 1;
+      let fatherNameIdx = 2;
+      let roleIdx = 3;
+      let areaIdx = 4;
+      let boothIdx = 5;
+      let phoneIdx = 6;
+      let aadhaarIdx = 7;
+      let voterIdIdx = 8;
 
-      const mapArea = (rawArea: string) => {
-        if (!rawArea) return '';
-        const enArea = cleanRomanize(rawArea);
-        const cleanEn = enArea.toLowerCase().replace(/[^a-z0-9]/g, '');
-        
-        if (!cleanEn) return enArea;
-
-        const found = allAreas.find((a: string) => {
-           const cleanA = a.toLowerCase().replace(/[^a-z0-9]/g, '');
-           return cleanA === cleanEn;
+      if (headerRowIndex !== -1) {
+        const header = data[headerRowIndex];
+        header.forEach((cell, idx) => {
+          const text = String(cell || '').trim().toLowerCase();
+          if (text.includes('தந்தை') || text.includes('father')) {
+            fatherNameIdx = idx;
+          } else if (text.includes('பெயர்') || text.includes('name')) {
+            nameIdx = idx;
+          } else if (text.includes('பதவி') || text.includes('role') || text.includes('designation')) {
+            roleIdx = idx;
+          } else if (text.includes('பஞ்சாயத்து') || text.includes('கிராமம்') || text.includes('area') || text.includes('village') || text.includes('panchayat')) {
+            areaIdx = idx;
+          } else if (text.includes('வார்டு') || text.includes('வாக்குச்சாவடி') || text.includes('booth') || text.includes('ward')) {
+            boothIdx = idx;
+          } else if (text.includes('தொலைபேசி') || text.includes('phone') || text.includes('mobile') || text.includes('contact') || text.includes('cell')) {
+            phoneIdx = idx;
+          } else if (text.includes('ஆதார்') || text.includes('aadhaar') || text.includes('aadhar')) {
+            aadhaarIdx = idx;
+          } else if (text.includes('வாக்காளர்') || text.includes('உறுப்பினர்') || text.includes('voter') || text.includes('member')) {
+            voterIdIdx = idx;
+          }
         });
-        if (found) return found;
-        
-        const fuzzyFound = allAreas.find((a: string) => {
-           const cleanA = a.toLowerCase().replace(/[^a-z0-9]/g, '');
-           return cleanA.includes(cleanEn) || cleanEn.includes(cleanA);
-        });
-        
-        return fuzzyFound || enArea;
-      };
 
-      const mappedCadres: CreateCadreDto[] = rows.map((row) => {
-        let colIndex = 3;
-
-        let finalArea = '';
-        if (selectedAreas.length > 0) {
-          finalArea = selectedAreas.join(', ');
-        } else {
-          finalArea = mapArea(row[colIndex]?.toString() || '');
-          colIndex++;
-        }
-
-        let matchedBoothNo = '';
-        if (selectedBooths.length > 0) {
-          matchedBoothNo = selectedBooths.join(', ');
-        } else {
-          const rawBoothNo = row[colIndex]?.toString() || '';
-          colIndex++;
-          matchedBoothNo = rawBoothNo;
-          if (rawBoothNo) {
-            const cleanRaw = rawBoothNo.replace(/\s+/g, '').toLowerCase();
-            const found = booths.find((b: any) => b.boothNo.replace(/\s+/g, '').toLowerCase() === cleanRaw);
-            if (found) {
-              matchedBoothNo = found.boothNo;
+        // Check top metadata rows for Union or Kilai
+        for (let r = 0; r < headerRowIndex; r++) {
+          const row = data[r];
+          if (!row) continue;
+          for (let c = 0; c < row.length; c++) {
+            const cell = String(row[c] || '').trim().toLowerCase();
+            if ((cell === 'ஒன்றியம்' || cell === 'union') && !importUnionId) {
+              const uVal = String(row[c + 1] || '').trim();
+              if (uVal) {
+                const matched = unions.find((u: any) => 
+                  u.name?.toLowerCase().includes(uVal.toLowerCase()) || 
+                  uVal.toLowerCase().includes(u.name?.toLowerCase()) ||
+                  (u.tamilName && (u.tamilName.includes(uVal) || uVal.includes(u.tamilName)))
+                );
+                if (matched) setImportUnionId(String(matched.id));
+              }
+            }
+            if ((cell === 'கிளை' || cell === 'kilai' || cell === 'branch') && !importKilaiId) {
+              const kVal = String(row[c + 1] || '').trim();
+              if (kVal) {
+                const matched = kilais.find((k: any) => 
+                  k.name?.toLowerCase().includes(kVal.toLowerCase()) || 
+                  kVal.toLowerCase().includes(k.name?.toLowerCase()) ||
+                  (k.tamilName && (k.tamilName.includes(kVal) || kVal.includes(k.tamilName)))
+                );
+                if (matched) setImportKilaiId(String(matched.id));
+              }
             }
           }
         }
+      } else {
+        // Direct paste or data without header row: check if first column is numeric (S.No) or text (Name)
+        const firstRow = data.find(r => r && r.length > 0 && r.some(c => String(c || '').trim() !== ''));
+        if (firstRow) {
+          const col0 = String(firstRow[0] || '').trim();
+          if (col0 && !/^\d+$/.test(col0) && firstRow.length <= 8) {
+            // S.No was omitted
+            nameIdx = 0;
+            fatherNameIdx = 1;
+            roleIdx = 2;
+            areaIdx = 3;
+            boothIdx = 4;
+            phoneIdx = 5;
+            aadhaarIdx = 6;
+            voterIdIdx = 7;
+          }
+        }
+      }
 
-        const phone = row[colIndex]?.toString() || '';
-        colIndex++;
-        const aadhaarNumber = row[colIndex]?.toString() || '';
-        colIndex++;
-        const memberId = row[colIndex]?.toString() || '';
-        const voterId = row[colIndex]?.toString() || '';
+      // Filter rows after header
+      const dataRows = (headerRowIndex !== -1 ? data.slice(headerRowIndex + 1) : data).filter(row => {
+        if (!row || row.length === 0) return false;
+        const nameVal = String(row[nameIdx] || '').trim();
+        if (!nameVal) return false;
+        if (nameVal === 'பெயர்' || nameVal.toLowerCase() === 'name') return false;
+        return true;
+      });
+
+      const mappedCadres: ParsedCadre[] = dataRows.map((row) => {
+        const rawName = String(row[nameIdx] || '').trim();
+        const rawFatherName = fatherNameIdx !== -1 && row[fatherNameIdx] != null ? String(row[fatherNameIdx]).trim() : '';
+        const rawRole = roleIdx !== -1 && row[roleIdx] != null ? String(row[roleIdx]).trim() : '';
+        const rawArea = areaIdx !== -1 && row[areaIdx] != null ? String(row[areaIdx]).trim() : '';
+        const rawBoothNo = boothIdx !== -1 && row[boothIdx] != null ? String(row[boothIdx]).trim() : '';
+        const rawPhone = phoneIdx !== -1 && row[phoneIdx] != null ? String(row[phoneIdx]).trim() : '';
+        const rawAadhaar = aadhaarIdx !== -1 && row[aadhaarIdx] != null ? String(row[aadhaarIdx]).trim() : '';
+        const rawVoterId = voterIdIdx !== -1 && row[voterIdIdx] != null ? String(row[voterIdIdx]).trim() : '';
+
+        // Area: override or mapped from sheet
+        let finalArea = '';
+        if (selectedAreas.length > 0) {
+          finalArea = selectedAreas.join(', ');
+        } else if (rawArea) {
+          finalArea = mapArea(rawArea);
+        }
+
+        // Booth No: override or matched from sheet
+        let matchedBoothNo = '';
+        if (selectedBooths.length > 0) {
+          matchedBoothNo = selectedBooths.join(', ');
+        } else if (rawBoothNo) {
+          matchedBoothNo = rawBoothNo;
+          const cleanRaw = rawBoothNo.replace(/\s+/g, '').toLowerCase();
+          const found = booths.find((b: any) => b.boothNo && b.boothNo.replace(/\s+/g, '').toLowerCase() === cleanRaw);
+          if (found) {
+            matchedBoothNo = found.boothNo;
+          }
+        }
+
+        // Clean values
+        const cleanPhone = rawPhone.replace(/\.0$/, '').replace(/\s+/g, '');
+        const cleanAadhaar = rawAadhaar.replace(/\s+/g, ' ');
+        const cleanVoterId = rawVoterId;
+        const cleanMemberId = rawVoterId;
 
         return {
-          name: cleanRomanize(row[1]?.toString() || ''),
-          role: translateRole(row[2]?.toString() || ''),
+          name: cleanRomanize(rawName),
+          fatherName: cleanRomanize(rawFatherName),
+          role: translateRole(rawRole),
           area: finalArea,
           boothNo: matchedBoothNo,
-          phone: phone,
-          aadhaarNumber: aadhaarNumber,
-          memberId: memberId,
-          voterId: voterId,
+          phone: cleanPhone,
+          aadhaarNumber: cleanAadhaar,
+          memberId: cleanMemberId,
+          voterId: cleanVoterId,
           level: importLevel as any,
           unionId: importUnionId || undefined,
           homeKilaiId: importKilaiId || undefined,
@@ -203,19 +335,30 @@ export default function ImportCadresPage() {
       return;
     }
     if (importLevel === 'UNION' && !importUnionId) {
-      setImportError("Please select a Union");
+      setImportError("Please select an Organizational Unit");
       return;
     }
 
     setImportError(null);
     setDuplicateErrors([]);
     try {
-      const finalPayload = parsedCadres.map(c => ({
-        ...c,
-        level: importLevel as any,
-        unionId: importUnionId || undefined,
-        homeKilaiId: importKilaiId || undefined,
-      }));
+      const finalPayload = parsedCadres.map((c, idx) => {
+        // Exclude fatherName from finalPayload until fatherName is added to Prisma schema
+        const { fatherName, ...rest } = c;
+        const voterVal = rest.voterId?.trim() || '';
+        const memberVal = rest.memberId?.trim() || voterVal;
+
+        return {
+          ...rest,
+          phone: rest.phone?.trim() || undefined,
+          aadhaarNumber: rest.aadhaarNumber?.trim() || undefined,
+          voterId: voterVal || undefined,
+          memberId: memberVal || `TVK-M-${Date.now().toString().slice(-6)}-${idx + 1}`,
+          level: importLevel as any,
+          unionId: importUnionId || undefined,
+          homeKilaiId: importKilaiId || undefined,
+        };
+      });
       
       await bulkCreateMutation.mutateAsync(finalPayload);
       router.push('/cadres');
@@ -234,7 +377,7 @@ export default function ImportCadresPage() {
     if (!editingRow) return;
     const { index, ...rest } = editingRow;
     const newCadres = [...parsedCadres];
-    newCadres[index] = { ...rest } as CreateCadreDto;
+    newCadres[index] = { ...rest };
     setParsedCadres(newCadres);
     setEditingRow(null);
   };
@@ -248,20 +391,14 @@ export default function ImportCadresPage() {
     })));
   };
 
-  const handleAreaSelect = (area: string) => {
-    setSelectedAreas(prev => {
-      const newAreas = prev.includes(area) ? prev.filter(a => a !== area) : [...prev, area];
-      applyOverrides(newAreas, selectedBooths);
-      return newAreas;
-    });
+  const handleAreaChange = (newAreas: string[]) => {
+    setSelectedAreas(newAreas);
+    applyOverrides(newAreas, selectedBooths);
   };
 
-  const handleBoothSelect = (boothNo: string) => {
-    setSelectedBooths(prev => {
-      const newBooths = prev.includes(boothNo) ? prev.filter(b => b !== boothNo) : [...prev, boothNo];
-      applyOverrides(selectedAreas, newBooths);
-      return newBooths;
-    });
+  const handleBoothChange = (newBooths: string[]) => {
+    setSelectedBooths(newBooths);
+    applyOverrides(selectedAreas, newBooths);
   };
 
   return (
@@ -349,7 +486,7 @@ export default function ImportCadresPage() {
                 <Label>Area (Optional)</Label>
                 <AreaMultiSelect
                   value={selectedAreas}
-                  onChange={setSelectedAreas}
+                  onChange={handleAreaChange}
                   displayStyle="badges"
                 />
               </div>
@@ -358,7 +495,7 @@ export default function ImportCadresPage() {
                 <Label>Booth (Optional)</Label>
                 <BoothMultiSelect
                   value={selectedBooths}
-                  onChange={setSelectedBooths}
+                  onChange={handleBoothChange}
                   displayStyle="badges"
                 />
               </div>
@@ -398,7 +535,7 @@ export default function ImportCadresPage() {
               {duplicateErrors.length > 0 && (
                 <ul className="list-disc pl-5 mt-1 opacity-90 font-normal">
                   {duplicateErrors.map((err, i) => (
-                    <li key={i}>{err.name}</li>
+                    <li key={i}>{err.name} {err.reason ? `(${err.reason})` : ''}</li>
                   ))}
                 </ul>
               )}
@@ -434,10 +571,11 @@ export default function ImportCadresPage() {
 
           <div className="rounded-lg border border-primary/20 bg-card shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
-              <Table className="w-full min-w-[800px]">
+              <Table className="w-full min-w-[850px]">
                 <TableHeader className="bg-primary/5">
                   <TableRow>
                     <TableHead className="font-semibold text-primary py-4">Name</TableHead>
+                    <TableHead className="font-semibold text-primary py-4">Father&apos;s Name</TableHead>
                     <TableHead className="font-semibold text-primary py-4">Role</TableHead>
                     <TableHead className="font-semibold text-primary py-4">Area</TableHead>
                     <TableHead className="font-semibold text-primary py-4">Booth No</TableHead>
@@ -451,12 +589,13 @@ export default function ImportCadresPage() {
                   {parsedCadres.map((cadre, idx) => (
                     <TableRow key={idx} className="hover:bg-primary/5 transition-colors group">
                       <TableCell className="p-3 font-medium whitespace-nowrap">{cadre.name || <span className="text-red-500 text-xs">Required</span>}</TableCell>
-                      <TableCell className="p-3">{cadre.role}</TableCell>
-                      <TableCell className="p-3">{cadre.area}</TableCell>
-                      <TableCell className="p-3">{cadre.boothNo}</TableCell>
-                      <TableCell className="p-3">{cadre.phone}</TableCell>
-                      <TableCell className="p-3">{cadre.aadhaarNumber}</TableCell>
-                      <TableCell className="p-3">{cadre.voterId}</TableCell>
+                      <TableCell className="p-3 text-muted-foreground">{cadre.fatherName || '-'}</TableCell>
+                      <TableCell className="p-3">{cadre.role || '-'}</TableCell>
+                      <TableCell className="p-3">{cadre.area || '-'}</TableCell>
+                      <TableCell className="p-3">{cadre.boothNo || '-'}</TableCell>
+                      <TableCell className="p-3">{cadre.phone || '-'}</TableCell>
+                      <TableCell className="p-3">{cadre.aadhaarNumber || '-'}</TableCell>
+                      <TableCell className="p-3">{cadre.voterId || '-'}</TableCell>
                       <TableCell className="p-2 text-right sticky right-0 bg-card group-hover:bg-primary/5 transition-colors z-10 shadow-[-1px_0_0_rgba(0,0,0,0.05)]">
                         <div className="flex justify-end gap-1">
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" onClick={() => setEditingRow({ ...cadre, index: idx })}>
@@ -481,15 +620,21 @@ export default function ImportCadresPage() {
 
       {/* Edit Administrator Dialog */}
       <Dialog open={!!editingRow} onOpenChange={(open) => !open && setEditingRow(null)}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[450px]">
           <DialogHeader>
             <DialogTitle>Edit Administrator</DialogTitle>
           </DialogHeader>
           {editingRow && (
             <div className="grid gap-4 py-4">
-              <div className="space-y-2">
-                <Label>Name <span className="text-red-500">*</span></Label>
-                <Input value={editingRow.name} onChange={(e) => setEditingRow({ ...editingRow, name: e.target.value })} />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Name <span className="text-red-500">*</span></Label>
+                  <Input value={editingRow.name} onChange={(e) => setEditingRow({ ...editingRow, name: e.target.value })} />
+                </div>
+                <div className="space-y-2">
+                  <Label>Father&apos;s Name</Label>
+                  <Input value={editingRow.fatherName || ''} onChange={(e) => setEditingRow({ ...editingRow, fatherName: e.target.value })} placeholder="Father's name" />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -509,7 +654,7 @@ export default function ImportCadresPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Phone</Label>
-                  <Input value={editingRow.phone} onChange={(e) => setEditingRow({ ...editingRow, phone: e.target.value })} />
+                  <Input value={editingRow.phone || ''} onChange={(e) => setEditingRow({ ...editingRow, phone: e.target.value })} />
                 </div>
               </div>
               <div className="space-y-2 flex flex-col">
@@ -531,11 +676,11 @@ export default function ImportCadresPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Aadhaar</Label>
-                  <Input value={editingRow.aadhaarNumber} onChange={(e) => setEditingRow({ ...editingRow, aadhaarNumber: e.target.value })} />
+                  <Input value={editingRow.aadhaarNumber || ''} onChange={(e) => setEditingRow({ ...editingRow, aadhaarNumber: e.target.value })} />
                 </div>
                 <div className="space-y-2">
                   <Label>Voter ID</Label>
-                  <Input value={editingRow.voterId} onChange={(e) => setEditingRow({ ...editingRow, voterId: e.target.value, memberId: e.target.value })} />
+                  <Input value={editingRow.voterId || ''} onChange={(e) => setEditingRow({ ...editingRow, voterId: e.target.value, memberId: e.target.value })} />
                 </div>
               </div>
             </div>

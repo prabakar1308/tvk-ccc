@@ -42,15 +42,93 @@ export class CadreService {
   }
 
   async createBulk(payloads: any[]) {
-    const aadhaars = payloads.map((p) => p.aadhaarNumber).filter(Boolean);
-    const phones = payloads.map((p) => p.phone).filter(Boolean);
-    const voterIds = payloads.map((p) => p.voterId).filter(Boolean);
+    // Sanitize payloads: clean strings, ensure unique memberId, convert empty strings to null for unique/optional fields
+    const sanitizedPayloads = payloads.map((payload, idx) => {
+      const p = { ...payload };
+      const voterIdVal = p.voterId && String(p.voterId).trim() ? String(p.voterId).trim() : null;
+      const memberIdVal = p.memberId && String(p.memberId).trim() ? String(p.memberId).trim() : (voterIdVal || `TVK-M-${Date.now().toString().slice(-6)}-${idx + 1}`);
+
+      p.name = p.name ? String(p.name).trim() : 'Unknown';
+      p.memberId = memberIdVal;
+      p.voterId = voterIdVal;
+      p.phone = p.phone && String(p.phone).trim() ? String(p.phone).trim() : null;
+      p.aadhaarNumber = p.aadhaarNumber && String(p.aadhaarNumber).trim() ? String(p.aadhaarNumber).trim() : null;
+      p.role = p.role && String(p.role).trim() ? String(p.role).trim() : null;
+      p.area = p.area && String(p.area).trim() ? String(p.area).trim() : null;
+      p.boothNo = p.boothNo && String(p.boothNo).trim() ? String(p.boothNo).trim() : null;
+
+      // Remove non-schema fields if passed
+      delete p.fatherName;
+
+      return p;
+    });
+
+    // Check for duplicates within the uploaded batch
+    const seenPhones = new Map<string, string>();
+    const seenAadhaars = new Map<string, string>();
+    const seenVoterIds = new Map<string, string>();
+    const seenMemberIds = new Map<string, string>();
+    const intraBatchDuplicates: any[] = [];
+
+    for (const p of sanitizedPayloads) {
+      const reasons: string[] = [];
+      if (p.phone) {
+        if (seenPhones.has(p.phone)) {
+          reasons.push(`Phone duplicate with ${seenPhones.get(p.phone)}`);
+        } else {
+          seenPhones.set(p.phone, p.name);
+        }
+      }
+      if (p.aadhaarNumber) {
+        if (seenAadhaars.has(p.aadhaarNumber)) {
+          reasons.push(`Aadhaar duplicate with ${seenAadhaars.get(p.aadhaarNumber)}`);
+        } else {
+          seenAadhaars.set(p.aadhaarNumber, p.name);
+        }
+      }
+      if (p.voterId) {
+        if (seenVoterIds.has(p.voterId)) {
+          reasons.push(`Voter ID duplicate with ${seenVoterIds.get(p.voterId)}`);
+        } else {
+          seenVoterIds.set(p.voterId, p.name);
+        }
+      }
+      if (p.memberId) {
+        if (seenMemberIds.has(p.memberId)) {
+          reasons.push(`Member ID duplicate with ${seenMemberIds.get(p.memberId)}`);
+        } else {
+          seenMemberIds.set(p.memberId, p.name);
+        }
+      }
+      if (reasons.length > 0) {
+        intraBatchDuplicates.push({
+          name: p.name || 'Unknown',
+          phone: p.phone || '-',
+          aadhaarNumber: p.aadhaarNumber || '-',
+          voterId: p.voterId || '-',
+          reason: reasons.join(', '),
+        });
+      }
+    }
+
+    if (intraBatchDuplicates.length > 0) {
+      throw new BadRequestException({
+        message: 'Duplicate records found in the uploaded file',
+        duplicates: intraBatchDuplicates,
+      });
+    }
+
+    const aadhaars = sanitizedPayloads.map((p) => p.aadhaarNumber).filter(Boolean);
+    const phones = sanitizedPayloads.map((p) => p.phone).filter(Boolean);
+    const voterIds = sanitizedPayloads.map((p) => p.voterId).filter(Boolean);
+    const memberIds = sanitizedPayloads.map((p) => p.memberId).filter(Boolean);
 
     const orConditions: any[] = [];
     if (aadhaars.length > 0)
       orConditions.push({ aadhaarNumber: { in: aadhaars } });
     if (phones.length > 0) orConditions.push({ phone: { in: phones } });
     if (voterIds.length > 0) orConditions.push({ voterId: { in: voterIds } });
+    if (memberIds.length > 0) orConditions.push({ memberId: { in: memberIds } });
 
     if (orConditions.length > 0) {
       const existingRecords = await this.prisma.cadre.findMany({
@@ -60,6 +138,7 @@ export class CadreService {
           phone: true,
           aadhaarNumber: true,
           voterId: true,
+          memberId: true,
           level: true,
           unionId: true,
           homeKilaiId: true,
@@ -69,13 +148,14 @@ export class CadreService {
       if (existingRecords.length > 0) {
         const duplicates = [];
 
-        for (const payload of payloads) {
+        for (const payload of sanitizedPayloads) {
           const matching = existingRecords.find(
             (r) =>
               (payload.phone && r.phone === payload.phone) ||
               (payload.aadhaarNumber &&
                 r.aadhaarNumber === payload.aadhaarNumber) ||
-              (payload.voterId && r.voterId === payload.voterId),
+              (payload.voterId && r.voterId === payload.voterId) ||
+              (payload.memberId && r.memberId === payload.memberId),
           );
 
           if (matching) {
@@ -89,13 +169,15 @@ export class CadreService {
               reason.push('Aadhaar');
             if (payload.voterId && matching.voterId === payload.voterId)
               reason.push('Voter ID');
+            if (payload.memberId && matching.memberId === payload.memberId)
+              reason.push('Member ID');
 
             duplicates.push({
               name: payload.name || 'Unknown',
               phone: payload.phone || '-',
               aadhaarNumber: payload.aadhaarNumber || '-',
               voterId: payload.voterId || '-',
-              reason: `${reason.join(', ')} already exists`,
+              reason: `${reason.join(', ')} already exists in database`,
             });
           }
         }
@@ -110,7 +192,7 @@ export class CadreService {
     }
 
     const result = await this.prisma.cadre.createMany({
-      data: payloads,
+      data: sanitizedPayloads,
     });
 
     return { message: 'Cadres imported successfully', count: result.count };
