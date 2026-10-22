@@ -32,6 +32,12 @@ export class UnionsController {
     return this.unionsService.findAll();
   }
 
+  @Get('areas')
+  @ApiOperation({ summary: 'Get all master covered areas with Tamil translations' })
+  getMasterAreas() {
+    return this.unionsService.getMasterAreas();
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.unionsService.findOne(id);

@@ -2,14 +2,31 @@ import { Injectable } from '@nestjs/common';
 import { CreateUnionDto } from './dto/create-union.dto';
 import { UpdateUnionDto } from './dto/update-union.dto';
 import { PrismaService } from '../prisma/prisma.service';
-import { translateAreaToTamil } from '../i18n/area-translations';
+import { translateAreaToTamil, getMasterAreas } from '../i18n/area-translations';
+import { translatePersonNameToTamil } from '../i18n/name-translations';
+import { translateOrgUnitNameToTamil } from '../i18n/org-unit-translations';
 
 @Injectable()
 export class UnionsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  getMasterAreas() {
+    return getMasterAreas();
+  }
+
   async create(createUnionDto: CreateUnionDto) {
     const data: any = { ...createUnionDto };
+
+    if (data.name && typeof data.name === 'string') {
+      const taName = translateOrgUnitNameToTamil(data.name);
+      data.translations = {
+        ...(data.translations || {}),
+        ta: {
+          ...(data.translations?.ta || {}),
+          name: taName,
+        },
+      };
+    }
 
     if (data.areasCovered && Array.isArray(data.areasCovered)) {
       const taAreas = data.areasCovered.map((a: string) => translateAreaToTamil(a));
@@ -18,6 +35,17 @@ export class UnionsService {
         ta: {
           ...(data.translations?.ta || {}),
           areasCovered: taAreas,
+        },
+      };
+    }
+
+    if (data.contactName && typeof data.contactName === 'string') {
+      const taContact = translatePersonNameToTamil(data.contactName);
+      data.translations = {
+        ...(data.translations || {}),
+        ta: {
+          ...(data.translations?.ta || {}),
+          contactName: taContact,
         },
       };
     }
@@ -144,6 +172,24 @@ export class UnionsService {
   async update(id: string, updateUnionDto: UpdateUnionDto) {
     const data: any = { ...updateUnionDto };
 
+    if (data.name && typeof data.name === 'string') {
+      const existing = await this.prisma.union.findUnique({
+        where: { id },
+        select: { translations: true },
+      });
+      const currentTranslations = (existing?.translations as any) || {};
+      const taName = translateOrgUnitNameToTamil(data.name);
+      data.translations = {
+        ...currentTranslations,
+        ...(data.translations || {}),
+        ta: {
+          ...(currentTranslations.ta || {}),
+          ...(data.translations?.ta || {}),
+          name: taName,
+        },
+      };
+    }
+
     if (data.areasCovered && Array.isArray(data.areasCovered)) {
       const existing = await this.prisma.union.findUnique({
         where: { id },
@@ -158,6 +204,24 @@ export class UnionsService {
           ...(currentTranslations.ta || {}),
           ...(data.translations?.ta || {}),
           areasCovered: taAreas,
+        },
+      };
+    }
+
+    if (data.contactName && typeof data.contactName === 'string') {
+      const existing = await this.prisma.union.findUnique({
+        where: { id },
+        select: { translations: true },
+      });
+      const currentTranslations = (existing?.translations as any) || {};
+      const taContact = translatePersonNameToTamil(data.contactName);
+      data.translations = {
+        ...currentTranslations,
+        ...(data.translations || {}),
+        ta: {
+          ...(currentTranslations.ta || {}),
+          ...(data.translations?.ta || {}),
+          contactName: taContact,
         },
       };
     }

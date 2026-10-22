@@ -1,17 +1,20 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocale } from 'next-intl';
 import { unionApi, Union, CreateUnionDto } from '@/services/api/unions';
 
 export function useUnions() {
+  const locale = useLocale();
   return useQuery({
-    queryKey: ['unions'],
-    queryFn: unionApi.getAll,
+    queryKey: ['unions', locale],
+    queryFn: () => unionApi.getAll(locale),
   });
 }
 
 export function useUnion(id: string) {
+  const locale = useLocale();
   return useQuery({
-    queryKey: ['unions', id],
-    queryFn: () => unionApi.getById(id),
+    queryKey: ['unions', id, locale],
+    queryFn: () => unionApi.getById(id, locale),
     enabled: !!id,
   });
 }
@@ -50,3 +53,12 @@ export function useDeleteUnion() {
     },
   });
 }
+
+export function useMasterAreas() {
+  return useQuery({
+    queryKey: ['master-areas'],
+    queryFn: unionApi.getMasterAreas,
+    staleTime: 1000 * 60 * 60, // Cache for 1 hour
+  });
+}
+

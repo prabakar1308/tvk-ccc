@@ -2,9 +2,11 @@
 
 import React from 'react';
 import { Phone, Edit2, Trash2, Award, Shield, UserCheck, MapPin, Sparkles } from 'lucide-react';
+import { useLocale } from 'next-intl';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { translatePersonNameToTamil } from '@/lib/name-translations';
 
 export interface CadreCardData {
   id: string;
@@ -42,30 +44,60 @@ export interface CadreCardProps {
  * Format raw role strings like 'DISTRICT_SECRETARY' or 'EXECUTIVE_COMMITTEE_MEMBER'
  * into clean, readable designations.
  */
-function formatDesignation(rawRole?: string): string {
-  if (!rawRole) return 'Administrator';
-  
+function formatDesignation(rawRole?: string, locale: string = 'en'): string {
+  if (!rawRole) return locale === 'ta' ? 'நிர்வாகி' : 'Administrator';
+
+  // If already Tamil script
+  if (/[\u0B80-\u0BFF]/.test(rawRole)) return rawRole;
+
   const upper = rawRole.toUpperCase().trim();
-  if (
-    upper === 'EXECUTIVE_COMMITTEE_MEMBER' || 
-    upper === 'EXECUTIVE COMMITTEE MEMBER' ||
-    upper.includes('EXECUTIVE') ||
-    upper === 'EC' ||
-    upper === 'EC MEMBER' ||
-    upper === 'EC_MEMBER'
-  ) {
-    return 'EC Member';
+  if (locale === 'ta') {
+    if (
+      upper === 'EXECUTIVE_COMMITTEE_MEMBER' || 
+      upper === 'EXECUTIVE COMMITTEE MEMBER' ||
+      upper.includes('EXECUTIVE') ||
+      upper === 'EC' ||
+      upper === 'EC MEMBER' ||
+      upper === 'EC_MEMBER'
+    ) {
+      return 'செயற்குழு உறுப்பினர்';
+    }
+    if (upper === 'DISTRICT_SECRETARY') return 'மாவட்ட செயலாளர்';
+    if (upper === 'UNION_SECRETARY') return 'ஒன்றிய செயலாளர்';
+    if (upper === 'KILAI_SECRETARY') return 'கிளை செயலாளர்';
+    if (upper === 'SECRETARY') return 'செயலாளர்';
+    if (upper === 'UNION_PRESIDENT') return 'ஒன்றிய தலைவர்';
+    if (upper === 'KILAI_PRESIDENT') return 'கிளை தலைவர்';
+    if (upper === 'PRESIDENT') return 'தலைவர்';
+    if (upper === 'JOINT_SECRETARY') return 'இணைச் செயலாளர்';
+    if (upper === 'DEPUTY_SECRETARY') return 'துணைச் செயலாளர்';
+    if (upper === 'TREASURER') return 'பொருளாளர்';
+    if (upper === 'VICE_PRESIDENT') return 'துணைத் தலைவர்';
+    if (upper === 'COORDINATOR') return 'ஒருங்கிணைப்பாளர்';
+    if (upper === 'CO_COORDINATOR' || upper === 'CO-COORDINATOR') return 'இணை ஒருங்கிணைப்பாளர்';
+    if (upper === 'MEMBER') return 'உறுப்பினர்';
+  } else {
+    if (
+      upper === 'EXECUTIVE_COMMITTEE_MEMBER' || 
+      upper === 'EXECUTIVE COMMITTEE MEMBER' ||
+      upper.includes('EXECUTIVE') ||
+      upper === 'EC' ||
+      upper === 'EC MEMBER' ||
+      upper === 'EC_MEMBER'
+    ) {
+      return 'EC Member';
+    }
+    if (upper === 'DISTRICT_SECRETARY') return 'District Secretary';
+    if (upper === 'UNION_SECRETARY') return 'Union Secretary';
+    if (upper === 'KILAI_SECRETARY') return 'Kilai Secretary';
+    if (upper === 'UNION_PRESIDENT') return 'Union President';
+    if (upper === 'KILAI_PRESIDENT') return 'Kilai President';
+    if (upper === 'JOINT_SECRETARY') return 'Joint Secretary';
+    if (upper === 'DEPUTY_SECRETARY') return 'Deputy Secretary';
+    if (upper === 'TREASURER') return 'Treasurer';
+    if (upper === 'VICE_PRESIDENT') return 'Vice President';
+    if (upper === 'MEMBER') return 'Member';
   }
-  if (upper === 'DISTRICT_SECRETARY') return 'District Secretary';
-  if (upper === 'UNION_SECRETARY') return 'Union Secretary';
-  if (upper === 'KILAI_SECRETARY') return 'Kilai Secretary';
-  if (upper === 'UNION_PRESIDENT') return 'Union President';
-  if (upper === 'KILAI_PRESIDENT') return 'Kilai President';
-  if (upper === 'JOINT_SECRETARY') return 'Joint Secretary';
-  if (upper === 'DEPUTY_SECRETARY') return 'Deputy Secretary';
-  if (upper === 'TREASURER') return 'Treasurer';
-  if (upper === 'VICE_PRESIDENT') return 'Vice President';
-  if (upper === 'MEMBER') return 'Member';
 
   return rawRole
     .replace(/_/g, ' ')
@@ -88,8 +120,11 @@ function formatArea(area?: string): string | null {
 function getRoleBadgeConfig(designation: string, level?: string) {
   const lower = designation.toLowerCase().trim();
 
-  // Treasurer / Joint / Deputy / Incharge (Order before secretary so Joint/Deputy Secretary don't trigger general secretary)
-  if (lower.includes('joint') || lower.includes('deputy') || lower.includes('treasurer') || lower.includes('incharge')) {
+  // Treasurer / Joint / Deputy / Incharge
+  if (
+    lower.includes('joint') || lower.includes('deputy') || lower.includes('treasurer') || lower.includes('incharge') ||
+    lower.includes('இணை') || lower.includes('துணை') || lower.includes('பொருளாளர்')
+  ) {
     return {
       style: 'bg-gradient-to-r from-amber-500/20 via-[#FFC72C]/25 to-amber-500/20 text-amber-900 dark:text-amber-200 border border-amber-500/40 font-bold',
       icon: Award,
@@ -98,7 +133,10 @@ function getRoleBadgeConfig(designation: string, level?: string) {
   }
 
   // Secretary / President / Convener (High Leadership)
-  if (lower.includes('secretary') || lower.includes('president') || lower.includes('leader') || lower.includes('convener')) {
+  if (
+    lower.includes('secretary') || lower.includes('president') || lower.includes('leader') || lower.includes('convener') ||
+    lower.includes('செயலாளர்') || lower.includes('தலைவர்')
+  ) {
     return {
       style: 'bg-gradient-to-r from-[#8F0A1B] to-[#B81930] text-white shadow-xs border border-[#8F0A1B]/40',
       icon: Shield,
@@ -144,8 +182,9 @@ export const CadreCard: React.FC<CadreCardProps> = ({
   onDelete,
   onCall,
 }) => {
+  const locale = useLocale();
   const rawRole = cadre.officeBearerRoles?.[0]?.role || cadre.role || 'Member';
-  const designation = formatDesignation(rawRole);
+  const designation = formatDesignation(rawRole, locale);
   const badgeConfig = getRoleBadgeConfig(designation, cadre.level);
   
   // Highlight if explicit prop or primary Secretary/President leader
@@ -186,14 +225,18 @@ export const CadreCard: React.FC<CadreCardProps> = ({
   // Area / Location derivation (prioritizes cadre.area)
   const formattedArea = formatArea(cadre.area);
   const locationLabel = formattedArea 
-    ? (cadre.boothNo ? `${formattedArea} (Booth ${cadre.boothNo})` : formattedArea)
+    ? (cadre.boothNo ? `${formattedArea} (${locale === 'ta' ? 'சாவடி' : 'Booth'} ${cadre.boothNo})` : formattedArea)
     : cadre.homeKilai?.name 
       ? cadre.homeKilai.name 
       : cadre.union?.name 
         ? cadre.union.name 
         : cadre.district?.name 
-          ? `${cadre.district.name} Dist.` 
+          ? `${cadre.district.name} ${locale === 'ta' ? 'மாவட்டம்' : 'Dist.'}` 
           : null;
+
+  const displayName = cadre.name
+    ? (locale === 'ta' ? translatePersonNameToTamil(cadre.name) : cadre.name)
+    : (locale === 'ta' ? 'பெயரிடப்படாத நிர்வாகி' : 'Unnamed Administrator');
 
   return (
     <div
@@ -227,7 +270,7 @@ export const CadreCard: React.FC<CadreCardProps> = ({
           {isHighlighted && (
             <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full bg-gradient-to-r from-[#8F0A1B] to-[#B81930] text-white shadow-2xs">
               <Sparkles className="w-2.5 h-2.5 text-[#FFC72C]" />
-              Lead
+              {locale === 'ta' ? 'தலைமை' : 'Lead'}
             </span>
           )}
 
@@ -279,7 +322,7 @@ export const CadreCard: React.FC<CadreCardProps> = ({
         <div className="relative mb-3.5 group-hover:scale-105 transition-transform duration-300">
           <UserAvatar
             src={cadre.photoUrl}
-            name={cadre.name || 'Administrator'}
+            name={displayName}
             size="2xl"
             ring={isHighlighted ? 'primary' : 'default'}
             elevation={isHighlighted ? 'glow' : 'md'}
@@ -287,13 +330,13 @@ export const CadreCard: React.FC<CadreCardProps> = ({
           {/* Active status indicator dot */}
           <span 
             className="absolute bottom-1 right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-white dark:border-zinc-900 rounded-full shadow-xs" 
-            title="Active Administrator"
+            title={locale === 'ta' ? 'செயலில் உள்ள நிர்வாகி' : 'Active Administrator'}
           />
         </div>
 
         {/* Name */}
         <h3 className="font-heading font-extrabold text-[16px] sm:text-[17px] text-zinc-900 dark:text-zinc-100 leading-tight mb-2 group-hover:text-[#8F0A1B] transition-colors line-clamp-1 w-full px-1">
-          {cadre.name || 'Unnamed Administrator'}
+          {displayName}
         </h3>
 
         {/* Role / Designation Badge */}
@@ -321,7 +364,7 @@ export const CadreCard: React.FC<CadreCardProps> = ({
           {showLocation && locationLabel && (
             <div 
               className="flex items-center justify-center gap-1.5 text-[11px] sm:text-[12px] font-semibold text-zinc-600 dark:text-zinc-300 mt-2 max-w-full truncate px-2.5 py-0.5 rounded-full bg-zinc-100/90 dark:bg-zinc-800/80 border border-zinc-200/70 dark:border-zinc-700/60 shadow-2xs"
-              title={formattedArea ? `Area: ${locationLabel}` : locationLabel}
+              title={formattedArea ? `${locale === 'ta' ? 'பகுதி' : 'Area'}: ${locationLabel}` : locationLabel}
             >
               <MapPin className="w-3 h-3 text-[#8F0A1B] shrink-0" />
               <span className="truncate">{locationLabel}</span>
@@ -336,14 +379,14 @@ export const CadreCard: React.FC<CadreCardProps> = ({
           <button
             onClick={handleCallClick}
             className="w-full inline-flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-semibold text-emerald-700 dark:text-emerald-300 bg-emerald-50 hover:bg-emerald-100/90 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 border border-emerald-200/80 dark:border-emerald-800/60 shadow-2xs hover:shadow-xs transition-all active:scale-[0.98] cursor-pointer group/call"
-            title={`Call ${cadre.name} (${cadre.phone})`}
+            title={`${locale === 'ta' ? 'அழைக்க' : 'Call'} ${displayName} (${cadre.phone})`}
           >
             <Phone className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 group-hover/call:animate-bounce shrink-0" />
             <span className="font-mono tracking-tight">{cadre.phone}</span>
           </button>
         ) : (
           <div className="w-full py-2 text-center text-[11px] font-medium text-zinc-400 dark:text-zinc-500 italic">
-            No phone registered
+            {locale === 'ta' ? 'தொலைபேசி எண் பதிவு செய்யப்படவில்லை' : 'No phone registered'}
           </div>
         )}
       </div>

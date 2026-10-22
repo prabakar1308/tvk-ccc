@@ -19,7 +19,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { Link } from '@/i18n/routing';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import { useDashboardStats } from '@/hooks/use-dashboard';
 import { useCadres } from '@/hooks/use-cadres';
 import { useUser } from '@/contexts/user-context';
@@ -27,16 +27,24 @@ import { UserAvatar } from '@/components/ui/user-avatar';
 import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
 import { Button } from '@/components/ui/button';
 import { CadreViewDialog } from '@/components/cadre-view-dialog';
+import { translatePersonNameToTamil, translateRoleToTamil } from '@/lib/name-translations';
 
 export default function DashboardPage() {
   const t = useTranslations('Dashboard');
   const tCommon = useTranslations('Common');
+  const locale = useLocale();
   const { user } = useUser();
   const { data: stats, isLoading: statsLoading } = useDashboardStats();
   const { data: districtCadres, isLoading: cadresLoading } = useCadres({ level: 'DISTRICT' });
   
   const [callPerson, setCallPerson] = useState<{ name: string; phone: string } | null>(null);
   const [viewingCadre, setViewingCadre] = useState<any | null>(null);
+
+  const userName = user?.name
+    ? locale === 'ta'
+      ? translatePersonNameToTamil(user.name)
+      : user.name
+    : null;
 
   const handleInitiateCall = (phone: string, name: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -57,10 +65,12 @@ export default function DashboardPage() {
           </div>
           <div>
             <h2 className="text-base sm:text-lg font-extrabold text-zinc-900 dark:text-zinc-100 leading-tight">
-              {user?.name ? `Welcome, ${user.name}` : 'Welcome, TVK Cadre'}
+              {userName
+                ? t('welcomeUser', { name: userName })
+                : t('welcomeCadre')}
             </h2>
             <p className="text-xs font-semibold text-muted-foreground mt-0.5">
-              Kurinjipadi Assembly Constituency • Cuddalore East District
+              {t('constituencySubtitle')}
             </p>
           </div>
         </div>
@@ -127,7 +137,7 @@ export default function DashboardPage() {
         <div className="flex items-center justify-between">
           <h2 className="text-lg sm:text-xl font-extrabold text-zinc-900 dark:text-zinc-50 flex items-center gap-2">
             <div className="w-2 h-5 bg-[#8F0A1B] rounded-sm"></div>
-            Constituency Overview
+            {t('constituencyOverview')}
           </h2>
           <span className="text-xs font-semibold text-muted-foreground">
             {t('acrossConstituency')}
@@ -150,7 +160,7 @@ export default function DashboardPage() {
                   </div>
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border shadow-xs bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200/60 dark:border-blue-900/40">
                     <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
-                    Constituency Units
+                    {t('constituencyUnits')}
                   </span>
                 </div>
 
@@ -162,7 +172,7 @@ export default function DashboardPage() {
                   {t('totalUnions')}
                 </h4>
                 <p className="text-[12px] font-medium text-muted-foreground mt-0.5">
-                  Unions, towns & areas active
+                  {t('unionsTownsActive')}
                 </p>
               </div>
 
@@ -173,10 +183,10 @@ export default function DashboardPage() {
                   style={{ backgroundColor: '#548777' }}
                 >
                   <Building className="w-3.5 h-3.5 text-white" />
-                  <span>{stats?.totalUnions || 0} Org Units</span>
+                  <span>{t('orgUnitsCount', { count: stats?.totalUnions || 0 })}</span>
                 </div>
                 <span className="inline-flex items-center text-xs font-semibold text-zinc-500 group-hover:text-[#8F0A1B] dark:group-hover:text-red-400 transition-colors">
-                  View Units <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
+                  {t('viewUnits')} <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
                 </span>
               </div>
             </div>
@@ -197,7 +207,7 @@ export default function DashboardPage() {
                   </div>
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border shadow-xs bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-900/40">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                    Grassroots Network
+                    {t('grassrootsNetwork')}
                   </span>
                 </div>
 
@@ -209,7 +219,7 @@ export default function DashboardPage() {
                   {t('totalKilais')}
                 </h4>
                 <p className="text-[12px] font-medium text-muted-foreground mt-0.5">
-                  {t('registeredKilais')} in villages & wards
+                  {t('registeredKilais')} {t('inVillagesWards')}
                 </p>
               </div>
 
@@ -220,10 +230,10 @@ export default function DashboardPage() {
                   style={{ backgroundColor: '#548777' }}
                 >
                   <Layers className="w-3.5 h-3.5 text-white" />
-                  <span>{stats?.totalKilais || 0} Kilais</span>
+                  <span>{t('kilaisCount', { count: stats?.totalKilais || 0 })}</span>
                 </div>
                 <span className="inline-flex items-center text-xs font-semibold text-zinc-500 group-hover:text-[#8F0A1B] dark:group-hover:text-red-400 transition-colors">
-                  Explore Kilais <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
+                  {t('exploreKilais')} <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
                 </span>
               </div>
             </div>
@@ -244,7 +254,7 @@ export default function DashboardPage() {
                   </div>
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border shadow-xs bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-200/60 dark:border-purple-900/40">
                     <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
-                    Leadership Cadres
+                    {t('leadershipCadres')}
                   </span>
                 </div>
 
@@ -256,7 +266,7 @@ export default function DashboardPage() {
                   {t('totalCadres')}
                 </h4>
                 <p className="text-[12px] font-medium text-muted-foreground mt-0.5">
-                  {t('activeCadres')} & office bearers
+                  {t('activeCadres')} {t('andOfficeBearers')}
                 </p>
               </div>
 
@@ -267,10 +277,10 @@ export default function DashboardPage() {
                   style={{ backgroundColor: '#548777' }}
                 >
                   <Users className="w-3.5 h-3.5 text-white" />
-                  <span>{stats?.totalCadres || 0} Cadres</span>
+                  <span>{t('cadresCount', { count: stats?.totalCadres || 0 })}</span>
                 </div>
                 <span className="inline-flex items-center text-xs font-semibold text-zinc-500 group-hover:text-[#8F0A1B] dark:group-hover:text-red-400 transition-colors">
-                  Directory <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
+                  {t('directory')} <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
                 </span>
               </div>
             </div>
@@ -291,7 +301,7 @@ export default function DashboardPage() {
                   </div>
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border shadow-xs bg-orange-500/10 text-orange-700 dark:text-orange-400 border-orange-200/60 dark:border-orange-900/40">
                     <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
-                    Polling Stations
+                    {t('pollingStations')}
                   </span>
                 </div>
 
@@ -303,7 +313,7 @@ export default function DashboardPage() {
                   {t('totalBooths')}
                 </h4>
                 <p className="text-[12px] font-medium text-muted-foreground mt-0.5">
-                  Electoral booths allocated
+                  {t('electoralBoothsAllocated')}
                 </p>
               </div>
 
@@ -314,10 +324,10 @@ export default function DashboardPage() {
                   style={{ backgroundColor: '#548777' }}
                 >
                   <MapPin className="w-3.5 h-3.5 text-white" />
-                  <span>{stats?.totalBooths || 0} Booths</span>
+                  <span>{t('boothsCount', { count: stats?.totalBooths || 0 })}</span>
                 </div>
                 <span className="inline-flex items-center text-xs font-semibold text-zinc-500 group-hover:text-[#8F0A1B] dark:group-hover:text-red-400 transition-colors">
-                  Coverage <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
+                  {t('coverage')} <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
                 </span>
               </div>
             </div>
@@ -337,13 +347,13 @@ export default function DashboardPage() {
               </span>
             </h2>
             <p className="text-sm font-medium text-muted-foreground mt-0.5">
-              Cuddalore East District Executive Leadership & Core Committee
+              {t('districtSubtitle')}
             </p>
           </div>
 
           <Link href="/cadres?level=DISTRICT">
             <Button variant="outline" size="sm" className="h-9 px-4 rounded-xl border-primary/20 text-primary hover:bg-primary/5 font-semibold text-xs shadow-2xs">
-              View All Cadres
+              {t('viewAllCadres')}
               <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
             </Button>
           </Link>
@@ -375,7 +385,7 @@ export default function DashboardPage() {
                     {t('roleSecretary')}
                   </span>
                   <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                    District Head
+                    {t('districtHead')}
                   </span>
                 </div>
 
@@ -392,10 +402,10 @@ export default function DashboardPage() {
 
                 <div className="text-center w-full my-2">
                   <h3 className="font-extrabold text-[17px] sm:text-[18px] text-zinc-900 dark:text-zinc-50 leading-tight mb-1 group-hover:text-[#8F0A1B] transition-colors">
-                    {secretary.name}
+                    {locale === 'ta' ? translatePersonNameToTamil(secretary.name) : secretary.name}
                   </h3>
                   <p className="text-xs font-semibold text-muted-foreground">
-                    Cuddalore East District
+                    {t('cuddaloreEastDistrict')}
                   </p>
                   {secretary.memberId && (
                     <span className="inline-block mt-1 text-[10px] font-bold text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-2.5 py-0.5 rounded-full uppercase tracking-wider font-mono">
@@ -414,7 +424,7 @@ export default function DashboardPage() {
                   </button>
                 ) : (
                   <div className="w-full mt-3 py-2 text-center text-xs text-zinc-400 italic border border-dashed rounded-xl">
-                    No phone recorded
+                    {t('noPhoneRecorded')}
                   </div>
                 )}
               </div>
@@ -458,7 +468,7 @@ export default function DashboardPage() {
                           <div className="w-full flex justify-between items-center mb-2">
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
                               <UserCheck className="w-3 h-3 text-[#8F0A1B]" />
-                              {cadre.role || t('roleCadre')}
+                              {locale === 'ta' && cadre.role ? translateRoleToTamil(cadre.role) : (cadre.role || t('roleCadre'))}
                             </span>
                             
                           </div>
@@ -476,7 +486,7 @@ export default function DashboardPage() {
 
                           <div className="text-center w-full my-1">
                             <h4 className="font-extrabold text-[15px] sm:text-[16px] text-zinc-900 dark:text-zinc-100 line-clamp-1 leading-snug group-hover:text-[#8F0A1B] transition-colors">
-                              {cadre.name}
+                              {locale === 'ta' ? translatePersonNameToTamil(cadre.name) : cadre.name}
                             </h4>
                             {cadre.memberId && (
                               <span className="text-[10px] font-mono text-zinc-400">
@@ -490,11 +500,11 @@ export default function DashboardPage() {
                               onClick={(e) => handleInitiateCall(cadre?.phone || '', cadre.name, e)} 
                               className="w-full mt-3 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 hover:bg-emerald-100/90 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 py-2 rounded-xl transition-all active:scale-95 shadow-2xs cursor-pointer group/itemcall"
                             >
-                              <Phone className="w-3 h-3 group-hover/itemcall:animate-bounce" />
+                              <Phone className="w-3.5 h-3.5 group-hover/itemcall:animate-bounce" />
                               <span>{cadre.phone}</span>
                             </button>
                           ) : (
-                            <span className="text-[11px] text-zinc-400 italic mt-3">No contact number</span>
+                            <span className="text-[11px] text-zinc-400 italic mt-3">{t('noContactNumber')}</span>
                           )}
                         </div>
                       </div>
@@ -510,14 +520,14 @@ export default function DashboardPage() {
               <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-400 mb-3">
                 <Users className="w-6 h-6" />
               </div>
-              <p className="text-sm font-bold text-zinc-700 dark:text-zinc-300">No other district administrators registered</p>
+              <p className="text-sm font-bold text-zinc-700 dark:text-zinc-300">{t('noOtherDistrictCadres')}</p>
               <p className="text-xs text-muted-foreground mt-1 max-w-xs">
-                Additional district committee members and office bearers will be listed here.
+                {t('additionalDistrictCadresDesc')}
               </p>
               <Link href="/cadres" className="mt-4">
                 <Button variant="outline" size="sm" className="rounded-xl text-xs font-semibold border-primary/20 text-primary hover:bg-primary/5">
                   <Users className="w-3.5 h-3.5 mr-1.5" />
-                  Manage District Cadres
+                  {t('manageDistrictCadres')}
                 </Button>
               </Link>
             </div>
@@ -551,19 +561,19 @@ export default function DashboardPage() {
                     <Network className="h-5 w-5" />
                   </div>
                   <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-700 border border-purple-200/60">
-                    Fronts & Wings
+                    {t('frontsWings')}
                   </span>
                 </div>
                 <h3 className="font-extrabold text-[16px] text-zinc-900 dark:text-zinc-100 group-hover:text-[#8F0A1B] transition-colors mb-1">
-                  Specialised Wings
+                  {t('specialisedWings')}
                 </h3>
                 <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
-                  Youth, Women, Students, IT & other affiliated party wings.
+                  {t('wingsDesc')}
                 </p>
               </div>
 
               <div className="flex items-center justify-between pt-3 mt-4 border-t border-zinc-100 dark:border-zinc-800 text-xs font-semibold text-zinc-500 group-hover:text-[#8F0A1B] transition-colors">
-                <span>Manage Wings</span>
+                <span>{t('manageWings')}</span>
                 <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </div>
             </div>
@@ -580,19 +590,19 @@ export default function DashboardPage() {
                     <MapPin className="h-5 w-5" />
                   </div>
                   <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-700 border border-orange-200/60">
-                    Electoral
+                    {t('electoral')}
                   </span>
                 </div>
                 <h3 className="font-extrabold text-[16px] text-zinc-900 dark:text-zinc-100 group-hover:text-[#8F0A1B] transition-colors mb-1">
-                  Polling Booths
+                  {t('pollingBooths')}
                 </h3>
                 <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
-                  Booth allocations, voters coverage & booth level in-charges.
+                  {t('boothsDesc')}
                 </p>
               </div>
 
               <div className="flex items-center justify-between pt-3 mt-4 border-t border-zinc-100 dark:border-zinc-800 text-xs font-semibold text-zinc-500 group-hover:text-[#8F0A1B] transition-colors">
-                <span>Booth Mapping</span>
+                <span>{t('boothMapping')}</span>
                 <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </div>
             </div>
@@ -609,19 +619,19 @@ export default function DashboardPage() {
                     <Megaphone className="h-5 w-5" />
                   </div>
                   <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 border border-amber-200/60">
-                    Official
+                    {t('official')}
                   </span>
                 </div>
                 <h3 className="font-extrabold text-[16px] text-zinc-900 dark:text-zinc-100 group-hover:text-[#8F0A1B] transition-colors mb-1">
-                  Announcements
+                  {t('announcements')}
                 </h3>
                 <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
-                  Press releases, party directives & official communications.
+                  {t('announcementsDesc')}
                 </p>
               </div>
 
               <div className="flex items-center justify-between pt-3 mt-4 border-t border-zinc-100 dark:border-zinc-800 text-xs font-semibold text-zinc-500 group-hover:text-[#8F0A1B] transition-colors">
-                <span>View Bulletins</span>
+                <span>{t('viewBulletins')}</span>
                 <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </div>
             </div>
@@ -638,19 +648,19 @@ export default function DashboardPage() {
                     <BarChart2 className="h-5 w-5" />
                   </div>
                   <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 border border-emerald-200/60">
-                    Insights
+                    {t('insights')}
                   </span>
                 </div>
                 <h3 className="font-extrabold text-[16px] text-zinc-900 dark:text-zinc-100 group-hover:text-[#8F0A1B] transition-colors mb-1">
-                  Analytics & Reports
+                  {t('analyticsReports')}
                 </h3>
                 <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
-                  Constituency growth trends, cadre metrics & coverage reports.
+                  {t('analyticsDesc')}
                 </p>
               </div>
 
               <div className="flex items-center justify-between pt-3 mt-4 border-t border-zinc-100 dark:border-zinc-800 text-xs font-semibold text-zinc-500 group-hover:text-[#8F0A1B] transition-colors">
-                <span>View Analytics</span>
+                <span>{t('viewAnalytics')}</span>
                 <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </div>
             </div>

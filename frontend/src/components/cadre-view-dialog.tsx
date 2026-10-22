@@ -15,8 +15,10 @@ import { useKilais } from '@/hooks/use-kilais';
 import { useBooths } from '@/hooks/use-booths';
 import { useDistricts } from '@/hooks/use-districts';
 import { useState } from 'react';
+import { useLocale } from 'next-intl';
 import { FileText, X } from "lucide-react";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { translatePersonNameToTamil } from '@/lib/name-translations';
 
 export interface CadreViewDialogProps {
   isOpen: boolean;
@@ -33,11 +35,16 @@ export function CadreViewDialog({
   const { data: unions = [] } = useUnions();
   const { data: kilais = [] } = useKilais();
   const { data: booths = [] } = useBooths();
+  const locale = useLocale();
   
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewTitle, setPreviewTitle] = useState<string>('');
 
   if (!cadre) return null;
+
+  const displayName = cadre.name
+    ? (locale === 'ta' ? translatePersonNameToTamil(cadre.name) : cadre.name)
+    : (locale === 'ta' ? 'நிர்வாகி' : 'Administrator');
 
   const district = districts.find((d: any) => String(d.id) === cadre.districtId);
   const union = unions.find((u: any) => String(u.id || u._id) === cadre.unionId);
@@ -76,12 +83,12 @@ export function CadreViewDialog({
              <div className="flex flex-col items-center gap-1.5 shrink-0">
                <UserAvatar 
                  src={cadre.photoUrl} 
-                 name={cadre.name} 
+                 name={displayName} 
                  size="2xl" 
                  ring="primary" 
                  elevation="glow" 
                  showZoomOnHover={Boolean(cadre.photoUrl)}
-                 onZoomClick={cadre.photoUrl ? () => openPreview(cadre.photoUrl, cadre.name) : undefined}
+                 onZoomClick={cadre.photoUrl ? () => openPreview(cadre.photoUrl, displayName) : undefined}
                />
                {cadre.photoUrl && (
                  <span className="text-[10px] font-semibold text-primary/70 hover:text-primary cursor-pointer transition-colors">
@@ -90,7 +97,7 @@ export function CadreViewDialog({
                )}
              </div>
              <div className="flex-1 text-center sm:text-left pt-1">
-                <h3 className="text-2xl font-black text-gray-900 dark:text-zinc-100 tracking-tight">{cadre.name}</h3>
+                <h3 className="text-2xl font-black text-gray-900 dark:text-zinc-100 tracking-tight">{displayName}</h3>
                 <div className="mt-1.5 flex flex-wrap items-center justify-center sm:justify-start gap-2">
                   <span className="text-xs font-mono font-bold text-muted-foreground bg-white dark:bg-zinc-800 px-2.5 py-0.5 rounded-full border border-gray-200 dark:border-zinc-700 shadow-2xs">{cadre.memberId}</span>
                   <span className="text-gray-300 dark:text-zinc-600">•</span>

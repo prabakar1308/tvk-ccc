@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import { useUnion } from '@/hooks/use-unions';
 import { ArrowLeft, Store, Building2, Users, Phone, Edit2, Trash2 } from 'lucide-react';
 import { Link } from '@/i18n/routing';
+import { useLocale } from 'next-intl';
 import { useDeleteCadre } from '@/hooks/use-cadres';
 import { useState } from 'react';
 import { CadreFormDialog } from '@/components/cadre-form-dialog';
@@ -14,6 +15,7 @@ import { Plus } from 'lucide-react';
 import { CadreCard } from '@/components/cadre-card';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { useQueryClient } from '@tanstack/react-query';
+import { getOrgUnitName, getUnitTypeLabel } from '@/lib/org-unit-translations';
 import {
   Dialog,
   DialogContent,
@@ -24,6 +26,7 @@ import {
 } from "@/components/ui/dialog";
 
 export default function UnionDetailsPage() {
+  const locale = useLocale();
   const { id } = useParams();
   const { data: union, isLoading } = useUnion(id as string);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -45,8 +48,8 @@ export default function UnionDetailsPage() {
     setDeleteConfirmation(id);
   };
 
-  if (isLoading) return <div className="p-8 text-center text-gray-500 font-medium">Loading org unit details...</div>;
-  if (!union) return <div className="p-8 text-center text-red-500 font-bold">Org unit not found</div>;
+  if (isLoading) return <div className="p-8 text-center text-gray-500 font-medium">{locale === 'ta' ? 'அமைப்பு அலகு விவரங்களை ஏற்றுகிறது...' : 'Loading org unit details...'}</div>;
+  if (!union) return <div className="p-8 text-center text-red-500 font-bold">{locale === 'ta' ? 'அமைப்பு அலகு கிடைக்கவில்லை' : 'Org unit not found'}</div>;
 
   return (
     <div className="space-y-6 sm:space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both">
@@ -57,14 +60,14 @@ export default function UnionDetailsPage() {
             <ArrowLeft className="w-5 h-5 text-gray-700" />
           </Link>
           <div>
-            <h1 className="text-xl sm:text-lg md:text-xl lg:text-2xl font-heading font-bold text-gray-900">{union.name}</h1>
+            <h1 className="text-xl sm:text-lg md:text-xl lg:text-2xl font-heading font-bold text-gray-900">{getOrgUnitName(union, locale)}</h1>
             <p className="text-muted-foreground font-medium mt-1">
-              {union.district?.name || 'Unknown'} District • {union.group === 'KURINJIPADI' ? 'Kurinjipadi' : union.group === 'CUDDALORE' ? 'Cuddalore' : union.group} • {union.unitType === 'TOWN_PANCHAYAT' ? 'Town Panchayat' : union.unitType ? union.unitType.charAt(0) + union.unitType.slice(1).toLowerCase() : 'Union'}
+              {union.district?.name || 'Unknown'} {locale === 'ta' ? 'மாவட்டம்' : 'District'} • {union.group === 'KURINJIPADI' ? (locale === 'ta' ? 'குறிஞ்சிப்பாடி' : 'Kurinjipadi') : union.group === 'CUDDALORE' ? (locale === 'ta' ? 'கடலூர்' : 'Cuddalore') : union.group} • {getUnitTypeLabel(union.unitType, locale)}
             </p>
           </div>
         </div>
         <Button onClick={() => { setEditingId(null); setIsModalOpen(true); }} className="bg-primary hover:bg-primary/90 text-white font-semibold shadow-md h-11 px-6 rounded-lg transition-transform active:scale-95">
-          <Plus className="mr-2 h-5 w-5" /> Register Administrator
+          <Plus className="mr-2 h-5 w-5" /> {locale === 'ta' ? 'நிர்வாகியை பதிவு செய்' : 'Register Administrator'}
         </Button>
       </div>
 
@@ -79,9 +82,9 @@ export default function UnionDetailsPage() {
             <Store className="w-6 h-6 sm:w-8 sm:h-8 text-green-500" />
           </div>
           <div className="flex-1">
-            <p className="text-[12px] sm:text-[13px] font-semibold text-gray-800">Total Kilais</p>
+            <p className="text-[12px] sm:text-[13px] font-semibold text-gray-800">{locale === 'ta' ? 'மொத்த கிளைகள்' : 'Total Kilais'}</p>
             <h3 className="text-[22px] sm:text-[28px] font-bold text-gray-900 leading-tight">{union._count?.kilais || 0}</h3>
-            <p className="text-[10px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1">In this org unit</p>
+            <p className="text-[10px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1">{locale === 'ta' ? 'இந்த அமைப்பு அலகில்' : 'In this org unit'}</p>
           </div>
         </Link>
 
@@ -91,9 +94,9 @@ export default function UnionDetailsPage() {
             <Building2 className="w-6 h-6 sm:w-8 sm:h-8 text-orange-500" />
           </div>
           <div className="flex-1">
-            <p className="text-[12px] sm:text-[13px] font-semibold text-gray-800">Total Booths</p>
+            <p className="text-[12px] sm:text-[13px] font-semibold text-gray-800">{locale === 'ta' ? 'மொத்த சாவடிகள்' : 'Total Booths'}</p>
             <h3 className="text-[22px] sm:text-[28px] font-bold text-gray-900 leading-tight">{union.totalBooths || 0}</h3>
-            <p className="text-[10px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1">In this org unit</p>
+            <p className="text-[10px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1">{locale === 'ta' ? 'இந்த அமைப்பு அலகில்' : 'In this org unit'}</p>
           </div>
         </div>
 
@@ -103,9 +106,9 @@ export default function UnionDetailsPage() {
             <Users className="w-6 h-6 sm:w-8 sm:h-8 text-purple-500" />
           </div>
           <div className="flex-1">
-            <p className="text-[12px] sm:text-[13px] font-semibold text-gray-800">Total Administrators</p>
+            <p className="text-[12px] sm:text-[13px] font-semibold text-gray-800">{locale === 'ta' ? 'மொத்த நிர்வாகிகள்' : 'Total Administrators'}</p>
             <h3 className="text-[22px] sm:text-[28px] font-bold text-gray-900 leading-tight">{(union._count?.cadres || 0).toLocaleString()}</h3>
-            <p className="text-[10px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1">Active across this org unit</p>
+            <p className="text-[10px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1">{locale === 'ta' ? 'இந்த அமைப்பு அலகில் செயலில் உள்ளனர்' : 'Active across this org unit'}</p>
           </div>
         </Link>
       </div>
@@ -114,7 +117,7 @@ export default function UnionDetailsPage() {
       {union.areasCovered && union.areasCovered.length > 0 && (
         <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-sm border border-gray-100">
           <div className="flex items-center gap-3 mb-4">
-            <h2 className="text-lg font-bold text-gray-900 tracking-wide">Areas Covered</h2>
+            <h2 className="text-lg font-bold text-gray-900 tracking-wide">{locale === 'ta' ? 'உட்பட்ட பகுதிகள்' : 'Areas Covered'}</h2>
             <span className="bg-primary/10 text-primary px-2.5 py-0.5 rounded-full text-sm font-bold border border-primary/20">
               {union.areasCovered.length}
             </span>
@@ -132,7 +135,7 @@ export default function UnionDetailsPage() {
       {/* Cadres Grid */}
       <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-8 shadow-sm border border-gray-100">
         <div className="flex items-center gap-3 mb-6">
-          <h2 className="text-lg font-bold text-gray-900 tracking-wide">Org Unit Administrators</h2>
+          <h2 className="text-lg font-bold text-gray-900 tracking-wide">{locale === 'ta' ? 'அமைப்பு அலகு நிர்வாகிகள்' : 'Org Unit Administrators'}</h2>
           <span className="bg-primary/10 text-primary px-2.5 py-0.5 rounded-full text-sm font-bold border border-primary/20">
             {union.unionCadres?.length || 0}
           </span>
@@ -140,7 +143,7 @@ export default function UnionDetailsPage() {
         
         {!union.unionCadres || union.unionCadres.length === 0 ? (
           <div className="text-center py-12 text-zinc-500 font-medium bg-zinc-50 dark:bg-zinc-800/40 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800">
-            No administrators registered for this org unit yet.
+            {locale === 'ta' ? 'இந்த அமைப்பு அலகிற்கு இதுவரை நிர்வாகிகள் பதிவு செய்யப்படவில்லை.' : 'No administrators registered for this org unit yet.'}
           </div>
         ) : (
           <div className="grid gap-5 sm:gap-6 [grid-template-columns:repeat(auto-fill,minmax(240px,1fr))]">

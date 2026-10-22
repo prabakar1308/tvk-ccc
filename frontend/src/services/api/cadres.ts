@@ -41,14 +41,22 @@ export type CreateCadreDto = Omit<Cadre, 'id' | 'createdAt' | 'updatedAt'>;
 export type UpdateCadreDto = Partial<CreateCadreDto>;
 
 export const cadreApi = {
-  getAll: async (params?: Record<string, string>): Promise<Cadre[]> => {
-    const query = new URLSearchParams(params).toString();
-    const res = await fetchWithAuth(`/api/v1/cadres${query ? `?${query}` : ''}`);
+  getAll: async (params?: Record<string, string>, locale?: string): Promise<Cadre[]> => {
+    const searchParams = new URLSearchParams(params);
+    if (locale) searchParams.set('lang', locale);
+    const query = searchParams.toString();
+    const res = await fetchWithAuth(
+      `/api/v1/cadres${query ? `?${query}` : ''}`,
+      locale ? { headers: { 'Accept-Language': locale } } : {}
+    );
     return res.json();
   },
   
-  getById: async (id: string): Promise<Cadre> => {
-    const res = await fetchWithAuth(`/api/v1/cadres/${id}`);
+  getById: async (id: string, locale?: string): Promise<Cadre> => {
+    const res = await fetchWithAuth(
+      `/api/v1/cadres/${id}${locale ? `?lang=${locale}` : ''}`,
+      locale ? { headers: { 'Accept-Language': locale } } : {}
+    );
     return res.json();
   },
 

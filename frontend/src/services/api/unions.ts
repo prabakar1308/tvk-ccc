@@ -37,13 +37,15 @@ export interface CreateUnionDto {
 }
 
 export const unionApi = {
-  getAll: async (): Promise<Union[]> => {
-    const res = await fetchWithAuth('/api/v1/unions');
+  getAll: async (locale?: string): Promise<Union[]> => {
+    const url = locale ? `/api/v1/unions?lang=${locale}` : '/api/v1/unions';
+    const res = await fetchWithAuth(url);
     return res.json();
   },
 
-  getById: async (id: string): Promise<Union> => {
-    const res = await fetchWithAuth(`/api/v1/unions/${id}`);
+  getById: async (id: string, locale?: string): Promise<Union> => {
+    const url = locale ? `/api/v1/unions/${id}?lang=${locale}` : `/api/v1/unions/${id}`;
+    const res = await fetchWithAuth(url);
     return res.json();
   },
 
@@ -67,5 +69,10 @@ export const unionApi = {
     await fetchWithAuth(`/api/v1/unions/${id}`, {
       method: 'DELETE',
     });
+  },
+
+  getMasterAreas: async (): Promise<{ name: string; nameTa: string }[]> => {
+    const res = await fetchWithAuth('/api/v1/unions/areas');
+    return res.json();
   },
 };

@@ -1,17 +1,20 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocale } from 'next-intl';
 import { cadreApi, CreateCadreDto, UpdateCadreDto } from '@/services/api/cadres';
 
 export function useCadres(params?: Record<string, string>) {
+  const locale = useLocale();
   return useQuery({
-    queryKey: ['cadres', params],
-    queryFn: () => cadreApi.getAll(params),
+    queryKey: ['cadres', params, locale],
+    queryFn: () => cadreApi.getAll(params, locale),
   });
 }
 
 export function useCadre(id: string) {
+  const locale = useLocale();
   return useQuery({
-    queryKey: ['cadre', id],
-    queryFn: () => cadreApi.getById(id),
+    queryKey: ['cadre', id, locale],
+    queryFn: () => cadreApi.getById(id, locale),
     enabled: !!id,
   });
 }

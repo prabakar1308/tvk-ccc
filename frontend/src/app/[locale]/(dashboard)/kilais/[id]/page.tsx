@@ -1,7 +1,9 @@
 'use client';
 
 import { useParams } from 'next/navigation';
+import { useLocale } from 'next-intl';
 import { useKilai } from '@/hooks/use-kilais';
+import { getOrgUnitName } from '@/lib/org-unit-translations';
 import { ArrowLeft, MapPin, Building2, Users, Tent, Phone } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { useState } from 'react';
@@ -24,6 +26,7 @@ import {
 
 export default function KilaiDetailsPage() {
   const { id } = useParams();
+  const locale = useLocale();
   const { data: kilai, isLoading } = useKilai(id as string);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -44,8 +47,8 @@ export default function KilaiDetailsPage() {
     setDeleteConfirmation(cadreId);
   };
 
-  if (isLoading) return <div className="p-8 text-center text-gray-500 font-medium">Loading kilai details...</div>;
-  if (!kilai) return <div className="p-8 text-center text-red-500 font-bold">Kilai not found</div>;
+  if (isLoading) return <div className="p-8 text-center text-gray-500 font-medium">{locale === 'ta' ? 'கிளை விவரங்கள் ஏற்றப்படுகின்றன...' : 'Loading kilai details...'}</div>;
+  if (!kilai) return <div className="p-8 text-center text-red-500 font-bold">{locale === 'ta' ? 'கிளை கிடைக்கவில்லை' : 'Kilai not found'}</div>;
 
   const kilaiData: any = kilai;
 
@@ -61,12 +64,12 @@ export default function KilaiDetailsPage() {
             <h1 className="text-xl sm:text-lg md:text-xl lg:text-2xl font-heading font-bold text-gray-900">{kilaiData.name} {kilaiData.tamilName && <span className="text-xl font-normal text-muted-foreground">({kilaiData.tamilName})</span>}</h1>
             <p className="text-muted-foreground font-medium mt-1 flex items-center gap-1.5">
               <Building2 className="w-4 h-4" />
-              Union: {kilaiData.union?.name || 'Unknown'}
+              {locale === 'ta' ? 'அமைப்பு அலகு' : 'Union'}: {getOrgUnitName(kilaiData.union, locale) || (locale === 'ta' ? 'தெரியவில்லை' : 'Unknown')}
             </p>
           </div>
         </div>
         <Button onClick={() => setIsModalOpen(true)} className="bg-primary hover:bg-primary/90 text-white font-semibold shadow-md h-11 px-6 rounded-lg transition-transform active:scale-95">
-          <Plus className="mr-2 h-5 w-5" /> Register Administrator
+          <Plus className="mr-2 h-5 w-5" /> {locale === 'ta' ? 'நிர்வாகியை பதிவு செய்' : 'Register Administrator'}
         </Button>
       </div>
 
@@ -78,7 +81,9 @@ export default function KilaiDetailsPage() {
             <Tent className="w-6 h-6 sm:w-8 sm:h-8 text-orange-500" />
           </div>
           <div className="flex-1">
-            <p className="text-[12px] sm:text-[13px] font-semibold text-gray-800">Linked Booths</p>
+            <p className="text-[12px] sm:text-[13px] font-semibold text-gray-800">
+              {locale === 'ta' ? 'இணைக்கப்பட்ட சாவடிகள்' : 'Linked Booths'}
+            </p>
             {kilaiData.booths && kilaiData.booths.length > 0 ? (
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {kilaiData.booths.map((booth: any) => (
@@ -88,7 +93,9 @@ export default function KilaiDetailsPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-500 mt-1">No booths linked</p>
+              <p className="text-sm text-gray-500 mt-1">
+                {locale === 'ta' ? 'சாவடிகள் இணைக்கப்படவில்லை' : 'No booths linked'}
+              </p>
             )}
           </div>
         </div>
@@ -99,7 +106,9 @@ export default function KilaiDetailsPage() {
             <MapPin className="w-6 h-6 sm:w-8 sm:h-8 text-green-500" />
           </div>
           <div className="flex-1">
-            <p className="text-[12px] sm:text-[13px] font-semibold text-gray-800">Linked Villages / Areas</p>
+            <p className="text-[12px] sm:text-[13px] font-semibold text-gray-800">
+              {locale === 'ta' ? 'இணைக்கப்பட்ட கிராமங்கள் / பகுதிகள்' : 'Linked Villages / Areas'}
+            </p>
             {kilaiData.villages && kilaiData.villages.length > 0 ? (
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {kilaiData.villages.map((area: string) => (
@@ -109,7 +118,9 @@ export default function KilaiDetailsPage() {
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-500 mt-1">No areas linked</p>
+              <p className="text-sm text-gray-500 mt-1">
+                {locale === 'ta' ? 'பகுதிகள் இணைக்கப்படவில்லை' : 'No areas linked'}
+              </p>
             )}
           </div>
         </div>
@@ -120,20 +131,26 @@ export default function KilaiDetailsPage() {
             <Users className="w-6 h-6 sm:w-8 sm:h-8 text-purple-500" />
           </div>
           <div className="flex-1">
-            <p className="text-[12px] sm:text-[13px] font-semibold text-gray-800">Total Administrators</p>
+            <p className="text-[12px] sm:text-[13px] font-semibold text-gray-800">
+              {locale === 'ta' ? 'மொத்த நிர்வாகிகள்' : 'Total Administrators'}
+            </p>
             <h3 className="text-[22px] sm:text-[28px] font-bold text-gray-900 leading-tight">{(kilaiData.kilaiCadres?.length || 0).toLocaleString()}</h3>
-            <p className="text-[10px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1">Active in this kilai</p>
+            <p className="text-[10px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1">
+              {locale === 'ta' ? 'இந்த கிளையில் செயலில் உள்ளனர்' : 'Active in this kilai'}
+            </p>
           </div>
         </div>
       </div>
 
       {/* Cadres Grid */}
       <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-8 shadow-sm border border-gray-100">
-        <h2 className="text-lg font-bold text-gray-900 tracking-wide mb-6">Kilai Cadres (Office Bearers)</h2>
+        <h2 className="text-lg font-bold text-gray-900 tracking-wide mb-6">
+          {locale === 'ta' ? 'கிளை நிர்வாகிகள் (பொறுப்பாளர்கள்)' : 'Kilai Cadres (Office Bearers)'}
+        </h2>
         
         {!kilaiData.kilaiCadres || kilaiData.kilaiCadres.length === 0 ? (
           <div className="text-center py-12 text-zinc-500 font-medium bg-zinc-50 dark:bg-zinc-800/40 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800">
-            No administrators registered for this Kilai yet.
+            {locale === 'ta' ? 'இந்த கிளைக்கு இதுவரை நிர்வாகிகள் பதிவு செய்யப்படவில்லை.' : 'No administrators registered for this Kilai yet.'}
           </div>
         ) : (
           <div className="grid gap-5 sm:gap-6 [grid-template-columns:repeat(auto-fill,minmax(240px,1fr))]">
@@ -175,7 +192,7 @@ export default function KilaiDetailsPage() {
         defaultBoothNo={kilaiData.booths?.[0]?.boothNo}
         defaultArea={kilaiData.villages?.[0]}
         onSuccess={() => {
-          queryClient.invalidateQueries({ queryKey: ['kilais', id] });
+          queryClient.invalidateQueries({ queryKey: ['kilais'] });
         }}
       />
 
@@ -194,13 +211,17 @@ export default function KilaiDetailsPage() {
       <Dialog open={!!deleteConfirmation} onOpenChange={(open) => !open && setDeleteConfirmation(null)}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
-            <DialogTitle>Delete Administrator</DialogTitle>
+            <DialogTitle>{locale === 'ta' ? 'நிர்வாகியை நீக்கு' : 'Delete Administrator'}</DialogTitle>
             <DialogDescription className="pt-2">
-              Are you sure you want to delete this administrator? This action cannot be undone.
+              {locale === 'ta' 
+                ? 'இந்த நிர்வாகியை நிச்சயமாக நீக்க விரும்புகிறீர்களா? இந்த செயலை மாற்ற முடியாது.' 
+                : 'Are you sure you want to delete this administrator? This action cannot be undone.'}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="mt-4 gap-2 sm:gap-0">
-            <Button variant="outline" onClick={() => setDeleteConfirmation(null)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setDeleteConfirmation(null)}>
+              {locale === 'ta' ? 'ரத்துசெய்' : 'Cancel'}
+            </Button>
             <Button 
               variant="destructive"
               onClick={() => {
@@ -208,13 +229,13 @@ export default function KilaiDetailsPage() {
                   deleteMutation.mutate(deleteConfirmation, {
                     onSuccess: () => {
                       setDeleteConfirmation(null);
-                      queryClient.invalidateQueries({ queryKey: ['kilais', id] });
+                      queryClient.invalidateQueries({ queryKey: ['kilais'] });
                     }
                   });
                 }
               }}
             >
-              Delete
+              {locale === 'ta' ? 'நீக்கு' : 'Delete'}
             </Button>
           </DialogFooter>
         </DialogContent>

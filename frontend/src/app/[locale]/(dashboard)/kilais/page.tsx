@@ -18,7 +18,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { Link } from '@/i18n/routing';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import {
   Select,
   SelectContent,
@@ -40,8 +40,11 @@ import { useUnions } from '@/hooks/use-unions';
 import { useBooths, useBoothAreas } from '@/hooks/use-booths';
 import { CreateKilaiDto } from '@/services/api/kilais';
 import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
+import { getOrgUnitName } from '@/lib/org-unit-translations';
+import { translatePersonNameToTamil } from '@/lib/name-translations';
 
 export default function KilaisPage() {
+  const locale = useLocale();
   const t = useTranslations('Kilais');
   const tCommon = useTranslations('Common');
   const tForms = useTranslations('Forms');
@@ -431,14 +434,14 @@ export default function KilaisPage() {
                 <SelectValue placeholder={t('filterUnion')}>
                   {selectedUnion === 'all' 
                     ? t('allUnions') 
-                    : unions?.find((u: any) => String(u.id || u._id) === selectedUnion)?.name || t('filterUnion')}
+                    : getOrgUnitName(unions?.find((u: any) => String(u.id || u._id) === selectedUnion), locale) || t('filterUnion')}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent align="end">
                 <SelectItem value="all">{t('allUnions')}</SelectItem>
                 {unions?.map((union: any) => (
                   <SelectItem key={union.id || union._id} value={String(union.id || union._id)}>
-                    {union.name}
+                    {getOrgUnitName(union, locale)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -449,14 +452,14 @@ export default function KilaisPage() {
             <button
               onClick={() => setViewMode('table')}
               className={`p-2 rounded-sm transition-all flex items-center justify-center ${viewMode === 'table' ? 'bg-white dark:bg-zinc-800 shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-              title="Table View"
+              title={locale === 'ta' ? 'பட்டியல் காட்சி' : 'Table View'}
             >
               <List className="w-4 h-4" />
             </button>
             <button
               onClick={() => setViewMode('tile')}
               className={`p-2 rounded-sm transition-all flex items-center justify-center ${viewMode === 'tile' ? 'bg-white dark:bg-zinc-800 shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-              title="Tile View"
+              title={locale === 'ta' ? 'கட்டக் காட்சி' : 'Tile View'}
             >
               <LayoutGrid className="w-4 h-4" />
             </button>
@@ -478,8 +481,8 @@ export default function KilaisPage() {
                   <TableHeader className="bg-primary/5">
                     <TableRow className="hover:bg-transparent">
                       <TableHead className="font-semibold text-primary py-4">{t('kilaiName')}</TableHead>
-                      <TableHead className="font-semibold text-primary py-4">Panchayat</TableHead>
-                      <TableHead className="font-semibold text-primary py-4">Secretary Details</TableHead>
+                      <TableHead className="font-semibold text-primary py-4">{locale === 'ta' ? 'ஊராட்சி / பஞ்சாயத்து' : 'Panchayat'}</TableHead>
+                      <TableHead className="font-semibold text-primary py-4">{locale === 'ta' ? 'செயலாளர் விவரங்கள்' : 'Secretary Details'}</TableHead>
                       <TableHead className="font-semibold text-primary py-4">{t('union')}</TableHead>
                       <TableHead className="font-semibold text-primary py-4">{t('status')}</TableHead>
                       <TableHead className="font-semibold text-primary py-4 text-right">{tCommon('actions')}</TableHead>
@@ -505,14 +508,19 @@ export default function KilaisPage() {
                           <TableCell className="py-4">
                             {kilai.secretaryName ? (
                               <div className="flex flex-col gap-1.5">
-                                <span className="font-medium text-sm text-foreground">{kilai.secretaryName}</span>
+                                <span className="font-medium text-sm text-foreground">
+                                  {locale === 'ta' ? translatePersonNameToTamil(kilai.secretaryName) : kilai.secretaryName}
+                                </span>
                                 {kilai.phone && (
                                   <button 
                                     onClick={(e) => {
                                       e.preventDefault();
                                       e.stopPropagation();
-                                      setCallConfirmation({ name: kilai.secretaryName ?? '', phone: kilai.phone ?? '' });
-                                    }}
+                                      setCallConfirmation({ 
+                                        name: locale === 'ta' && kilai.secretaryName ? translatePersonNameToTamil(kilai.secretaryName) : (kilai.secretaryName ?? ''), 
+                                        phone: kilai.phone ?? '' 
+                                      });
+                                    }} 
                                     className="text-xs text-primary hover:text-primary/80 cursor-pointer hover:underline text-left flex items-center gap-1.5 transition-colors w-fit focus:outline-none"
                                   >
                                     <PhoneCall className="h-3 w-3" />
@@ -526,7 +534,7 @@ export default function KilaisPage() {
                           </TableCell>
                           <TableCell className="py-4">
                             <span className="inline-flex items-center px-3 py-1 rounded-md text-xs font-bold bg-secondary text-secondary-foreground shadow-sm">
-                              {kilaiUnion?.name || '-'}
+                              {getOrgUnitName(kilaiUnion, locale) || '-'}
                             </span>
                           </TableCell>
                           <TableCell className="py-4">
@@ -558,20 +566,23 @@ export default function KilaisPage() {
                 </Table>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-5">
                 {filteredKilais.map((kilai) => {
                   const kilaiUnion = unions?.find((u: any) => String(u.id || u._id) === kilai.unionId);
                   const secretary = kilai.secretary;
-                  const secretaryName = secretary?.name || kilai.secretaryName;
+                  const rawSecretaryName = secretary?.name || kilai.secretaryName;
+                  const secretaryName = locale === 'ta' && rawSecretaryName 
+                    ? translatePersonNameToTamil(rawSecretaryName) 
+                    : rawSecretaryName;
                   const secretaryPhone = secretary?.phone || kilai.phone;
                   const secretaryPhoto = secretary?.photoUrl || kilai.secretaryPhoto;
 
                   const statusConfig = 
                     kilai.status === 'ACTIVE' 
-                      ? { bg: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-900/40', dot: 'bg-emerald-500', label: 'Active' }
+                      ? { bg: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-900/40', dot: 'bg-emerald-500', label: locale === 'ta' ? 'செயல்படும்' : 'Active' }
                       : kilai.status === 'INACTIVE'
-                      ? { bg: 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-200/60 dark:border-red-900/40', dot: 'bg-red-500', label: 'Inactive' }
-                      : { bg: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200/60 dark:border-amber-900/40', dot: 'bg-amber-500', label: 'Pending' };
+                      ? { bg: 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-200/60 dark:border-red-900/40', dot: 'bg-red-500', label: locale === 'ta' ? 'செயல்படாத' : 'Inactive' }
+                      : { bg: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200/60 dark:border-amber-900/40', dot: 'bg-amber-500', label: locale === 'ta' ? 'நிலுவையில்' : 'Pending' };
 
                   return (
                     <div 
@@ -624,11 +635,11 @@ export default function KilaisPage() {
                                 <div className="flex items-center gap-1 mb-1">
                                   <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold tracking-wider uppercase bg-[#8F0A1B]/10 text-[#8F0A1B] dark:bg-[#8F0A1B]/25 dark:text-red-300">
                                     <ShieldCheck className="w-3 h-3 text-[#8F0A1B] dark:text-red-400" />
-                                    Secretary
+                                    {locale === 'ta' ? 'செயலாளர்' : 'Secretary'}
                                   </span>
                                 </div>
                                 <h4 className="text-[14px] sm:text-[15px] font-bold text-zinc-900 dark:text-zinc-100 truncate leading-snug mb-1.5 group-hover:text-[#8F0A1B] transition-colors">
-                                  {secretaryName || 'Kilai Secretary'}
+                                  {secretaryName || (locale === 'ta' ? 'கிளை செயலாளர்' : 'Kilai Secretary')}
                                 </h4>
                                 {secretaryPhone ? (
                                   <button 
@@ -643,13 +654,13 @@ export default function KilaisPage() {
                                     <span>{secretaryPhone}</span>
                                   </button>
                                 ) : (
-                                  <span className="text-xs text-zinc-400 italic">No phone provided</span>
+                                  <span className="text-xs text-zinc-400 italic">{locale === 'ta' ? 'தொலைபேசி எண் இல்லை' : 'No phone provided'}</span>
                                 )}
                               </div>
                               <div className="relative group-hover:scale-105 transition-transform duration-300 shrink-0">
                                 <UserAvatar 
                                   src={secretaryPhoto} 
-                                  name={secretaryName || 'Secretary'} 
+                                  name={secretaryName || (locale === 'ta' ? 'செயலாளர்' : 'Secretary')} 
                                   size="xl" 
                                   shape="square" 
                                   ring="primary" 
@@ -660,8 +671,8 @@ export default function KilaisPage() {
                           ) : (
                             <div className="flex items-center justify-between p-3.5 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/40">
                               <div className="flex flex-col">
-                                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Leadership</span>
-                                <span className="text-xs font-semibold text-zinc-500 italic mt-0.5">Not assigned</span>
+                                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">{locale === 'ta' ? 'தலைமை' : 'Leadership'}</span>
+                                <span className="text-xs font-semibold text-zinc-500 italic mt-0.5">{locale === 'ta' ? 'நியமிக்கப்படவில்லை' : 'Not assigned'}</span>
                               </div>
                               <div className="w-14 h-14 rounded-2xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-400">
                                 <Users className="w-6 h-6" />
@@ -687,7 +698,7 @@ export default function KilaisPage() {
                               style={{ backgroundColor: '#6d9188ff', color: 'white' }}
                             >
                               <Store className="w-3 h-3 text-white" />
-                              <span className="truncate max-w-[120px] text-white">{kilaiUnion.name}</span>
+                              <span className="truncate max-w-[120px] text-white">{getOrgUnitName(kilaiUnion, locale)}</span>
                             </div>
                           )}
                         </div>
@@ -704,11 +715,11 @@ export default function KilaisPage() {
                         >
                           <div className="flex items-center gap-1.5 px-2 font-bold">
                             <Layers className="w-3.5 h-3.5 text-[#8F0A1B]" />
-                            <span><strong className="text-zinc-900 font-bold">{kilai.booths?.length || kilai.linkedBooths?.length || 0}</strong> Booths</span>
+                            <span><strong className="text-zinc-900 font-bold">{kilai.booths?.length || kilai.linkedBooths?.length || 0}</strong> {locale === 'ta' ? 'சாவடிகள்' : 'Booths'}</span>
                           </div>
                           <div className="flex items-center gap-1.5 px-2 font-bold">
                             <Users className="w-3.5 h-3.5 text-[#8F0A1B]" />
-                            <span><strong className="text-zinc-900 font-bold">{kilai._count?.cadres || 0}</strong> Cadres</span>
+                            <span><strong className="text-zinc-900 font-bold">{kilai._count?.cadres || 0}</strong> {locale === 'ta' ? 'நிர்வாகிகள்' : 'Cadres'}</span>
                           </div>
                         </div>
                       </Link>

@@ -51,18 +51,21 @@ export interface CreateKilaiDto {
 }
 
 export const kilaiApi = {
-  getAll: async (): Promise<Kilai[]> => {
-    const res = await fetchWithAuth('/api/v1/kilais');
+  getAll: async (locale?: string): Promise<Kilai[]> => {
+    const url = locale ? `/api/v1/kilais?lang=${locale}` : '/api/v1/kilais';
+    const res = await fetchWithAuth(url);
     return res.json();
   },
 
-  getUnions: async (): Promise<any[]> => {
-    const res = await fetchWithAuth('/api/v1/unions');
+  getUnions: async (locale?: string): Promise<any[]> => {
+    const url = locale ? `/api/v1/unions?lang=${locale}` : '/api/v1/unions';
+    const res = await fetchWithAuth(url);
     return res.json();
   },
 
-  getById: async (id: string): Promise<Kilai> => {
-    const res = await fetchWithAuth(`/api/v1/kilais/${id}`);
+  getById: async (id: string, locale?: string): Promise<Kilai> => {
+    const url = locale ? `/api/v1/kilais/${id}?lang=${locale}` : `/api/v1/kilais/${id}`;
+    const res = await fetchWithAuth(url);
     return res.json();
   },
 
@@ -97,8 +100,9 @@ export const kilaiApi = {
     return res.json();
   },
 
-  getOfficeBearers: async (kilaiId: string): Promise<any[]> => {
-    const res = await fetchWithAuth(`/api/v1/kilais/${kilaiId}/office-bearers`);
+  getOfficeBearers: async (kilaiId: string, locale?: string): Promise<any[]> => {
+    const url = locale ? `/api/v1/kilais/${kilaiId}/office-bearers?lang=${locale}` : `/api/v1/kilais/${kilaiId}/office-bearers`;
+    const res = await fetchWithAuth(url);
     return res.json();
   },
 

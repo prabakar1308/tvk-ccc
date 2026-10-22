@@ -36,7 +36,8 @@ import {
   Award
 } from "lucide-react";
 import { Link } from '@/i18n/routing';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
+import { translatePersonNameToTamil } from '@/lib/name-translations';
 import { useCadres, useDeleteCadre } from '@/hooks/use-cadres';
 import { useUnions } from '@/hooks/use-unions';
 import { useKilais } from '@/hooks/use-kilais';
@@ -59,6 +60,7 @@ import { CadreCard } from '@/components/cadre-card';
 import { cn } from '@/lib/utils';
 
 export default function CadresPage() {
+  const locale = useLocale();
   const t = useTranslations('Cadres');
   const tCommon = useTranslations('Common');
   const tForms = useTranslations('Forms');
@@ -862,13 +864,13 @@ function matchesRoleFilter(rawRole: string | undefined | null, filterId: string)
                     <TableCell className="font-bold text-sm py-3.5 text-foreground flex items-center gap-3">
                       <UserAvatar
                         src={cadre.photoUrl}
-                        name={cadre.name}
+                        name={locale === 'ta' && cadre.name ? translatePersonNameToTamil(cadre.name) : cadre.name}
                         size="sm"
                         ring="default"
                         elevation="none"
                       />
                       <span className="font-extrabold group-hover:text-primary transition-colors">
-                        {cadre.name}
+                        {locale === 'ta' && cadre.name ? translatePersonNameToTamil(cadre.name) : cadre.name}
                       </span>
                     </TableCell>
                     <TableCell className="py-3.5 font-bold text-xs text-primary">
@@ -897,7 +899,10 @@ function matchesRoleFilter(rawRole: string | undefined | null, filterId: string)
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setCallConfirmation({ name: cadre.name, phone: cadre.phone || '' });
+                            setCallConfirmation({ 
+                              name: locale === 'ta' && cadre.name ? translatePersonNameToTamil(cadre.name) : (cadre.name || ''), 
+                              phone: cadre.phone || '' 
+                            });
                           }}
                           className="inline-flex items-center gap-1.5 text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 px-2.5 py-1 rounded-lg text-xs font-bold transition-colors cursor-pointer"
                         >

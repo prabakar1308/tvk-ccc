@@ -6,12 +6,19 @@ export function getAuthToken(): string | null {
 export function getAuthHeaders(headers: HeadersInit = {}): HeadersInit {
   const token = getAuthToken();
   let locale = 'en';
-  if (typeof document !== 'undefined') {
-    locale = document.cookie.split('; ').find(row => row.startsWith('NEXT_LOCALE='))?.split('=')[1] || 'en';
+  if (typeof window !== 'undefined') {
+    const pathSegments = window.location.pathname.split('/').filter(Boolean);
+    const pathLocale = pathSegments[0];
+    if (pathLocale === 'ta' || pathLocale === 'en') {
+      locale = pathLocale;
+    } else if (typeof document !== 'undefined') {
+      locale = document.cookie.split('; ').find(row => row.startsWith('NEXT_LOCALE='))?.split('=')[1] || 'en';
+    }
   }
   return {
     'Content-Type': 'application/json',
     'Accept-Language': locale,
+    'x-lang': locale,
     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     ...headers,
   };

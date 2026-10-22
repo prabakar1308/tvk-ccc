@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Plus, MapPin, Edit2, Trash2, Building2, Building, Store, LayoutGrid, List, Phone, Users, X, ShieldCheck, UserCheck, Layers } from "lucide-react";
 import { Link } from '@/i18n/routing';
-import { useTranslations } from 'next-intl';
+import { useTranslations, useLocale } from 'next-intl';
 import {
   Dialog,
   DialogContent,
@@ -30,17 +30,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { useUnions, useCreateUnion, useUpdateUnion, useDeleteUnion } from '@/hooks/use-unions';
+import { useUnions, useCreateUnion, useUpdateUnion, useDeleteUnion, useMasterAreas } from '@/hooks/use-unions';
 import { useDistricts } from '@/hooks/use-districts';
 import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
 import { UserAvatar } from '@/components/ui/user-avatar';
+import { getOrgUnitName, getUnitTypeLabel } from '@/lib/org-unit-translations';
+import { translatePersonNameToTamil } from '@/lib/name-translations';
 
 export default function UnionsPage() {
+  const locale = useLocale();
   const t = useTranslations('Unions');
   const tCommon = useTranslations('Common');
   const tForms = useTranslations('Forms');
   const { data: unions, isLoading } = useUnions();
   const { data: districts } = useDistricts();
+  const { data: masterAreas } = useMasterAreas();
   const createMutation = useCreateUnion();
   const updateMutation = useUpdateUnion();
   const deleteMutation = useDeleteUnion();
@@ -219,6 +223,7 @@ export default function UnionsPage() {
                   <Label>Areas Covered</Label>
                   <div className="flex gap-2">
                     <Input 
+                      list="master-areas-list"
                       value={areaInput}
                       onChange={(e) => setAreaInput(e.target.value)}
                       onKeyDown={(e) => {
@@ -227,22 +232,35 @@ export default function UnionsPage() {
                           handleAddArea();
                         }
                       }}
-                      placeholder="Type area and press enter"
+                      placeholder="Type or select covered area"
                     />
+                    <datalist id="master-areas-list">
+                      {masterAreas?.map((item, idx) => (
+                        <option key={idx} value={item.name}>
+                          {item.name} ({item.nameTa})
+                        </option>
+                      ))}
+                    </datalist>
                     <Button type="button" onClick={handleAddArea} size="icon" className="shrink-0 bg-primary text-white hover:bg-primary/90">
                       <Plus className="h-4 w-4" />
                     </Button>
                   </div>
                   {formData.areasCovered.length > 0 && (
                     <div className="flex flex-wrap gap-2 pt-2">
-                      {formData.areasCovered.map((area, idx) => (
-                        <div key={idx} className="flex items-center gap-1 bg-primary/10 text-primary px-3 py-1.5 rounded-md text-sm">
-                          <span>{area}</span>
-                          <button type="button" onClick={() => handleRemoveArea(area)} className="text-primary hover:text-red-500 transition-colors rounded-full p-0.5 hover:bg-primary/10">
-                            <X className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      ))}
+                      {formData.areasCovered.map((area, idx) => {
+                        const match = masterAreas?.find(m => m.name.toLowerCase() === area.toLowerCase());
+                        return (
+                          <div key={idx} className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1.5 rounded-md text-xs font-semibold">
+                            <span>{area}</span>
+                            {match?.nameTa && (
+                              <span className="opacity-75 font-normal text-[11px]">({match.nameTa})</span>
+                            )}
+                            <button type="button" onClick={() => handleRemoveArea(area)} className="text-primary hover:text-red-500 transition-colors rounded-full p-0.5 hover:bg-primary/10">
+                              <X className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -289,14 +307,14 @@ export default function UnionsPage() {
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <Select value={unitTypeFilter} onValueChange={(val) => setUnitTypeFilter(val || '')}>
             <SelectTrigger className="w-full sm:w-[200px] !h-11 bg-zinc-50 dark:bg-zinc-900 border-primary/20 m-0">
-              <SelectValue placeholder="All Unit Types" />
+              <SelectValue placeholder={locale === 'ta' ? 'அனைத்து அமைப்பு வகைகள்' : 'All Unit Types'} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">All Unit Types</SelectItem>
-              <SelectItem value="UNION">Union</SelectItem>
-              <SelectItem value="TOWN">Town</SelectItem>
-              <SelectItem value="TOWN_PANCHAYAT">Town Panchayat</SelectItem>
-              <SelectItem value="AREA">Area</SelectItem>
+              <SelectItem value="ALL">{locale === 'ta' ? 'அனைத்து அமைப்பு வகைகள்' : 'All Unit Types'}</SelectItem>
+              <SelectItem value="UNION">{locale === 'ta' ? 'ஒன்றியம்' : 'Union'}</SelectItem>
+              <SelectItem value="TOWN">{locale === 'ta' ? 'நகரம்' : 'Town'}</SelectItem>
+              <SelectItem value="TOWN_PANCHAYAT">{locale === 'ta' ? 'பேரூராட்சி' : 'Town Panchayat'}</SelectItem>
+              <SelectItem value="AREA">{locale === 'ta' ? 'பகுதி' : 'Area'}</SelectItem>
             </SelectContent>
           </Select>
           <Button 
@@ -305,7 +323,11 @@ export default function UnionsPage() {
             className="h-11 rounded-md px-4 font-medium border-primary/20 text-primary hover:bg-primary/5 shrink-0 m-0"
           >
             {viewType === 'TABLE' ? <LayoutGrid className="w-5 h-5 sm:mr-2" /> : <List className="w-5 h-5 sm:mr-2" />}
-            <span className="hidden sm:inline">{viewType === 'TABLE' ? 'Tile View' : 'Table View'}</span>
+            <span className="hidden sm:inline">
+              {viewType === 'TABLE' 
+                ? (locale === 'ta' ? 'கட்டக் காட்சி' : 'Tile View') 
+                : (locale === 'ta' ? 'பட்டியல் காட்சி' : 'Table View')}
+            </span>
           </Button>
         </div>
       </div>
@@ -340,14 +362,15 @@ export default function UnionsPage() {
                         <TableHead className="font-semibold text-primary py-4">{t('unionName')}</TableHead>
                         <TableHead className="font-semibold text-primary py-4">{tForms('contactName')}</TableHead>
                         <TableHead className="font-semibold text-primary py-4">{tForms('phone')}</TableHead>
-                        <TableHead className="font-semibold text-primary py-4">Areas Covered</TableHead>
+                        <TableHead className="font-semibold text-primary py-4">{locale === 'ta' ? 'உட்பட்ட பகுதிகள்' : 'Areas Covered'}</TableHead>
                         <TableHead className="font-semibold text-primary py-4 text-right">{tCommon('actions')}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {groupUnions.map((union: any) => {
                         const secretary = union.secretary;
-                        const contactName = secretary ? secretary.name : union.contactName;
+                        const rawContactName = secretary ? secretary.name : union.contactName;
+                        const contactName = locale === 'ta' && rawContactName ? translatePersonNameToTamil(rawContactName) : rawContactName;
                         const contactPhone = secretary ? secretary.phone : union.contactPhone;
 
                         return (
@@ -372,9 +395,9 @@ export default function UnionsPage() {
                                 </div>
                               )}
                               <div className="flex flex-col">
-                                <span>{union.name}</span>
+                                <span>{getOrgUnitName(union, locale)}</span>
                                 <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mt-0.5">
-                                  {union.unitType === 'TOWN_PANCHAYAT' ? 'Town Panchayat' : union.unitType || 'Union'}
+                                  {getUnitTypeLabel(union.unitType, locale)}
                                 </span>
                               </div>
                             </Link>
@@ -382,7 +405,11 @@ export default function UnionsPage() {
                           <TableCell className="py-4 font-medium">
                             <div className="flex flex-col">
                               <span>{contactName || '-'}</span>
-                              {secretary && <span className="text-[10px] text-[#8F0A1B] uppercase font-bold">Secretary</span>}
+                              {secretary && (
+                                <span className="text-[10px] text-[#8F0A1B] uppercase font-bold">
+                                  {locale === 'ta' ? 'செயலாளர்' : 'Secretary'}
+                                </span>
+                              )}
                             </div>
                           </TableCell>
                           <TableCell className="py-4 font-medium text-muted-foreground">
@@ -423,10 +450,11 @@ export default function UnionsPage() {
                   </Table>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 p-1">
+                <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-5 p-1">
                   {groupUnions.map((union: any) => {
                     const secretary = union.secretary;
-                    const contactName = secretary ? secretary.name : union.contactName;
+                    const rawContactName = secretary ? secretary.name : union.contactName;
+                    const contactName = locale === 'ta' && rawContactName ? translatePersonNameToTamil(rawContactName) : rawContactName;
                     const contactPhone = secretary ? secretary.phone : union.contactPhone;
                     const contactPhoto = secretary?.photoUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(contactName || 'U')}&background=8F0A1B&color=fff&size=128`;
 
@@ -491,11 +519,11 @@ export default function UnionsPage() {
                           
                           <div className="flex-1 min-w-0">
                             <h3 className="font-extrabold text-[17px] sm:text-[18px] text-zinc-900 dark:text-zinc-50 leading-tight group-hover:text-[#8F0A1B] dark:group-hover:text-red-400 transition-colors line-clamp-2 md:line-clamp-1 mb-1.5 break-words">
-                              {union.name}
+                              {getOrgUnitName(union, locale)}
                             </h3>
                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase border shadow-xs ${unitBadgeTheme.bg}`}>
                               <span className={`w-1.5 h-1.5 rounded-full ${unitBadgeTheme.dot}`}></span>
-                              {union.unitType === 'TOWN_PANCHAYAT' ? 'Town Panchayat' : union.unitType || 'Union'}
+                              {getUnitTypeLabel(union.unitType, locale)}
                             </span>
                           </div>
                         </div>
@@ -512,7 +540,7 @@ export default function UnionsPage() {
                                       : 'bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400'
                                   }`}>
                                     {secretary ? <ShieldCheck className="w-3 h-3 text-[#8F0A1B] dark:text-red-400" /> : <UserCheck className="w-3 h-3 text-zinc-500" />}
-                                    {secretary ? 'Secretary' : 'Contact Person'}
+                                    {secretary ? (locale === 'ta' ? 'செயலாளர்' : 'Secretary') : (locale === 'ta' ? 'தொடர்பு நபர்' : 'Contact Person')}
                                   </span>
                                 </div>
                                 <h4 className="text-[15px] sm:text-[16px] font-bold text-zinc-900 dark:text-zinc-100 truncate leading-snug mb-2 group-hover:text-[#8F0A1B] transition-colors">
@@ -527,7 +555,7 @@ export default function UnionsPage() {
                                     <span>{contactPhone}</span>
                                   </button>
                                 ) : (
-                                  <span className="text-xs text-zinc-400 italic">No phone provided</span>
+                                  <span className="text-xs text-zinc-400 italic">{locale === 'ta' ? 'தொலைபேசி எண் இல்லை' : 'No phone provided'}</span>
                                 )}
                               </div>
                               <div className="relative group-hover:scale-105 transition-transform duration-300 shrink-0">
@@ -544,7 +572,7 @@ export default function UnionsPage() {
                           ) : (
                             <div className="flex items-center justify-between p-3.5 rounded-xl border border-dashed border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/40">
                               <div className="flex flex-col">
-                                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">Leadership</span>
+                                <span className="text-[11px] font-bold text-zinc-400 uppercase tracking-wider">{locale === 'ta' ? 'தலைமை' : 'Leadership'}</span>
                                 <span className="text-sm font-semibold text-zinc-500 italic mt-0.5">{t('noContactProvided')}</span>
                               </div>
                               <div className="w-12 h-12 rounded-xl bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-400">
@@ -561,14 +589,14 @@ export default function UnionsPage() {
                             style={{ backgroundColor: '#548777', color: 'white' }}
                           >
                             <Layers className="w-3.5 h-3.5 text-white" />
-                            <span className="text-white"><strong className="text-white font-bold">{union._count?.kilais || 0}</strong> Kilais</span>
+                            <span className="text-white"><strong className="text-white font-bold">{union._count?.kilais || 0}</strong> {locale === 'ta' ? 'கிளைகள்' : 'Kilais'}</span>
                           </div>
                           <div 
                             className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#548777] text-white font-medium shadow-xs"
                             style={{ backgroundColor: '#548777', color: 'white' }}
                           >
                             <Users className="w-3.5 h-3.5 text-white" />
-                            <span className="text-white"><strong className="text-white font-bold">{union._count?.cadres || 0}</strong> Cadres</span>
+                            <span className="text-white"><strong className="text-white font-bold">{union._count?.cadres || 0}</strong> {locale === 'ta' ? 'நிர்வாகிகள்' : 'Cadres'}</span>
                           </div>
                         </div>
                         
@@ -595,7 +623,7 @@ export default function UnionsPage() {
                               <div className="flex items-center gap-1.5 min-w-0">
                                 <MapPin className="w-3.5 h-3.5 text-zinc-700 shrink-0" />
                                 <span className="text-[11px] font-bold text-zinc-800 uppercase tracking-wider truncate">
-                                  Areas Covered
+                                  {locale === 'ta' ? 'உட்பட்ட பகுதிகள்' : 'Areas Covered'}
                                 </span>
                               </div>
                               <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-white text-zinc-700 border border-zinc-300/60 shrink-0">

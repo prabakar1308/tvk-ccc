@@ -7,17 +7,19 @@ import {
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { translateAreaToTamil } from '../area-translations';
+import { translatePersonNameToTamil, translateRoleToTamil } from '../name-translations';
+import { translateOrgUnitNameToTamil } from '../org-unit-translations';
 
 @Injectable()
 export class TranslationInterceptor implements NestInterceptor {
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
-    // Use x-lang, Accept-Language header, or query param lang. Default to 'en'.
+    // Prioritize explicit lang overrides: x-lang, query param lang, then Accept-Language. Default to 'en'.
     let lang = 'en';
     const reqLang =
       request.headers['x-lang'] ||
-      request.headers['accept-language'] ||
-      request.query?.lang;
+      request.query?.lang ||
+      request.headers['accept-language'];
     if (reqLang && typeof reqLang === 'string') {
       lang = reqLang.split(',')[0].split('-')[0].trim().toLowerCase();
     }
@@ -35,6 +37,9 @@ export class TranslationInterceptor implements NestInterceptor {
     if (Array.isArray(data)) {
       return data.map((item) => this.translateData(item, lang));
     }
+
+    // Keep original English areasCovered before translations payload might overwrite it
+    const originalAreasCovered = Array.isArray(data.areasCovered) ? [...data.areasCovered] : null;
 
     // Handle Objects (e.g., single records or nested relations)
     const translatedData = { ...data };
@@ -56,11 +61,77 @@ export class TranslationInterceptor implements NestInterceptor {
       delete translatedData.translations;
     }
 
-    // Ensure areasCovered items are translated when Tamil is requested
-    if (lang === 'ta' && Array.isArray(translatedData.areasCovered)) {
-      translatedData.areasCovered = translatedData.areasCovered.map((area: any) => {
-        return typeof area === 'string' ? translateAreaToTamil(area) : area;
-      });
+    // Ensure localized items are translated properly when Tamil is requested
+    if (lang === 'ta') {
+      const sourceAreas = originalAreasCovered || translatedData.areasCovered;
+      if (Array.isArray(sourceAreas)) {
+        translatedData.areasCovered = sourceAreas.map((area: any) => {
+          return typeof area === 'string' ? translateAreaToTamil(area) : area;
+        });
+      }
+
+      // Translate union name if this is a Union object
+      if (
+        typeof translatedData.name === 'string' &&
+        (translatedData.unitType !== undefined ||
+          translatedData.areasCovered !== undefined ||
+          translatedData.group !== undefined)
+      ) {
+        translatedData.name = translateOrgUnitNameToTamil(translatedData.name);
+      }
+
+      // Translate union contactName
+      if (typeof translatedData.contactName === 'string') {
+        translatedData.contactName = translatePersonNameToTamil(translatedData.contactName);
+      }
+
+      // Translate union secretary name & role
+      if (translatedData.secretary && typeof translatedData.secretary === 'object') {
+        if (typeof translatedData.secretary.name === 'string') {
+          translatedData.secretary.name = translatePersonNameToTamil(translatedData.secretary.name);
+        }
+        if (typeof translatedData.secretary.role === 'string') {
+          translatedData.secretary.role = translateRoleToTamil(translatedData.secretary.role);
+        }
+      }
+
+      // Translate Kilai name if this is a Kilai object
+      if (
+        typeof translatedData.name === 'string' &&
+        (translatedData.panchayat !== undefined || translatedData.unionId !== undefined)
+      ) {
+        translatedData.name = translateAreaToTamil(translatedData.name);
+      }
+
+      // Translate Kilai secretaryName
+      if (typeof translatedData.secretaryName === 'string') {
+        translatedData.secretaryName = translatePersonNameToTamil(translatedData.secretaryName);
+      }
+
+      // Translate Kilai panchayat
+      if (typeof translatedData.panchayat === 'string') {
+        translatedData.panchayat = translateAreaToTamil(translatedData.panchayat);
+      }
+
+      // Translate Kilai villages
+      if (Array.isArray(translatedData.villages)) {
+        translatedData.villages = translatedData.villages.map((v: any) =>
+          typeof v === 'string' ? translateAreaToTamil(v) : v,
+        );
+      }
+
+      // Translate Kilai union relation name if present
+      if (translatedData.union && typeof translatedData.union === 'object' && typeof translatedData.union.name === 'string') {
+        translatedData.union.name = translateOrgUnitNameToTamil(translatedData.union.name);
+      }
+
+      // Translate cadre name & role if this is a Cadre object
+      if (typeof translatedData.name === 'string' && (translatedData.memberId || translatedData.level)) {
+        translatedData.name = translatePersonNameToTamil(translatedData.name);
+        if (typeof translatedData.role === 'string') {
+          translatedData.role = translateRoleToTamil(translatedData.role);
+        }
+      }
     }
 
     // Recursively process nested objects (like relations: district.unions)

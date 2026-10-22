@@ -1,19 +1,20 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocale } from 'next-intl';
 import { kilaiApi, Kilai, CreateKilaiDto } from '@/services/api/kilais';
 
 export function useKilais() {
+  const locale = useLocale();
   return useQuery({
-    queryKey: ['kilais'],
-    queryFn: kilaiApi.getAll,
+    queryKey: ['kilais', locale],
+    queryFn: () => kilaiApi.getAll(locale),
   });
 }
 
-
-
 export function useKilai(id: string) {
+  const locale = useLocale();
   return useQuery({
-    queryKey: ['kilais', id],
-    queryFn: () => kilaiApi.getById(id),
+    queryKey: ['kilais', id, locale],
+    queryFn: () => kilaiApi.getById(id, locale),
     enabled: !!id,
   });
 }
@@ -54,9 +55,10 @@ export function useDeleteKilai() {
 }
 
 export function useOfficeBearers(kilaiId: string) {
+  const locale = useLocale();
   return useQuery({
-    queryKey: ['office-bearers', kilaiId],
-    queryFn: () => kilaiApi.getOfficeBearers(kilaiId),
+    queryKey: ['office-bearers', kilaiId, locale],
+    queryFn: () => kilaiApi.getOfficeBearers(kilaiId, locale),
     enabled: !!kilaiId,
   });
 }
