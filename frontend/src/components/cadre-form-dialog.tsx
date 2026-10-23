@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Check, ChevronsUpDown, Upload, FileText, X, Camera } from "lucide-react";
+import { Check, ChevronsUpDown, Upload, FileText, X, Camera, AlertCircle } from "lucide-react";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { cn } from "@/lib/utils";
 import { CreateCadreDto } from '@/services/api/cadres';
@@ -113,12 +113,14 @@ export function CadreFormDialog({
     voterIdPhoto?: File;
   }>({});
   const [isUploading, setIsUploading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const [areaOpen, setAreaOpen] = useState(false);
   const [boothOpen, setBoothOpen] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
+      setErrorMessage(null);
       if (editingId) {
         const cadre = cadres.find((c) => c.id === editingId);
         if (cadre) {
@@ -169,7 +171,49 @@ export function CadreFormDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(null);
+
+    // 1. Client-Side Pre-validation
+    const trimmedName = formData.name?.trim();
+    const trimmedMemberId = formData.memberId?.trim();
+    const trimmedPhone = formData.phone?.trim();
+    const trimmedAadhaar = formData.aadhaarNumber?.trim();
+
+    if (!trimmedName) {
+      setErrorMessage("Please enter the administrator's name.");
+      return;
+    }
+    if (!trimmedMemberId) {
+      setErrorMessage("Please enter the Member ID / Voter ID.");
+      return;
+    }
+    if (!trimmedPhone) {
+      setErrorMessage("Please enter the phone number.");
+      return;
+    }
+    if (!formData.role) {
+      setErrorMessage("Please select a Designation.");
+      return;
+    }
+    if (formData.level === 'DISTRICT' && !formData.districtId) {
+      setErrorMessage("Please select a District.");
+      return;
+    }
+    if ((formData.level === 'UNION' || formData.level === 'KILAI') && !formData.unionId) {
+      setErrorMessage("Please select a Union.");
+      return;
+    }
+    if (formData.level === 'KILAI' && !formData.homeKilaiId) {
+      setErrorMessage("Please select a Kilai.");
+      return;
+    }
+    if (!trimmedAadhaar) {
+      setErrorMessage("Please enter the Aadhaar Number.");
+      return;
+    }
+
     setIsUploading(true);
+    const newlyUploadedUrls: string[] = [];
 
     try {
       let photoUrl = formData.photoUrl;
@@ -179,22 +223,30 @@ export function CadreFormDialog({
       if (pendingFiles.photo) {
         const res = await uploadApi.uploadFile(pendingFiles.photo);
         photoUrl = res.url;
+        newlyUploadedUrls.push(res.url);
       }
       if (pendingFiles.aadhaarPhoto) {
         const res = await uploadApi.uploadFile(pendingFiles.aadhaarPhoto);
         aadhaarPhoto = res.url;
+        newlyUploadedUrls.push(res.url);
       }
       if (pendingFiles.voterIdPhoto) {
         const res = await uploadApi.uploadFile(pendingFiles.voterIdPhoto);
         voterIdPhoto = res.url;
+        newlyUploadedUrls.push(res.url);
       }
+
+      const cleanMemberId = trimmedMemberId;
+      const cleanVoterId = formData.voterId?.trim() || (!cleanMemberId.startsWith('TVK-') ? cleanMemberId : undefined);
 
       const finalData: any = {
         ...formData,
+        name: trimmedName,
+        memberId: cleanMemberId,
+        voterId: cleanVoterId || undefined,
+        phone: trimmedPhone || undefined,
+        aadhaarNumber: trimmedAadhaar || undefined,
         photoUrl: photoUrl || undefined,
-        aadhaarNumber: formData.aadhaarNumber || undefined,
-        voterId: formData.voterId || undefined,
-        phone: formData.phone || undefined,
         districtId: formData.level === 'DISTRICT' ? (formData.districtId || undefined) : (editingId ? null : undefined),
         unionId: (formData.level === 'UNION' || formData.level === 'KILAI') ? (formData.unionId || undefined) : (editingId ? null : undefined),
         homeKilaiId: formData.level === 'KILAI' ? (formData.homeKilaiId || undefined) : (editingId ? null : undefined),
@@ -209,51 +261,41 @@ export function CadreFormDialog({
 
       if (editingId) {
         const originalCadre = cadres?.find(c => c.id === editingId);
-        updateMutation.mutate({ id: editingId, data: finalData }, {
-          onSuccess: () => {
-            if (pendingFiles.photo && originalCadre?.photoUrl) {
-              uploadApi.deleteFile(originalCadre.photoUrl).catch(console.error);
-            }
-            if (pendingFiles.aadhaarPhoto && originalCadre?.attachments?.aadhaarPhoto) {
-              uploadApi.deleteFile(originalCadre.attachments.aadhaarPhoto).catch(console.error);
-            }
-            if (pendingFiles.voterIdPhoto && originalCadre?.attachments?.voterIdPhoto) {
-              uploadApi.deleteFile(originalCadre.attachments.voterIdPhoto).catch(console.error);
-            }
+        await updateMutation.mutateAsync({ id: editingId, data: finalData });
 
-            onOpenChange(false);
-            onSuccess?.();
-          },
-          onError: () => {
-            if (pendingFiles.photo && photoUrl && photoUrl !== formData.photoUrl) {
-              uploadApi.deleteFile(photoUrl).catch(console.error);
-            }
-            if (pendingFiles.aadhaarPhoto && aadhaarPhoto && aadhaarPhoto !== formData.attachments?.aadhaarPhoto) {
-              uploadApi.deleteFile(aadhaarPhoto).catch(console.error);
-            }
-            if (pendingFiles.voterIdPhoto && voterIdPhoto && voterIdPhoto !== formData.attachments?.voterIdPhoto) {
-              uploadApi.deleteFile(voterIdPhoto).catch(console.error);
-            }
-            alert("Failed to update cadre. Uploaded files were cleaned up.");
-          }
-        });
+        if (pendingFiles.photo && originalCadre?.photoUrl) {
+          uploadApi.deleteFile(originalCadre.photoUrl).catch(console.error);
+        }
+        if (pendingFiles.aadhaarPhoto && originalCadre?.attachments?.aadhaarPhoto) {
+          uploadApi.deleteFile(originalCadre.attachments.aadhaarPhoto).catch(console.error);
+        }
+        if (pendingFiles.voterIdPhoto && originalCadre?.attachments?.voterIdPhoto) {
+          uploadApi.deleteFile(originalCadre.attachments.voterIdPhoto).catch(console.error);
+        }
+
+        setErrorMessage(null);
+        onOpenChange(false);
+        onSuccess?.();
       } else {
-        createMutation.mutate(finalData, {
-          onSuccess: () => {
-            onOpenChange(false);
-            onSuccess?.();
-          },
-          onError: () => {
-            if (pendingFiles.photo && photoUrl) uploadApi.deleteFile(photoUrl).catch(console.error);
-            if (pendingFiles.aadhaarPhoto && aadhaarPhoto) uploadApi.deleteFile(aadhaarPhoto).catch(console.error);
-            if (pendingFiles.voterIdPhoto && voterIdPhoto) uploadApi.deleteFile(voterIdPhoto).catch(console.error);
-            alert("Failed to create cadre. Uploaded files were cleaned up.");
-          }
-        });
+        await createMutation.mutateAsync(finalData);
+        setErrorMessage(null);
+        onOpenChange(false);
+        onSuccess?.();
       }
-    } catch (error) {
-      console.error("Error uploading files", error);
-      alert("Failed to upload files. Please try again.");
+    } catch (error: any) {
+      console.error("Error submitting cadre form", error);
+
+      // Clean up newly uploaded files on error so orphaned files don't linger
+      for (const url of newlyUploadedUrls) {
+        uploadApi.deleteFile(url).catch(console.error);
+      }
+
+      const serverMsg = error?.response?.data?.message;
+      const displayMsg = Array.isArray(serverMsg)
+        ? serverMsg.join(', ')
+        : (serverMsg || error?.message || (editingId ? "Failed to update administrator. Please try again." : "Failed to register administrator. Please try again."));
+
+      setErrorMessage(displayMsg);
     } finally {
       setIsUploading(false);
     }
@@ -266,6 +308,25 @@ export function CadreFormDialog({
           <DialogTitle>{editingId ? 'Edit Administrator' : 'Register New Administrator'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 pt-4">
+          {errorMessage && (
+            <div className="p-3.5 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-sm flex items-start gap-2.5 animate-in fade-in slide-in-from-top-1">
+              <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="font-semibold text-xs tracking-wide uppercase">
+                  {editingId ? 'Update Failed' : 'Registration Failed'}
+                </p>
+                <p className="mt-0.5 leading-relaxed font-medium">{errorMessage}</p>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setErrorMessage(null)} 
+                className="text-destructive hover:opacity-70 p-1 rounded-md"
+                aria-label="Dismiss error"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Name *</Label>
@@ -349,9 +410,16 @@ export function CadreFormDialog({
                 <Label htmlFor="unionId">Union *</Label>
                 <Select 
                   key={`union-${unions.length}`}
-                  value={formData.unionId || ''} 
-                  onValueChange={(val) => setFormData(prev => ({...prev, unionId: val, homeKilaiId: ''} as any))}
-                  required
+                  value={formData.unionId || ''}
+                  onValueChange={(val) => {
+                    const selectedUnion = unions.find((u: any) => String(u.id || u._id) === val);
+                    setFormData(prev => ({
+                      ...prev, 
+                      unionId: val, 
+                      homeKilaiId: '',
+                      districtId: selectedUnion?.districtId || prev.districtId,
+                    } as any));
+                  }}
                   disabled={!!defaultUnionId}
                 >
                   <SelectTrigger className="w-full">

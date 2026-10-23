@@ -10,16 +10,198 @@ import { CadreLevel } from '@prisma/client';
 export class CadreService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(payload: any) {
-    if (payload.wingId) {
-      await this.validateWingLimits(payload);
+  private async sanitizePayload(payload: any, isUpdate = false) {
+    const p = { ...payload };
+
+    if (p.name !== undefined) {
+      p.name = p.name ? String(p.name).trim() : (isUpdate ? undefined : 'Unknown');
     }
-    return this.prisma.cadre.create({
-      data: payload,
-    });
+
+    if (p.memberId !== undefined) {
+      p.memberId = p.memberId && String(p.memberId).trim() ? String(p.memberId).trim() : null;
+    }
+
+    if (p.voterId !== undefined) {
+      p.voterId = p.voterId && String(p.voterId).trim() ? String(p.voterId).trim() : null;
+    }
+
+    // If memberId is missing/empty, but voterId exists, use voterId as memberId
+    if (!p.memberId && p.voterId) {
+      p.memberId = p.voterId;
+    }
+
+    if (p.phone !== undefined) {
+      p.phone = p.phone && String(p.phone).trim() ? String(p.phone).trim() : null;
+    }
+
+    if (p.aadhaarNumber !== undefined) {
+      p.aadhaarNumber = p.aadhaarNumber && String(p.aadhaarNumber).trim() ? String(p.aadhaarNumber).trim() : null;
+    }
+
+    if (p.role !== undefined) {
+      p.role = p.role && String(p.role).trim() ? String(p.role).trim() : null;
+    }
+
+    if (p.area !== undefined) {
+      p.area = p.area && String(p.area).trim() ? String(p.area).trim() : null;
+    }
+
+    if (p.boothNo !== undefined) {
+      p.boothNo = p.boothNo && String(p.boothNo).trim() ? String(p.boothNo).trim() : null;
+    }
+
+    if (p.districtId !== undefined) {
+      p.districtId = p.districtId && String(p.districtId).trim() ? String(p.districtId).trim() : null;
+    }
+
+    if (p.unionId !== undefined) {
+      p.unionId = p.unionId && String(p.unionId).trim() ? String(p.unionId).trim() : null;
+    }
+
+    if (p.homeKilaiId !== undefined) {
+      p.homeKilaiId = p.homeKilaiId && String(p.homeKilaiId).trim() ? String(p.homeKilaiId).trim() : null;
+    }
+
+    if (p.wingId !== undefined) {
+      p.wingId = p.wingId && String(p.wingId).trim() ? String(p.wingId).trim() : null;
+    }
+
+    if (p.photoUrl !== undefined) {
+      p.photoUrl = p.photoUrl && String(p.photoUrl).trim() ? String(p.photoUrl).trim() : null;
+    }
+
+    // Auto-resolve unionId from Kilai if missing
+    if (p.homeKilaiId && !p.unionId) {
+      const kilai = await this.prisma.kilai.findUnique({
+        where: { id: p.homeKilaiId },
+        select: { unionId: true },
+      });
+      if (kilai?.unionId) p.unionId = kilai.unionId;
+    }
+
+    // Auto-resolve districtId and districtGroup from Union if not present
+    if (p.unionId && (!p.districtId || !p.districtGroup)) {
+      const union = await this.prisma.union.findUnique({
+        where: { id: p.unionId },
+        select: { districtId: true, group: true },
+      });
+      if (union) {
+        if (!p.districtId && union.districtId) p.districtId = union.districtId;
+        if (!p.districtGroup && union.group) p.districtGroup = union.group;
+      }
+    }
+
+    // Remove non-schema relation fields if passed
+    delete p.district;
+    delete p.union;
+    delete p.homeKilai;
+    delete p.wing;
+    delete p.user;
+    delete p.officeBearerRoles;
+    delete p.boothsAsAgent;
+    delete p.fatherName;
+    delete p.id;
+    delete p.createdAt;
+    delete p.updatedAt;
+
+    return p;
   }
 
-  private async validateWingLimits(payload: any) {
+  private async checkDuplicates(payload: any, excludeId?: string) {
+    const { memberId, voterId, aadhaarNumber } = payload;
+    const orConditions: any[] = [];
+
+    if (memberId) {
+      orConditions.push({ memberId });
+    }
+
+    if (voterId) {
+      orConditions.push({ voterId });
+    }
+
+    if (aadhaarNumber) {
+      orConditions.push({ aadhaarNumber });
+      const stripped = aadhaarNumber.replace(/\s+/g, '');
+      const formatted = stripped.replace(/(\d{4})(?=\d)/g, '$1 ').trim();
+      if (stripped !== aadhaarNumber) orConditions.push({ aadhaarNumber: stripped });
+      if (formatted !== aadhaarNumber) orConditions.push({ aadhaarNumber: formatted });
+    }
+
+    if (orConditions.length === 0) return;
+
+    const existingRecords = await this.prisma.cadre.findMany({
+      where: {
+        OR: orConditions,
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      },
+      select: {
+        id: true,
+        name: true,
+        memberId: true,
+        voterId: true,
+        aadhaarNumber: true,
+      },
+    });
+
+    if (existingRecords.length > 0) {
+      const duplicate = existingRecords[0];
+      const matchReasons: string[] = [];
+
+      if (memberId && duplicate.memberId === memberId) {
+        matchReasons.push(`Member ID "${memberId}"`);
+      }
+      if (voterId && duplicate.voterId === voterId) {
+        matchReasons.push(`Voter ID "${voterId}"`);
+      }
+      if (aadhaarNumber && (
+        duplicate.aadhaarNumber === aadhaarNumber ||
+        duplicate.aadhaarNumber?.replace(/\s+/g, '') === aadhaarNumber.replace(/\s+/g, '')
+      )) {
+        matchReasons.push(`Aadhaar Number "${aadhaarNumber}"`);
+      }
+
+      const reasonStr = matchReasons.length > 0 ? matchReasons.join(', ') : 'details';
+      throw new BadRequestException(
+        `A cadre with this ${reasonStr} is already registered (${duplicate.name || 'Existing Cadre'}).`
+      );
+    }
+  }
+
+  async create(payload: any) {
+    const sanitized = await this.sanitizePayload(payload, false);
+
+    if (!sanitized.name) {
+      throw new BadRequestException('Name is required.');
+    }
+    if (!sanitized.memberId) {
+      throw new BadRequestException('Member ID / Voter ID is required.');
+    }
+
+    await this.checkDuplicates(sanitized);
+
+    if (sanitized.wingId) {
+      await this.validateWingLimits(sanitized);
+    }
+
+    try {
+      return await this.prisma.cadre.create({
+        data: sanitized,
+      });
+    } catch (error: any) {
+      if (error.code === 'P2002') {
+        const target = Array.isArray(error.meta?.target)
+          ? error.meta.target.join(', ')
+          : (error.meta?.target || 'field');
+        throw new BadRequestException(`A cadre with this ${target} already exists.`);
+      }
+      if (error.code === 'P2003') {
+        throw new BadRequestException('Invalid reference: selected organization or unit does not exist.');
+      }
+      throw error;
+    }
+  }
+
+  private async validateWingLimits(payload: any, excludeId?: string) {
     const { wingId, role, level, districtId, unionId } = payload;
     if (!wingId || !role || !level) return;
 
@@ -30,6 +212,7 @@ export class CadreService {
         level,
         ...(level === 'DISTRICT' && districtId ? { districtId } : {}),
         ...(level === 'UNION' && unionId ? { unionId } : {}),
+        ...(excludeId ? { id: { not: excludeId } } : {}),
       },
     });
 
@@ -310,14 +493,31 @@ export class CadreService {
     const cadre = await this.prisma.cadre.findUnique({ where: { id } });
     if (!cadre) throw new NotFoundException('Cadre not found');
 
-    if (payload.wingId && (payload.role !== cadre.role || payload.wingId !== cadre.wingId)) {
-      await this.validateWingLimits({ ...cadre, ...payload });
+    const sanitized = await this.sanitizePayload(payload, true);
+
+    await this.checkDuplicates(sanitized, id);
+
+    if (sanitized.wingId && (sanitized.role !== cadre.role || sanitized.wingId !== cadre.wingId)) {
+      await this.validateWingLimits({ ...cadre, ...sanitized }, id);
     }
 
-    return this.prisma.cadre.update({
-      where: { id },
-      data: payload,
-    });
+    try {
+      return await this.prisma.cadre.update({
+        where: { id },
+        data: sanitized,
+      });
+    } catch (error: any) {
+      if (error.code === 'P2002') {
+        const target = Array.isArray(error.meta?.target)
+          ? error.meta.target.join(', ')
+          : (error.meta?.target || 'field');
+        throw new BadRequestException(`A cadre with this ${target} already exists.`);
+      }
+      if (error.code === 'P2003') {
+        throw new BadRequestException('Invalid reference: selected organization or unit does not exist.');
+      }
+      throw error;
+    }
   }
 
   async remove(id: string) {

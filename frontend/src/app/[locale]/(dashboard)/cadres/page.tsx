@@ -109,6 +109,7 @@ export default function CadresPage() {
   // Fetch standard cadres and wing cadres concurrently
   const { data: allCadres = [], isLoading: isLoadingAll } = useCadres({});
   const { data: wingCadres = [], isLoading: isLoadingWings } = useCadres({ isWing: 'true' });
+  const combinedCadres = useMemo(() => [...allCadres, ...wingCadres], [allCadres, wingCadres]);
   const { data: unions = [] } = useUnions();
   const { data: kilais = [] } = useKilais();
   const { data: wings = [] } = useWings();
@@ -953,7 +954,7 @@ function matchesRoleFilter(rawRole: string | undefined | null, filterId: string)
         isOpen={isModalOpen}
         onOpenChange={setIsModalOpen}
         editingId={editingId}
-        cadres={allCadres}
+        cadres={combinedCadres}
         defaultLevel="DISTRICT"
         lockLevel={false}
       />

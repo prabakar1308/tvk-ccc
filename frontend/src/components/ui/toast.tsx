@@ -13,8 +13,8 @@ function ToastProvider({ ...props }: ToastPrimitive.Provider.Props) {
   return <ToastPrimitive.Provider {...props} />
 }
 
-function ToastPortal({ ...props }: ToastPrimitive.Portal.Props) {
-  return <ToastPrimitive.Portal data-slot="toast-portal" {...props} />
+function ToastPortal({ className, ...props }: ToastPrimitive.Portal.Props) {
+  return <ToastPrimitive.Portal data-slot="toast-portal" className={cn("isolate z-[9999]", className)} {...props} />
 }
 
 function ToastViewport({ className, ...props }: ToastPrimitive.Viewport.Props) {
@@ -22,7 +22,7 @@ function ToastViewport({ className, ...props }: ToastPrimitive.Viewport.Props) {
     <ToastPrimitive.Viewport
       data-slot="toast-viewport"
       className={cn(
-        "pointer-events-none fixed inset-x-4 bottom-4 z-50 mx-auto w-auto max-w-sm outline-none sm:right-4 sm:left-auto sm:mx-0 sm:w-full",
+        "pointer-events-none fixed inset-x-4 bottom-4 z-[9999] mx-auto w-auto max-w-sm outline-none sm:right-4 sm:left-auto sm:mx-0 sm:w-full",
         className
       )}
       {...props}
@@ -35,7 +35,7 @@ function Toast({ className, ...props }: ToastPrimitive.Root.Props) {
     <ToastPrimitive.Root
       data-slot="toast"
       className={cn(
-        "group/toast pointer-events-auto absolute right-0 bottom-0 z-[calc(1000-var(--toast-index))] w-full origin-bottom rounded-2xl border border-white/20 dark:border-white/10 bg-background/90 backdrop-blur-xl text-foreground shadow-2xl shadow-primary/5 dark:shadow-none ring-1 ring-black/5 dark:ring-white/10 will-change-transform outline-none select-none focus-visible:border-ring overflow-hidden",
+        "group/toast pointer-events-auto absolute right-0 bottom-0 z-[calc(10000-var(--toast-index))] w-full origin-bottom rounded-2xl border border-border/70 dark:border-white/15 bg-background/95 dark:bg-zinc-900/95 backdrop-blur-xl text-foreground shadow-2xl shadow-black/20 dark:shadow-black/70 ring-1 ring-black/5 dark:ring-white/10 will-change-transform outline-none select-none focus-visible:border-ring overflow-hidden",
         "[--gap:0.75rem] [--height:var(--toast-frontmost-height,var(--toast-height))] [--offset-y:calc(var(--toast-offset-y)*-1+calc(var(--toast-index)*var(--gap)*-1)+var(--toast-swipe-movement-y))] [--peek:0.75rem] [--scale:calc(max(0,1-(var(--toast-index)*0.1)))] [--shrink:calc(1-var(--scale))]",
         "h-(--height) [transform:translateX(var(--toast-swipe-movement-x))_translateY(calc(var(--toast-swipe-movement-y)-(var(--toast-index)*var(--peek))-(var(--shrink)*var(--height))))_scale(var(--scale))] [transition:transform_500ms_cubic-bezier(0.22,1,0.36,1),opacity_500ms,height_150ms]",
         "after:absolute after:top-full after:left-0 after:h-[calc(var(--gap)+1px)] after:w-full after:content-['']",
