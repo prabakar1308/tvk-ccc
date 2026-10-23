@@ -144,7 +144,7 @@ export default function DashboardPage() {
           </span>
         </div>
 
-        <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-5 grid-cols-1 sm:grid-cols-2 2xl:grid-cols-4">
           {/* Card 1: Total Org Units */}
           <Link href="/unions" className="block h-full group/card cursor-pointer">
             <div className="group relative flex flex-col justify-between h-full rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 hover:border-[#8F0A1B]/40 dark:hover:border-[#8F0A1B]/60 bg-gradient-to-b from-white via-white to-zinc-50/50 dark:from-zinc-900/90 dark:via-zinc-900/80 dark:to-zinc-950/90 shadow-md hover:shadow-2xl hover:shadow-[#8F0A1B]/15 dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] transition-all duration-300 overflow-hidden hover:-translate-y-1 p-5">

@@ -570,11 +570,11 @@ function matchesRoleFilter(rawRole: string | undefined | null, filterId: string)
             {/* WINGS TIER DRILLDOWN */}
             {levelFilter === 'WINGS' && (
               <>
-                <div className="inline-flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl h-10 border border-zinc-200/60 dark:border-zinc-700/60">
+                <div className="inline-flex w-full sm:w-auto bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl h-10 border border-zinc-200/60 dark:border-zinc-700/60">
                   <button
                     onClick={() => { setWingsFilterType('DISTRICT'); setFilterUnionId(''); setFilterWingId(''); }}
                     className={cn(
-                      'px-3.5 h-full rounded-lg text-xs font-bold transition-all cursor-pointer',
+                      'flex-1 sm:flex-initial px-3.5 h-full rounded-lg text-xs font-bold transition-all cursor-pointer',
                       wingsFilterType === 'DISTRICT'
                         ? 'bg-white dark:bg-zinc-700 text-primary shadow-xs'
                         : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900'
@@ -585,7 +585,7 @@ function matchesRoleFilter(rawRole: string | undefined | null, filterId: string)
                   <button
                     onClick={() => { setWingsFilterType('UNION'); setFilterWingId(''); }}
                     className={cn(
-                      'px-3.5 h-full rounded-lg text-xs font-bold transition-all cursor-pointer',
+                      'flex-1 sm:flex-initial px-3.5 h-full rounded-lg text-xs font-bold transition-all cursor-pointer',
                       wingsFilterType === 'UNION'
                         ? 'bg-white dark:bg-zinc-700 text-primary shadow-xs'
                         : 'text-zinc-600 dark:text-zinc-400 hover:text-zinc-900'
@@ -596,9 +596,9 @@ function matchesRoleFilter(rawRole: string | undefined | null, filterId: string)
                 </div>
 
                 {wingsFilterType === 'UNION' && (
-                  <div className="w-56 sm:w-64">
+                  <div className="w-full sm:w-64 min-w-[200px]">
                     <Select value={filterUnionId} onValueChange={(v) => { setFilterUnionId(v || ''); setFilterWingId(''); }}>
-                      <SelectTrigger className="h-10 rounded-xl bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-xs font-semibold">
+                      <SelectTrigger className="w-full min-w-[200px] h-10 rounded-xl bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-xs font-semibold">
                         <SelectValue placeholder={t('selectUnion')}>
                           {filterUnionId ? unions.find((u: any) => String(u.id || u._id) === filterUnionId)?.name : undefined}
                         </SelectValue>
@@ -612,9 +612,9 @@ function matchesRoleFilter(rawRole: string | undefined | null, filterId: string)
                   </div>
                 )}
 
-                <div className="w-64 sm:w-72">
+                <div className="w-full sm:w-72 min-w-[200px]">
                   <Select value={filterWingId} onValueChange={(v) => setFilterWingId(v || '')}>
-                    <SelectTrigger className="h-10 rounded-xl bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-xs font-semibold">
+                    <SelectTrigger className="w-full min-w-[200px] h-10 rounded-xl bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-xs font-semibold">
                       <SelectValue placeholder="All Special Wings">
                         {filterWingId ? wings.find((w: any) => String(w.id || w._id) === filterWingId)?.name : undefined}
                       </SelectValue>
@@ -633,9 +633,9 @@ function matchesRoleFilter(rawRole: string | undefined | null, filterId: string)
             {/* UNION TIER DRILLDOWN */}
             {(levelFilter === 'UNION' || (levelFilter === 'ALL' && filterLevel === 'UNION')) && (
               <>
-                <div className="w-56 sm:w-64">
+                <div className="w-full sm:w-64 min-w-[200px]">
                   <Select value={filterUnionId} onValueChange={(v) => { setFilterUnionId(v || ''); setFilterKilaiId(''); }}>
-                    <SelectTrigger className="h-10 rounded-xl bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-xs font-semibold">
+                    <SelectTrigger className="w-full min-w-[200px] h-10 rounded-xl bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-xs font-semibold">
                       <SelectValue placeholder="All Org Units">
                         {filterUnionId ? unions.find((u: any) => String(u.id || u._id) === filterUnionId)?.name : undefined}
                       </SelectValue>
@@ -650,7 +650,7 @@ function matchesRoleFilter(rawRole: string | undefined | null, filterId: string)
                 </div>
 
                 {filterUnionId && (
-                  <label className="flex items-center gap-2 bg-primary/5 hover:bg-primary/10 px-3.5 h-10 rounded-xl border border-primary/20 cursor-pointer select-none transition-colors">
+                  <label className="flex items-center gap-2 bg-primary/5 hover:bg-primary/10 px-3.5 h-10 rounded-xl border border-primary/20 cursor-pointer select-none transition-colors w-full sm:w-auto justify-center sm:justify-start">
                     <Checkbox
                       id="includeKilai"
                       checked={includeKilai}
@@ -667,9 +667,9 @@ function matchesRoleFilter(rawRole: string | undefined | null, filterId: string)
             {/* KILAI TIER DRILLDOWN */}
             {(levelFilter === 'KILAI' || (levelFilter === 'ALL' && filterLevel === 'KILAI')) && (
               <>
-                <div className="w-56 sm:w-64">
+                <div className="w-full sm:w-64 min-w-[200px]">
                   <Select value={filterUnionId} onValueChange={(v) => { setFilterUnionId(v || ''); setFilterKilaiId(''); }}>
-                    <SelectTrigger className="h-10 rounded-xl bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-xs font-semibold">
+                    <SelectTrigger className="w-full min-w-[200px] h-10 rounded-xl bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-xs font-semibold">
                       <SelectValue placeholder="1. Select Org Unit First">
                         {filterUnionId ? unions.find((u: any) => String(u.id || u._id) === filterUnionId)?.name : undefined}
                       </SelectValue>
@@ -682,9 +682,9 @@ function matchesRoleFilter(rawRole: string | undefined | null, filterId: string)
                   </Select>
                 </div>
 
-                <div className="w-56 sm:w-64">
+                <div className="w-full sm:w-64 min-w-[200px]">
                   <Select value={filterKilaiId} onValueChange={(v) => setFilterKilaiId(v || '')} disabled={!filterUnionId}>
-                    <SelectTrigger className="h-10 rounded-xl bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-xs font-semibold">
+                    <SelectTrigger className="w-full min-w-[200px] h-10 rounded-xl bg-zinc-50 dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700 text-xs font-semibold">
                       <SelectValue placeholder={filterUnionId ? "2. Select Kilai" : "Select Org Unit first"}>
                         {filterKilaiId ? kilais.find((k: any) => String(k.id || k._id) === filterKilaiId)?.name : undefined}
                       </SelectValue>
@@ -763,31 +763,36 @@ function matchesRoleFilter(rawRole: string | undefined | null, filterId: string)
           </div>
         </div>
 
-        {/* Bottom: Quick Role Filter Pills (All visible with flex-wrap) */}
-        <div className="flex items-center gap-1.5 flex-wrap pt-2 border-t border-zinc-100 dark:border-zinc-800/80">
-          <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground mr-1 shrink-0">
-            Role:
-          </span>
-          {ROLE_CHIPS.map((chip) => {
-            const isChipActive = selectedRoleFilter === chip.id;
-            const ChipIcon = chip.icon;
+        {/* Bottom: Quick Role Filter Pills (Uniform width & responsive grid alignment across all resolutions) */}
+        <div className="pt-2.5 border-t border-zinc-100 dark:border-zinc-800/80 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-muted-foreground">
+              Filter By Role:
+            </span>
+          </div>
 
-            return (
-              <button
-                key={chip.id}
-                onClick={() => setSelectedRoleFilter(chip.id)}
-                className={cn(
-                  'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer select-none',
-                  isChipActive
-                    ? 'bg-primary text-white shadow-xs'
-                    : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-900'
-                )}
-              >
-                {ChipIcon && <ChipIcon className="w-3.5 h-3.5" />}
-                <span>{chip.label}</span>
-              </button>
-            );
-          })}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 w-full">
+            {ROLE_CHIPS.map((chip) => {
+              const isChipActive = selectedRoleFilter === chip.id;
+              const ChipIcon = chip.icon;
+
+              return (
+                <button
+                  key={chip.id}
+                  onClick={() => setSelectedRoleFilter(chip.id)}
+                  className={cn(
+                    'inline-flex items-center justify-center gap-1.5 px-1.5 py-2 rounded-xl text-[11.5px] xl:text-xs font-bold transition-all cursor-pointer select-none w-full min-w-0',
+                    isChipActive
+                      ? 'bg-primary text-white shadow-xs'
+                      : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-900'
+                  )}
+                >
+                  {ChipIcon && <ChipIcon className="w-3.5 h-3.5 shrink-0" />}
+                  <span className="truncate">{chip.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 

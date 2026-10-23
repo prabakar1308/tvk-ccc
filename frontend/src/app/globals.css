@@ -187,3 +187,51 @@
 .dark .roles-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 199, 44, 0.65);
 }
+
+/* Custom sleek scrollbar for sidebar */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 9999px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+/* Custom sleek vertical scrollbar for main dashboard content */
+.main-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(143, 10, 27, 0.2) transparent;
+}
+.main-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.main-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.main-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(143, 10, 27, 0.2);
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
+}
+.main-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(143, 10, 27, 0.5);
+}
+.dark .main-scrollbar {
+  scrollbar-color: rgba(255, 199, 44, 0.2) transparent;
+}
+.dark .main-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 199, 44, 0.2);
+}
+.dark .main-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 199, 44, 0.5);
+}

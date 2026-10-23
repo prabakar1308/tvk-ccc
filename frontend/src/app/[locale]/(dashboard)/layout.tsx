@@ -91,50 +91,50 @@ export default function DashboardLayout({
 
   const SidebarContent = () => (
     <>
-        <div className="flex flex-col items-center justify-center py-6 relative">
+        <div className="flex flex-col items-center justify-center py-3.5 relative shrink-0">
           {/* Close button for overlay (< lg) */}
           <button 
             onClick={() => setIsOverlayOpen(false)}
-            className="lg:hidden absolute top-4 right-4 p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+            className="lg:hidden absolute top-3 right-3 p-1.5 rounded-lg text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
             aria-label="Close menu"
           >
             <X className="w-5 h-5" />
           </button>
 
           <div className="flex items-center gap-3">
-            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center overflow-hidden">
-              <Image src="/TVK Connect1.png" alt="CCC Logo" width={64} height={64} className="object-cover" />
+            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center overflow-hidden">
+              <Image src="/TVK Connect1.png" alt="CCC Logo" width={48} height={48} className="object-cover" />
             </div>
           </div>
-          <p className="text-[12px] uppercase tracking-[0.05em] font-bold text-white mt-2 text-center w-full border-b border-white/20 pb-4">{tSidebar('cadreCommandCentre')}</p>
+          <p className="text-[11px] uppercase tracking-[0.05em] font-bold text-white mt-1.5 text-center w-full border-b border-white/20 pb-2.5">{tSidebar('cadreCommandCentre')}</p>
         </div>
 
-        <nav className="flex-1 overflow-y-auto py-4 px-4 space-y-1 custom-scrollbar">
+        <nav className="flex-1 min-h-0 overflow-y-auto py-2 px-3 space-y-0.5 custom-scrollbar">
           {navItems.map((item) => {
             const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
             return (
               <Link key={item.name} href={item.href} onClick={() => setIsOverlayOpen(false)}>
                 <div
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+                  className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200 group ${
                     isActive
                       ? 'bg-[#FFD700] text-[#8F0A1B] font-bold shadow-md'
                       : 'text-white hover:bg-white/10 font-medium'
                   }`}
                 >
-                  <div className={`w-5 h-5 flex items-center justify-center ${isActive ? 'text-[#8F0A1B]' : 'text-white'}`}>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/></svg>
+                  <div className={`w-4.5 h-4.5 flex items-center justify-center ${isActive ? 'text-[#8F0A1B]' : 'text-white'}`}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/></svg>
                   </div>
-                  <span className="text-[16px]">{item.name}</span>
+                  <span className="text-[14px]">{item.name}</span>
                 </div>
               </Link>
             );
           })}
         </nav>
 
-        <div className="p-6 flex flex-col items-center mt-auto border-t border-white/10">
-          <p className="text-white/60 text-[11px] uppercase tracking-wider mb-1">{tSidebar('developedBy')}</p>
-          <h3 className="text-[#FFD700] font-bold text-[15px] text-center mb-1">Prabakaran</h3>
-          <p className="text-white/80 text-[12px] text-center leading-relaxed">
+        <div className="py-2.5 px-4 flex flex-col items-center mt-auto border-t border-white/10 shrink-0">
+          <p className="text-white/60 text-[10px] uppercase tracking-wider mb-0.5">{tSidebar('developedBy')}</p>
+          <h3 className="text-[#FFD700] font-bold text-[13px] text-center mb-0.5">Prabakaran</h3>
+          <p className="text-white/80 text-[11px] text-center leading-tight">
             {tSidebar('treasurer')}<br/>
             {tSidebar('southEastUnion')}
           </p>
@@ -143,7 +143,7 @@ export default function DashboardLayout({
   );
 
   return (
-    <div className="min-h-screen flex bg-[#F8F9FA] dark:bg-black font-sans relative">
+    <div className="h-screen max-h-screen overflow-hidden flex bg-[#F8F9FA] dark:bg-black font-sans relative">
       {/* Overlay Backdrop (< lg) */}
       {isOverlayOpen && (
         <div 
@@ -153,19 +153,21 @@ export default function DashboardLayout({
       )}
 
       {/* Sidebar - Desktop (>= lg: docked in layout) */}
-      <aside className={`bg-[#8F0A1B] flex-col hidden lg:flex text-white shadow-xl z-20 shrink-0 transition-all duration-300 ${isDesktopSidebarOpen ? 'w-[280px]' : 'w-0 overflow-hidden'}`}>
-        <div className="w-[280px] h-full flex flex-col">
+      <aside className={`bg-[#8F0A1B] flex-col hidden lg:flex text-white shadow-xl z-20 shrink-0 h-full max-h-screen overflow-hidden transition-all duration-300 ${isDesktopSidebarOpen ? 'w-[280px]' : 'w-0 overflow-hidden'}`}>
+        <div className="w-[280px] h-full flex flex-col min-h-0 overflow-hidden">
           <SidebarContent />
         </div>
       </aside>
 
       {/* Sidebar - Overlay (< lg: mobile & md-lg tablet) */}
-      <aside className={`fixed top-0 left-0 bottom-0 w-[280px] bg-[#8F0A1B] flex flex-col text-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out lg:hidden ${isOverlayOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <SidebarContent />
+      <aside className={`fixed top-0 left-0 bottom-0 w-[280px] bg-[#8F0A1B] flex flex-col text-white shadow-2xl z-50 transform transition-transform duration-300 ease-in-out lg:hidden overflow-hidden ${isOverlayOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        <div className="w-full h-full flex flex-col min-h-0 overflow-hidden">
+          <SidebarContent />
+        </div>
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden bg-[#f3f3ef]">
+      <div className="flex-1 flex flex-col min-w-0 h-full max-h-screen overflow-hidden bg-[#f3f3ef]">
         {/* Top Header */}
         <header 
           style={{ 
@@ -307,21 +309,21 @@ export default function DashboardLayout({
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto px-4 md:px-8 py-4 md:pb-8 relative mb-4">
-          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both h-full">
+        <main className="flex-1 min-h-0 overflow-y-auto px-4 md:px-8 py-4 md:pb-6 relative main-scrollbar">
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both">
             {children}
           </div>
         </main>
         
         {/* Global Footer */}
-        <footer className="bg-[#8F0A1B] text-white py-3 px-4 md:px-8 flex flex-col md:flex-row justify-between items-center text-[14px] md:text-[15px] shrink-0 mt-auto gap-2 md:gap-0">
+        <footer className="bg-[#8F0A1B] text-white py-2.5 px-4 md:px-8 flex flex-col md:flex-row justify-between items-center text-[13px] md:text-[14px] shrink-0 gap-2 md:gap-0">
           <div className="flex items-center gap-3">
             <div className="w-5 h-5 md:w-6 md:h-6 bg-gradient-to-r from-red-600 via-yellow-500 to-red-600 rounded-full flex items-center justify-center border border-white/20">
               <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-black rounded-full" />
             </div>
             <span className="font-medium text-center md:text-left">{tFooter('partyName')}</span>
           </div>
-          <div className="text-white/90 text-center md:text-right text-[12px] md:text-[15px]">
+          <div className="text-white/90 text-center md:text-right text-[12px] md:text-[14px]">
              {tFooter('regionDetails')}
           </div>
         </footer>
