@@ -12,18 +12,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Check, ChevronsUpDown, Upload, FileText, X, Camera, AlertCircle } from "lucide-react";
+import { Upload, FileText, X, Camera, AlertCircle } from "lucide-react";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { cn } from "@/lib/utils";
 import { CreateCadreDto } from '@/services/api/cadres';
 import { uploadApi } from '@/services/api/upload';
 import { useCreateCadre, useUpdateCadre } from '@/hooks/use-cadres';
 import { useDistricts } from '@/hooks/use-districts';
-import { useBooths, useBoothAreas } from '@/hooks/use-booths';
 import { useUnions } from '@/hooks/use-unions';
 import { useKilais } from '@/hooks/use-kilais';
+import { AreaMultiSelect } from '@/components/shared/area-multi-select';
+import { BoothMultiSelect } from '@/components/shared/booth-multi-select';
 
 export interface CadreFormData {
   name: string;
@@ -80,8 +79,6 @@ export function CadreFormDialog({
   const updateMutation = useUpdateCadre();
   
   const { data: districts = [] } = useDistricts();
-  const { data: booths = [] } = useBooths();
-  const { data: areas = [] } = useBoothAreas();
   const { data: unions = [] } = useUnions();
   const { data: kilais = [] } = useKilais();
 
@@ -115,8 +112,7 @@ export function CadreFormDialog({
   const [isUploading, setIsUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const [areaOpen, setAreaOpen] = useState(false);
-  const [boothOpen, setBoothOpen] = useState(false);
+
 
   useEffect(() => {
     if (isOpen) {
@@ -500,104 +496,21 @@ export function CadreFormDialog({
                 required
               />
             </div>
-            <div className="col-span-2 space-y-2">
-              <Label htmlFor="area">Place / Area</Label>
-              <Popover open={areaOpen} onOpenChange={setAreaOpen}>
-                <PopoverTrigger 
-                render={
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={areaOpen}
-                    className={cn("w-full flex justify-between font-normal text-base h-10", !formData.area && "text-muted-foreground")}
-                  />
-                }
-              >
-                {formData.area ? formData.area : "Select place / area"}
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </PopoverTrigger>
-                <PopoverContent className="p-0" style={{ width: 'var(--anchor-width)' }}>
-                  <Command>
-                    <CommandInput placeholder="Search area..." />
-                    <CommandList>
-                      <CommandEmpty>No area found.</CommandEmpty>
-                      <CommandGroup>
-                        {areas.map((area: string) => (
-                          <CommandItem
-                            key={area}
-                            value={area}
-                            onSelect={(currentValue) => {
-                              const selectedArea = areas.find((a: string) => a.toLowerCase() === currentValue) || currentValue;
-                              setFormData({ ...formData, area: selectedArea === formData.area ? "" : selectedArea } as any)
-                              setAreaOpen(false)
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                formData.area === area ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {area}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+            <div className="col-span-2 space-y-2 flex flex-col">
+              <Label>Area</Label>
+              <AreaMultiSelect
+                value={formData.area ? formData.area.split(',').map((s) => s.trim()).filter(Boolean) : []}
+                onChange={(val) => setFormData((prev) => ({ ...prev, area: val.join(', ') }))}
+                displayStyle="badges"
+              />
             </div>
-            <div className="col-span-2 space-y-2">
-              <Label htmlFor="boothNo">Booth No.</Label>
-              <Popover open={boothOpen} onOpenChange={setBoothOpen}>
-                <PopoverTrigger 
-                render={
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={boothOpen}
-                    className={cn("w-full flex justify-between font-normal text-base h-10", !formData.boothNo && "text-muted-foreground")}
-                  />
-                }
-              >
-                {formData.boothNo ? (
-                  (() => {
-                    const selected = booths.find((b: any) => b.boothNo === formData.boothNo);
-                    return selected ? `${selected.boothNo} - ${selected.area || selected.name}` : formData.boothNo;
-                  })()
-                ) : "Select booth number"}
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </PopoverTrigger>
-                <PopoverContent className="p-0" style={{ width: 'var(--anchor-width)' }}>
-                  <Command>
-                    <CommandInput placeholder="Search booth..." />
-                    <CommandList>
-                      <CommandEmpty>No booth found.</CommandEmpty>
-                      <CommandGroup>
-                        {booths.map((booth: any) => (
-                          <CommandItem
-                            key={booth.id}
-                            value={booth.boothNo}
-                            onSelect={(currentValue) => {
-                              const selectedBooth = booths.find((b: any) => b.boothNo.toLowerCase() === currentValue) || { boothNo: currentValue };
-                              setFormData({ ...formData, boothNo: selectedBooth.boothNo === formData.boothNo ? "" : selectedBooth.boothNo } as any)
-                              setBoothOpen(false)
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                formData.boothNo === booth.boothNo ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {booth.boothNo} - {booth.area || booth.name}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+            <div className="col-span-2 space-y-2 flex flex-col">
+              <Label>Booth</Label>
+              <BoothMultiSelect
+                value={formData.boothNo ? formData.boothNo.split(',').map((s) => s.trim()).filter(Boolean) : []}
+                onChange={(val) => setFormData((prev) => ({ ...prev, boothNo: val.join(', ') }))}
+                displayStyle="badges"
+              />
             </div>
           </div>
           

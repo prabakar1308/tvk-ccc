@@ -189,3 +189,34 @@ export function getUnitTypeLabel(unitType?: string, locale: string = 'en'): stri
       return 'Union';
   }
 }
+
+/**
+ * Returns the label for covered areas based on unit type:
+ * - "Panchayat's Included" for Union
+ * - "Ward's Included" for rest of the unit types (Town, Town Panchayat, Area, etc.)
+ */
+export function getAreasCoveredLabel(unitType?: string, locale: string = 'en'): string {
+  const isUnion = (unitType || 'UNION').toUpperCase() === 'UNION';
+  if (locale === 'ta') {
+    return isUnion ? 'உட்பட்ட ஊராட்சிகள்' : 'உட்பட்ட வார்டுகள்';
+  }
+  return isUnion ? "Included Panchayats" : "Included Wards";
+}
+
+/**
+ * Returns the label for a group of units (used in table headers).
+ */
+export function getGroupAreasCoveredLabel(unions?: any[], locale: string = 'en'): string {
+  if (!unions || unions.length === 0) {
+    return locale === 'ta' ? 'உட்பட்ட ஊராட்சிகள்' : "Panchayat's Included";
+  }
+  const hasOnlyUnion = unions.every((u: any) => (u.unitType || 'UNION').toUpperCase() === 'UNION');
+  const hasOnlyNonUnion = unions.every((u: any) => u.unitType && u.unitType.toUpperCase() !== 'UNION');
+  if (hasOnlyUnion) {
+    return locale === 'ta' ? 'உட்பட்ட ஊராட்சிகள்' : "Panchayat's Included";
+  }
+  if (hasOnlyNonUnion) {
+    return locale === 'ta' ? 'உட்பட்ட வார்டுகள்' : "Ward's Included";
+  }
+  return locale === 'ta' ? 'உட்பட்ட ஊராட்சிகள் / வார்டுகள்' : "Panchayat's / Ward's Included";
+}

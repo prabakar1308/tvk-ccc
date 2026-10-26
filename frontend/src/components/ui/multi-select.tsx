@@ -46,7 +46,7 @@ export function MultiSelectDropdown({
   getOptionBadgeLabel,
   displayStyle = 'comma-separated',
   disabled = false,
-  creatable = false,
+  creatable = true,
 }: MultiSelectDropdownProps) {
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
@@ -92,7 +92,10 @@ export function MultiSelectDropdown({
           {value.length > 0 ? (
             displayStyle === 'badges' ? (
               value.map((val) => {
-                const opt = options.find((o) => getOptionValue(o) === val);
+                const opt = options.find((o) => {
+                  const v = getOptionValue(o);
+                  return v === val || (typeof o === 'object' && o !== null && ('nameTa' in o && o.nameTa === val));
+                });
                 const badgeText = opt ? (getOptionBadgeLabel ? getOptionBadgeLabel(opt) : getOptionLabel(opt)) : val;
                 return (
                   <span 
@@ -108,7 +111,10 @@ export function MultiSelectDropdown({
             ) : (
               <span className="block truncate w-full pr-2">
                 {value.map(val => {
-                   const opt = options.find((o) => getOptionValue(o) === val);
+                   const opt = options.find((o) => {
+                     const v = getOptionValue(o);
+                     return v === val || (typeof o === 'object' && o !== null && ('nameTa' in o && o.nameTa === val));
+                   });
                    return opt ? getOptionLabel(opt) : val;
                 }).join(', ')}
               </span>
@@ -145,16 +151,21 @@ export function MultiSelectDropdown({
           />
           <CommandList>
             <CommandEmpty>
-              {creatable && search.trim().length > 2 ? (
+              {creatable && search.trim().length > 0 ? (
                 <div 
-                  className="px-2 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground"
+                  className="px-2 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground flex items-center gap-1.5"
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
                   onClick={() => {
                     handleSelect(search.trim());
                     setSearch("");
-                    setOpen(false); // Optional: close on create, or just add it
+                    setOpen(false);
                   }}
                 >
-                  <span className="text-muted-foreground mr-2">Create:</span> "{search}"
+                  <span className="text-muted-foreground mr-1">Create:</span>
+                  <span className="font-semibold text-foreground">"{search.trim()}"</span>
                 </div>
               ) : (
                 emptyMessage
@@ -164,10 +175,11 @@ export function MultiSelectDropdown({
               {options.map((option) => {
                 const optionValue = getOptionValue(option);
                 const isSelected = value.includes(optionValue);
+                const label = getOptionLabel(option);
                 return (
                   <CommandItem
                     key={optionValue}
-                    value={optionValue}
+                    value={`${optionValue} ${label}`}
                     onSelect={() => handleSelect(optionValue)}
                   >
                     <Check 
@@ -176,19 +188,20 @@ export function MultiSelectDropdown({
                         isSelected ? "opacity-100" : "opacity-0"
                       )} 
                     />
-                    {getOptionLabel(option)}
+                    {label}
                   </CommandItem>
                 );
               })}
-              {creatable && search.trim().length > 2 && !options.some(opt => getOptionLabel(opt).toLowerCase() === search.trim().toLowerCase() || getOptionValue(opt).toLowerCase() === search.trim().toLowerCase()) && (
+              {creatable && search.trim().length > 0 && !options.some(opt => getOptionLabel(opt).toLowerCase() === search.trim().toLowerCase() || getOptionValue(opt).toLowerCase() === search.trim().toLowerCase()) && (
                 <CommandItem
-                  value={search.trim()}
-                  onSelect={(currentValue) => {
+                  value={`create-${search.trim()}`}
+                  onSelect={() => {
                     handleSelect(search.trim());
                     setSearch("");
                   }}
                 >
-                  <span className="text-muted-foreground mr-2">Create:</span> "{search.trim()}"
+                  <span className="text-muted-foreground mr-1">Create:</span>
+                  <span className="font-semibold text-foreground">"{search.trim()}"</span>
                 </CommandItem>
               )}
             </CommandGroup>

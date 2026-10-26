@@ -30,11 +30,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { useUnions, useCreateUnion, useUpdateUnion, useDeleteUnion, useMasterAreas } from '@/hooks/use-unions';
+import { useUnions, useCreateUnion, useUpdateUnion, useDeleteUnion } from '@/hooks/use-unions';
 import { useDistricts } from '@/hooks/use-districts';
 import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
+import { PanchayatMultiSelect } from '@/components/shared/panchayat-multi-select';
 import { UserAvatar } from '@/components/ui/user-avatar';
-import { getOrgUnitName, getUnitTypeLabel } from '@/lib/org-unit-translations';
+import { getOrgUnitName, getUnitTypeLabel, getAreasCoveredLabel, getGroupAreasCoveredLabel } from '@/lib/org-unit-translations';
 import { translatePersonNameToTamil } from '@/lib/name-translations';
 
 export default function UnionsPage() {
@@ -44,7 +45,6 @@ export default function UnionsPage() {
   const tForms = useTranslations('Forms');
   const { data: unions, isLoading } = useUnions();
   const { data: districts } = useDistricts();
-  const { data: masterAreas } = useMasterAreas();
   const createMutation = useCreateUnion();
   const updateMutation = useUpdateUnion();
   const deleteMutation = useDeleteUnion();
@@ -79,12 +79,9 @@ export default function UnionsPage() {
     contactEmail: '',
     areasCovered: []
   });
-  const [areaInput, setAreaInput] = useState('');
-
   const handleOpenCreate = () => {
     setEditingId(null);
     setFormData({ name: '', group: 'KURINJIPADI', unitType: 'UNION', contactName: '', contactPhone: '', contactEmail: '', areasCovered: [] });
-    setAreaInput('');
     setIsModalOpen(true);
   };
 
@@ -99,19 +96,7 @@ export default function UnionsPage() {
       contactEmail: union.contactEmail || '',
       areasCovered: union.areasCovered || []
     });
-    setAreaInput('');
     setIsModalOpen(true);
-  };
-
-  const handleAddArea = () => {
-    if (areaInput.trim() && !formData.areasCovered.includes(areaInput.trim())) {
-      setFormData({ ...formData, areasCovered: [...formData.areasCovered, areaInput.trim()] });
-      setAreaInput('');
-    }
-  };
-
-  const handleRemoveArea = (areaToRemove: string) => {
-    setFormData({ ...formData, areasCovered: formData.areasCovered.filter(area => area !== areaToRemove) });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -219,50 +204,28 @@ export default function UnionsPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label>Areas Covered</Label>
-                  <div className="flex gap-2">
-                    <Input 
-                      list="master-areas-list"
-                      value={areaInput}
-                      onChange={(e) => setAreaInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleAddArea();
-                        }
-                      }}
-                      placeholder="Type or select covered area"
-                    />
-                    <datalist id="master-areas-list">
-                      {masterAreas?.map((item, idx) => (
-                        <option key={idx} value={item.name}>
-                          {item.name} ({item.nameTa})
-                        </option>
-                      ))}
-                    </datalist>
-                    <Button type="button" onClick={handleAddArea} size="icon" className="shrink-0 bg-primary text-white hover:bg-primary/90">
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  {formData.areasCovered.length > 0 && (
-                    <div className="flex flex-wrap gap-2 pt-2">
-                      {formData.areasCovered.map((area, idx) => {
-                        const match = masterAreas?.find(m => m.name.toLowerCase() === area.toLowerCase());
-                        return (
-                          <div key={idx} className="flex items-center gap-1.5 bg-primary/10 text-primary px-3 py-1.5 rounded-md text-xs font-semibold">
-                            <span>{area}</span>
-                            {match?.nameTa && (
-                              <span className="opacity-75 font-normal text-[11px]">({match.nameTa})</span>
-                            )}
-                            <button type="button" onClick={() => handleRemoveArea(area)} className="text-primary hover:text-red-500 transition-colors rounded-full p-0.5 hover:bg-primary/10">
-                              <X className="h-3.5 w-3.5" />
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                <div className="space-y-2 flex flex-col">
+                  <Label>{getAreasCoveredLabel(formData.unitType, locale)}</Label>
+                  <PanchayatMultiSelect
+                    value={formData.areasCovered}
+                    onChange={(val) => setFormData(prev => ({ ...prev, areasCovered: val }))}
+                    displayStyle="badges"
+                    placeholder={
+                      (formData.unitType || 'UNION').toUpperCase() === 'UNION'
+                        ? (locale === 'ta' ? 'ஊராட்சிகளைத் தேர்ந்தெடுக்கவும்...' : "Select Panchayats...")
+                        : (locale === 'ta' ? 'வார்டுகளைத் தேர்ந்தெடுக்கவும்...' : "Select Wards...")
+                    }
+                    searchPlaceholder={
+                      (formData.unitType || 'UNION').toUpperCase() === 'UNION'
+                        ? (locale === 'ta' ? 'ஊராட்சிகளைத் தேடவும்...' : "Search panchayats...")
+                        : (locale === 'ta' ? 'வார்டுகளைத் தேடவும்...' : "Search wards...")
+                    }
+                    emptyMessage={
+                      (formData.unitType || 'UNION').toUpperCase() === 'UNION'
+                        ? (locale === 'ta' ? 'ஊராட்சி எதுவும் கிடைக்கவில்லை.' : "No panchayat found.")
+                        : (locale === 'ta' ? 'வார்டு எதுவும் கிடைக்கவில்லை.' : "No ward found.")
+                    }
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="contactName">{tForms('contactName')}</Label>
@@ -362,7 +325,7 @@ export default function UnionsPage() {
                         <TableHead className="font-semibold text-primary py-4">{t('unionName')}</TableHead>
                         <TableHead className="font-semibold text-primary py-4">{tForms('contactName')}</TableHead>
                         <TableHead className="font-semibold text-primary py-4">{tForms('phone')}</TableHead>
-                        <TableHead className="font-semibold text-primary py-4">{locale === 'ta' ? 'உட்பட்ட பகுதிகள்' : 'Areas Covered'}</TableHead>
+                        <TableHead className="font-semibold text-primary py-4">{getGroupAreasCoveredLabel(groupUnions, locale)}</TableHead>
                         <TableHead className="font-semibold text-primary py-4 text-right">{tCommon('actions')}</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -623,7 +586,7 @@ export default function UnionsPage() {
                               <div className="flex items-center gap-1.5 min-w-0">
                                 <MapPin className="w-3.5 h-3.5 text-zinc-700 shrink-0" />
                                 <span className="text-[11px] font-bold text-zinc-800 uppercase tracking-wider truncate">
-                                  {locale === 'ta' ? 'உட்பட்ட பகுதிகள்' : 'Areas Covered'}
+                                  {getAreasCoveredLabel(union.unitType, locale)}
                                 </span>
                               </div>
                               <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-full bg-white text-zinc-700 border border-zinc-300/60 shrink-0">

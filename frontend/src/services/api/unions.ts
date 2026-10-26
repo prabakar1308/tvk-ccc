@@ -22,6 +22,7 @@ export interface Union {
   };
   totalBooths?: number;
   unionCadres?: Cadre[];
+  kilais?: any[];
 }
 
 export interface CreateUnionDto {

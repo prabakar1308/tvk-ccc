@@ -40,6 +40,7 @@ import { useUnions } from '@/hooks/use-unions';
 import { useBooths, useBoothAreas } from '@/hooks/use-booths';
 import { CreateKilaiDto } from '@/services/api/kilais';
 import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
+import { PanchayatMultiSelect } from '@/components/shared/panchayat-multi-select';
 import { getOrgUnitName } from '@/lib/org-unit-translations';
 import { translatePersonNameToTamil } from '@/lib/name-translations';
 
@@ -203,12 +204,12 @@ export default function KilaisPage() {
                   onChange={(e) => setFormData({...formData, secretaryName: e.target.value})}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="panchayat">Panchayat</Label>
-                <Input 
-                  id="panchayat" 
-                  value={formData.panchayat || ''}
-                  onChange={(e) => setFormData({...formData, panchayat: e.target.value})}
+              <div className="space-y-2 flex flex-col">
+                <Label htmlFor="panchayat">{locale === 'ta' ? 'ஊராட்சி' : 'Panchayat'}</Label>
+                <PanchayatMultiSelect
+                  value={formData.panchayat ? formData.panchayat.split(',').map((s) => s.trim()).filter(Boolean) : []}
+                  onChange={(val) => setFormData((prev) => ({ ...prev, panchayat: val.join(', ') }))}
+                  displayStyle="badges"
                 />
               </div>
               <div className="space-y-2">

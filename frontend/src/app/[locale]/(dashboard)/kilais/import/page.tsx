@@ -18,6 +18,7 @@ import * as XLSX from 'xlsx';
 import { cleanRomanize } from '@/lib/utils';
 import { BoothMultiSelect } from '@/components/shared/booth-multi-select';
 import { AreaMultiSelect } from '@/components/shared/area-multi-select';
+import { PanchayatMultiSelect } from '@/components/shared/panchayat-multi-select';
 
 interface ImportedKilai {
   id: string;
@@ -472,7 +473,11 @@ export default function ImportKilaisPage() {
               </div>
               <div className="grid gap-2">
                 <Label>Panchayat</Label>
-                <Input value={editingRow.panchayat} onChange={(e) => setEditingRow({...editingRow, panchayat: e.target.value})} />
+                <PanchayatMultiSelect
+                  value={editingRow.panchayat ? editingRow.panchayat.split(',').map(s=>s.trim()).filter(Boolean) : []}
+                  onChange={(val) => setEditingRow({...editingRow, panchayat: val.join(', ')})}
+                  displayStyle="badges"
+                />
               </div>
               <div className="grid gap-2">
                 <Label>Secretary Name</Label>

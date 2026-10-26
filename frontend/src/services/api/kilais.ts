@@ -44,6 +44,8 @@ export interface CreateKilaiDto {
   villages?: string[];
   address?: string;
   pincode?: string;
+  latitude?: number;
+  longitude?: number;
   phone?: string;
   email?: string;
   status: 'ACTIVE' | 'INACTIVE' | 'PENDING';

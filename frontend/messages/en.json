@@ -140,7 +140,9 @@
     "noUnions": "No organizational units found.",
     "createUnion": "Create Org Unit",
     "deleteConfirm": "Are you sure you want to delete this organizational unit?",
-    "selectDistrictAlert": "Please select a district"
+    "selectDistrictAlert": "Please select a district",
+    "panchayatsIncluded": "Included Panchayats",
+    "wardsIncluded": "Included Wards"
   },
   "Cadres": {
     "title": "Administrators",

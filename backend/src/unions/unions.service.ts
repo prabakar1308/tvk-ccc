@@ -95,6 +95,17 @@ export class UnionsService {
       where: { id },
       include: {
         district: true,
+        kilais: {
+          include: {
+            booths: true,
+            _count: {
+              select: {
+                cadres: true,
+              },
+            },
+          },
+          orderBy: { name: 'asc' },
+        },
         _count: {
           select: {
             kilais: true,
