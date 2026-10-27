@@ -24,6 +24,7 @@ import { useRouter } from '@/i18n/routing';
 import { useWings } from '@/hooks/use-wings';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
+import { isCoordinatorRole, translatePersonNameToTamil } from '@/lib/name-translations';
 
 const iconMap: Record<string, any> = {
   Monitor, Scale, Radio, Mic, GraduationCap, Users, TreePine, 
@@ -239,7 +240,7 @@ export default function WingsPage() {
           {sortedWings.map((wing: any) => {
             const Icon = iconMap[wing.iconName] || Shield;
             const theme = getThemeStyles(wing.color);
-            const coordinator = wing.cadres?.find((c: any) => c.role === 'COORDINATOR');
+            const coordinator = wing.cadres?.find((c: any) => isCoordinatorRole(c.rawRole || c.canonicalRole || c.role));
             const coCount = wing._count?.cadres || 0;
             const fillPercent = Math.min(100, Math.round((coCount / 10) * 100));
             
@@ -312,7 +313,9 @@ export default function WingsPage() {
                             </span>
                           </div>
                           <h4 className="text-[14px] font-bold text-zinc-900 dark:text-zinc-100 truncate leading-snug group-hover:text-[#8F0A1B] transition-colors">
-                            {coordinator.name}
+                            {locale === 'ta' && coordinator.name
+                              ? translatePersonNameToTamil(coordinator.name)
+                              : coordinator.name}
                           </h4>
                           {coordinator.phone ? (
                             <button 

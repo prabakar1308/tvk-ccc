@@ -168,8 +168,9 @@ export const UserAvatar: React.FC<UserAvatarProps> = ({
             src={src}
             alt={alt || name || 'User profile'}
             onError={() => setHasError(true)}
+            draggable={false}
             className={cn(
-              'w-full h-full object-cover origin-top transition-transform duration-500',
+              'w-full h-full object-cover origin-top transition-transform duration-500 pointer-events-none select-none',
               positionClass,
               imageClassName
             )}

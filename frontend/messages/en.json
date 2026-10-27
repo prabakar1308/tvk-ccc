@@ -100,7 +100,20 @@
     "insights": "Insights",
     "analyticsReports": "Analytics & Reports",
     "analyticsDesc": "Constituency growth trends, cadre metrics & coverage reports.",
-    "viewAnalytics": "View Analytics"
+    "viewAnalytics": "View Analytics",
+    "wingsCoordinators": "Wings Coordinators",
+    "wingsCoordinatorsSubtitle": "District executive coordinators across party wings in official sequence",
+    "viewAllWings": "View All Wings",
+    "allWings": "All Wings",
+    "assignedCoordinators": "Assigned",
+    "vacantPositions": "Vacancies",
+    "wingCoordinator": "Coordinator",
+    "coordinatorNotAssigned": "Coordinator Not Appointed",
+    "appointCoordinator": "Appoint Coordinator",
+    "wingOrder": "Wing {order}",
+    "noWingsFound": "No wings found",
+    "noCoordinatorsAssigned": "No coordinators appointed yet",
+    "activeWings": "Active Wings"
   },
   "Common": {
     "add": "Add",

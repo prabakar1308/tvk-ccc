@@ -23,6 +23,7 @@ import { UserAvatar } from '@/components/ui/user-avatar';
 import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
 
 import { useWings, useWingMembers, useAssignWingMember, useRemoveWingMember } from '@/hooks/use-wings';
+import { isCoordinatorRole, isCoCoordinatorRole, getCanonicalWingRole, translatePersonNameToTamil } from '@/lib/name-translations';
 import { useCadres } from '@/hooks/use-cadres';
 import { useDistricts } from '@/hooks/use-districts';
 import { useUnions } from '@/hooks/use-unions';
@@ -97,8 +98,8 @@ export default function WingDetailsPage() {
   const { data: cadresResponse } = useCadres(filterParams);
   const cadres = cadresResponse || [];
 
-  const coordinators = members.filter((m: any) => m.role === 'COORDINATOR');
-  const coCoordinators = members.filter((m: any) => m.role === 'CO_COORDINATOR');
+  const coordinators = members.filter((m: any) => isCoordinatorRole(m.rawRole || m.canonicalRole || m.role));
+  const coCoordinators = members.filter((m: any) => isCoCoordinatorRole(m.rawRole || m.canonicalRole || m.role));
 
   const handleAdd = (role: string) => {
     setEditingId(null);
@@ -108,7 +109,7 @@ export default function WingDetailsPage() {
 
   const handleEdit = (member: any) => {
     setEditingId(member.id);
-    setEditingRole(member.role);
+    setEditingRole(getCanonicalWingRole(member.rawRole || member.canonicalRole || member.role));
     setIsManageDialogOpen(true);
   };
 
@@ -247,7 +248,9 @@ export default function WingDetailsPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h4 className="font-black text-xl text-zinc-900 dark:text-zinc-100 group-hover:text-[#8F0A1B] transition-colors truncate tracking-tight">
-                        {member.name}
+                        {locale === 'ta' && member.name
+                          ? translatePersonNameToTamil(member.name)
+                          : member.name}
                       </h4>
                       <div className="flex items-center gap-2 mt-1.5 text-xs text-zinc-600 dark:text-zinc-400 font-semibold">
                         <MapPin className="w-3.5 h-3.5 text-[#8F0A1B] shrink-0" />
@@ -351,7 +354,9 @@ export default function WingDetailsPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <h4 className="font-bold text-[16px] text-zinc-900 dark:text-zinc-100 group-hover:text-[#8F0A1B] transition-colors truncate leading-snug">
-                        {member.name}
+                        {locale === 'ta' && member.name
+                          ? translatePersonNameToTamil(member.name)
+                          : member.name}
                       </h4>
                       <div className="flex items-center gap-1.5 mt-1.5 text-xs text-zinc-600 dark:text-zinc-400 font-semibold">
                         <MapPin className="w-3.5 h-3.5 text-[#548777] shrink-0" />
@@ -450,8 +455,16 @@ export default function WingDetailsPage() {
                           elevation="sm" 
                         />
                         <div>
-                          <span className="font-bold text-zinc-900 dark:text-zinc-100 block">{member.name}</span>
-                          <span className="text-xs text-zinc-400">{role}</span>
+                          <span className="font-bold text-zinc-900 dark:text-zinc-100 block">
+                            {locale === 'ta' && member.name
+                              ? translatePersonNameToTamil(member.name)
+                              : member.name}
+                          </span>
+                          <span className="text-xs text-zinc-400">
+                            {locale === 'ta'
+                              ? (role === 'Coordinator' ? 'ஒருங்கிணைப்பாளர்' : 'இணை ஒருங்கிணைப்பாளர்')
+                              : role}
+                          </span>
                         </div>
                       </div>
                     </TableCell>

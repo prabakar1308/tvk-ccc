@@ -1,16 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocale } from 'next-intl';
 import { wingsApi, AssignWingMemberDto } from '@/services/api/wings';
 
 export function useWings(level?: string, orgId?: string) {
+  const locale = useLocale();
   return useQuery({
-    queryKey: ['wings', level, orgId],
+    queryKey: ['wings', level, orgId, locale],
     queryFn: () => wingsApi.getAll(level, orgId),
   });
 }
 
 export function useWingMembers(wingId: string, level: string, orgId: string) {
+  const locale = useLocale();
   return useQuery({
-    queryKey: ['wings', wingId, 'members', level, orgId],
+    queryKey: ['wings', wingId, 'members', level, orgId, locale],
     queryFn: () => wingsApi.getMembers(wingId, level, orgId),
     enabled: !!wingId && !!level && !!orgId,
   });

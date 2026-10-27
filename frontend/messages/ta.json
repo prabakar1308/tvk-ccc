@@ -100,7 +100,20 @@
     "insights": "புள்ளிவிவரங்கள்",
     "analyticsReports": "பகுப்பாய்வு & அறிக்கைகள்",
     "analyticsDesc": "தொகுதி வளர்ச்சி போக்குகள், நிர்வாகிகள் புள்ளிவிவரங்கள் & கள அறிக்கைகள்.",
-    "viewAnalytics": "பகுப்பாய்வைக் காண்க"
+    "viewAnalytics": "பகுப்பாய்வைக் காண்க",
+    "wingsCoordinators": "சார்பு அணிகள் ஒருங்கிணைப்பாளர்கள்",
+    "wingsCoordinatorsSubtitle": "கட்சி அணிகளின் மாவட்ட தலைமை ஒருங்கிணைப்பாளர்கள் (வரிசைப்படி)",
+    "viewAllWings": "அனைத்து அணிகளையும் காண்க",
+    "allWings": "அனைத்து அணிகள்",
+    "assignedCoordinators": "நியமிக்கப்பட்டவர்கள்",
+    "vacantPositions": "காலியிடங்கள்",
+    "wingCoordinator": "ஒருங்கிணைப்பாளர்",
+    "coordinatorNotAssigned": "ஒருங்கிணைப்பாளர் நியமிக்கப்படவில்லை",
+    "appointCoordinator": "பொறுப்பாளரை நியமிக்க",
+    "wingOrder": "அணி {order}",
+    "noWingsFound": "அணிகள் எதுவும் காணப்படவில்லை",
+    "noCoordinatorsAssigned": "ஒருங்கிணைப்பாளர்கள் இன்னும் நியமிக்கப்படவில்லை",
+    "activeWings": "செயலில் உள்ள அணிகள்"
   },
   "Common": {
     "add": "சேர்க்க",

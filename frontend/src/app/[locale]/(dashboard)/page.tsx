@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import dbImageMobile from '../../../../public/db_image_mobile.png';
 import dbImageTablet from '../../../../public/db_image_tablet.png';
@@ -17,6 +17,7 @@ import {
   CarouselItem,
   CarouselNext,
   CarouselPrevious,
+  type CarouselApi,
 } from "@/components/ui/carousel";
 import { Link } from '@/i18n/routing';
 import { useTranslations, useLocale } from 'next-intl';
@@ -27,7 +28,8 @@ import { UserAvatar } from '@/components/ui/user-avatar';
 import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
 import { Button } from '@/components/ui/button';
 import { CadreViewDialog } from '@/components/cadre-view-dialog';
-import { translatePersonNameToTamil, translateRoleToTamil } from '@/lib/name-translations';
+import { translatePersonNameToTamil, translateRoleToTamil, isSecretaryRole } from '@/lib/name-translations';
+import { WingsCoordinatorsSection } from '@/components/dashboard/wings-coordinators-section';
 
 export default function DashboardPage() {
   const t = useTranslations('Dashboard');
@@ -52,8 +54,48 @@ export default function DashboardPage() {
     setCallPerson({ phone, name });
   };
   
-  const secretary = districtCadres?.find(c => c.role === 'SECRETARY' || c.role?.toLowerCase() === 'secretary') || districtCadres?.[0];
+  const secretary = districtCadres?.find(c => isSecretaryRole(c.rawRole || c.canonicalRole || c.role)) || districtCadres?.[0];
   const otherCadres = districtCadres?.filter(c => c.id !== secretary?.id) || [];
+
+  const [cadresCarouselApi, setCadresCarouselApi] = useState<CarouselApi>();
+  const isCadresDraggingRef = useRef(false);
+
+  useEffect(() => {
+    if (!cadresCarouselApi) return;
+
+    let hasScrolled = false;
+
+    const onPointerDown = () => {
+      hasScrolled = false;
+    };
+
+    const onScroll = () => {
+      hasScrolled = true;
+    };
+
+    const onPointerUp = () => {
+      if (hasScrolled) {
+        isCadresDraggingRef.current = true;
+        setTimeout(() => {
+          isCadresDraggingRef.current = false;
+        }, 120);
+      } else {
+        isCadresDraggingRef.current = false;
+      }
+    };
+
+    cadresCarouselApi.on('pointerDown', onPointerDown);
+    cadresCarouselApi.on('scroll', onScroll);
+    cadresCarouselApi.on('pointerUp', onPointerUp);
+
+    return () => {
+      cadresCarouselApi.off('pointerDown', onPointerDown);
+      cadresCarouselApi.off('scroll', onScroll);
+      cadresCarouselApi.off('pointerUp', onPointerUp);
+    };
+  }, [cadresCarouselApi]);
+
+  const isCadresClickAllowed = () => !isCadresDraggingRef.current;
 
   return (
     <div className="space-y-6 sm:space-y-8 pt-2 sm:pt-4 pb-12 animate-in fade-in slide-in-from-bottom-3 duration-500 fill-mode-both">
@@ -439,18 +481,25 @@ export default function DashboardPage() {
           {otherCadres.length > 0 ? (
             <div className="flex-1 min-w-0 px-2 sm:px-6 relative flex flex-col justify-center">
               <Carousel
+                setApi={setCadresCarouselApi}
                 opts={{
                   align: "start",
                   loop: false,
+                  dragFree: true,
+                  containScroll: "trimSnaps",
+                  duration: 35,
                 }}
                 className="w-full"
               >
-                <CarouselContent className="-ml-3 md:-ml-4">
+                <CarouselContent className="-ml-3 md:-ml-4 cursor-grab active:cursor-grabbing select-none py-1">
                   {otherCadres.map((cadre, index) => (
-                    <CarouselItem key={index} className="pl-3 md:pl-4 basis-[100%] sm:basis-1/2 md:basis-1/3 lg:basis-1/2 xl:basis-1/3">
-                      <div className="p-1 h-full">
+                    <CarouselItem key={cadre.id || index} className="pl-3 md:pl-4 basis-full sm:basis-1/2 md:basis-1/2 lg:basis-1/2 xl:basis-1/3 2xl:basis-1/3 select-none">
+                      <div className="p-1 h-full select-none">
                         <div 
-                          onClick={() => setViewingCadre(cadre)}
+                          onClick={() => {
+                            if (!isCadresClickAllowed()) return;
+                            setViewingCadre(cadre);
+                          }}
                           role="button"
                           tabIndex={0}
                           onKeyDown={(e) => {
@@ -459,37 +508,42 @@ export default function DashboardPage() {
                               setViewingCadre(cadre);
                             }
                           }}
-                          className="group relative flex flex-col items-center justify-between p-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 hover:border-[#8F0A1B]/40 dark:hover:border-[#8F0A1B]/60 bg-gradient-to-b from-white via-white to-zinc-50/50 dark:from-zinc-900/90 dark:via-zinc-900/80 dark:to-zinc-950/90 shadow-md hover:shadow-2xl hover:shadow-[#8F0A1B]/15 dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] transition-all duration-300 overflow-hidden h-full hover:-translate-y-1 cursor-pointer select-none"
+                          className="group relative flex flex-col items-center justify-between px-4 py-5 rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 hover:border-[#8F0A1B]/40 dark:hover:border-[#8F0A1B]/60 bg-gradient-to-b from-white via-white to-zinc-50/50 dark:from-zinc-900/90 dark:via-zinc-900/80 dark:to-zinc-950/90 shadow-md hover:shadow-2xl hover:shadow-[#8F0A1B]/15 dark:shadow-[0_4px_20px_rgba(0,0,0,0.4)] transition-[border-color,box-shadow,transform] duration-200 transform-gpu overflow-hidden h-full cursor-pointer hover:-translate-y-1 select-none"
                         >
                           {/* Ambient Glow & Top Bar */}
-                          <div className="absolute -top-12 -right-12 w-24 h-24 bg-gradient-to-br from-[#8F0A1B]/10 via-[#FFC72C]/10 to-transparent rounded-full blur-xl group-hover:scale-150 transition-all duration-500 pointer-events-none" />
-                          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#8F0A1B] via-[#D97706] to-[#FFC72C] opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                          <div className="absolute -top-16 -right-16 w-36 h-36 bg-gradient-to-br from-[#8F0A1B]/15 via-[#FFC72C]/15 to-transparent rounded-full blur-2xl group-hover:scale-150 transition-all duration-500 pointer-events-none" />
+                          <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#8F0A1B] via-[#D97706] to-[#FFC72C]" />
 
-                          <div className="w-full flex justify-between items-center mb-2">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
-                              <UserCheck className="w-3 h-3 text-[#8F0A1B]" />
+                          <div className="w-full flex justify-center items-center mb-3">
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-[#8F0A1B]/10 text-[#8F0A1B] border border-[#8F0A1B]/20 shadow-xs">
+                              <UserCheck className="w-3.5 h-3.5 text-[#8F0A1B]" />
                               {locale === 'ta' && cadre.role ? translateRoleToTamil(cadre.role) : (cadre.role || t('roleCadre'))}
                             </span>
-                            
+                            {/* <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                              {t('districtHead')}
+                            </span> */}
                           </div>
 
-                          <div className="my-3 group-hover:scale-105 transition-transform duration-300">
+                          <div className="my-3 relative group-hover:scale-105 transition-transform duration-300">
                             <UserAvatar 
                               src={cadre.photoUrl} 
                               name={cadre.name} 
-                              size="xl" 
+                              size="2xl" 
                               ring="primary" 
-                              elevation="md" 
+                              elevation="glow" 
                               shape="square"
                             />
                           </div>
 
-                          <div className="text-center w-full my-1">
-                            <h4 className="font-extrabold text-[15px] sm:text-[16px] text-zinc-900 dark:text-zinc-100 line-clamp-1 leading-snug group-hover:text-[#8F0A1B] transition-colors">
+                          <div className="text-center w-full my-2">
+                            <h3 className="font-extrabold text-[17px] sm:text-[18px] text-zinc-900 dark:text-zinc-50 leading-tight mb-1 group-hover:text-[#8F0A1B] transition-colors line-clamp-1">
                               {locale === 'ta' ? translatePersonNameToTamil(cadre.name) : cadre.name}
-                            </h4>
+                            </h3>
+                            <p className="text-xs font-semibold text-muted-foreground">
+                              {t('cuddaloreEastDistrict')}
+                            </p>
                             {cadre.memberId && (
-                              <span className="text-[10px] font-mono text-zinc-400">
+                              <span className="inline-block mt-1 text-[10px] font-bold text-zinc-500 bg-zinc-100 dark:bg-zinc-800 px-2.5 py-0.5 rounded-full uppercase tracking-wider font-mono">
                                 {cadre.memberId}
                               </span>
                             )}
@@ -497,22 +551,30 @@ export default function DashboardPage() {
 
                           {cadre.phone ? (
                             <button 
-                              onClick={(e) => handleInitiateCall(cadre?.phone || '', cadre.name, e)} 
-                              className="w-full mt-3 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 hover:bg-emerald-100/90 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/60 py-2 rounded-xl transition-all active:scale-95 shadow-2xs cursor-pointer group/itemcall"
+                              onClick={(e) => {
+                                if (!isCadresClickAllowed()) {
+                                  e.preventDefault();
+                                  return;
+                                }
+                                handleInitiateCall(cadre?.phone || '', cadre.name, e);
+                              }} 
+                              className="w-full mt-3 inline-flex items-center justify-center gap-2 text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/50 border border-emerald-200/80 dark:border-emerald-800/60 py-2.5 px-4 rounded-xl transition-all active:scale-95 shadow-xs cursor-pointer group/call"
                             >
-                              <Phone className="w-3.5 h-3.5 group-hover/itemcall:animate-bounce" />
+                              <Phone className="w-3.5 h-3.5 group-hover/call:animate-bounce" />
                               <span>{cadre.phone}</span>
                             </button>
                           ) : (
-                            <span className="text-[11px] text-zinc-400 italic mt-3">{t('noContactNumber')}</span>
+                            <div className="w-full mt-3 py-2 text-center text-xs text-zinc-400 italic border border-dashed rounded-xl">
+                              {t('noPhoneRecorded')}
+                            </div>
                           )}
                         </div>
                       </div>
                     </CarouselItem>
                   ))}
                 </CarouselContent>
-                <CarouselPrevious className="flex -left-3 sm:-left-5 lg:-left-6 bg-white shadow-md border-zinc-200 hover:bg-[#8F0A1B] hover:text-white transition-colors" />
-                <CarouselNext className="flex -right-3 sm:-right-5 lg:-right-6 bg-white shadow-md border-zinc-200 hover:bg-[#8F0A1B] hover:text-white transition-colors" />
+                <CarouselPrevious className="flex -left-2 sm:-left-4 lg:-left-5 w-10 h-10 rounded-full z-30 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xs shadow-lg border-zinc-200/90 dark:border-zinc-800 hover:bg-[#8F0A1B] hover:text-white dark:hover:bg-[#8F0A1B] dark:hover:text-white transition-all disabled:opacity-20 disabled:pointer-events-none cursor-pointer" />
+                <CarouselNext className="flex -right-2 sm:-right-4 lg:-right-5 w-10 h-10 rounded-full z-30 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xs shadow-lg border-zinc-200/90 dark:border-zinc-800 hover:bg-[#8F0A1B] hover:text-white dark:hover:bg-[#8F0A1B] dark:hover:text-white transition-all disabled:opacity-20 disabled:pointer-events-none cursor-pointer" />
               </Carousel>
             </div>
           ) : (
@@ -534,6 +596,12 @@ export default function DashboardPage() {
           )}
         </div>
       </div>
+
+      {/* Wings Coordinators Section */}
+      <WingsCoordinatorsSection
+        onInitiateCall={handleInitiateCall}
+        onViewCadre={(cadre) => setViewingCadre(cadre)}
+      />
 
       {/* Quick Access Modules Hub - Styled in Org Units Cards Style */}
       <div className="space-y-4">

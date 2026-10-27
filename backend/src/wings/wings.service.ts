@@ -14,7 +14,12 @@ export class WingsService {
         cadres: level ? {
           where: {
             level,
-            ...(level === 'DISTRICT' && districtId ? { districtId } : {}),
+            ...(level === 'DISTRICT' && districtId ? {
+              OR: [
+                { districtId },
+                { districtId: null }
+              ]
+            } : {}),
             ...(level === 'UNION' && unionId ? { unionId } : {}),
           },
         } : false,
@@ -24,7 +29,12 @@ export class WingsService {
               where: {
                 role: 'CO_COORDINATOR',
                 level,
-                ...(level === 'DISTRICT' && districtId ? { districtId } : {}),
+                ...(level === 'DISTRICT' && districtId ? {
+                  OR: [
+                    { districtId },
+                    { districtId: null }
+                  ]
+                } : {}),
                 ...(level === 'UNION' && unionId ? { unionId } : {}),
               }
             }
@@ -41,7 +51,10 @@ export class WingsService {
     };
 
     if (level === CadreLevel.DISTRICT && districtId) {
-      whereClause.districtId = districtId;
+      whereClause.OR = [
+        { districtId },
+        { districtId: null }
+      ];
     } else if (level === CadreLevel.UNION && unionId) {
       whereClause.unionId = unionId;
     }

@@ -8,6 +8,12 @@ export interface Wing {
   textColor: string;
   iconName: string;
   order: number;
+  priority?: number;
+  translations?: any;
+  cadres?: any[];
+  _count?: {
+    cadres: number;
+  };
 }
 
 export interface AssignWingMemberDto {
@@ -21,13 +27,13 @@ export interface AssignWingMemberDto {
 export const wingsApi = {
   getAll: async (level?: string, orgId?: string): Promise<Wing[]> => {
     let url = '/api/v1/wings';
-    if (level && orgId) {
+    if (level) {
       const params = new URLSearchParams({
         level: level.toUpperCase(),
       });
-      if (level === 'district') {
+      if (level.toLowerCase() === 'district' && orgId) {
         params.append('districtId', orgId);
-      } else if (level === 'union') {
+      } else if (level.toLowerCase() === 'union' && orgId) {
         params.append('unionId', orgId);
       }
       url += `?${params.toString()}`;

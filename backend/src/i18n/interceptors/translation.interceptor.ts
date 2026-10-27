@@ -129,6 +129,8 @@ export class TranslationInterceptor implements NestInterceptor {
       if (typeof translatedData.name === 'string' && (translatedData.memberId || translatedData.level)) {
         translatedData.name = translatePersonNameToTamil(translatedData.name);
         if (typeof translatedData.role === 'string') {
+          translatedData.rawRole = translatedData.role;
+          translatedData.canonicalRole = translatedData.role;
           translatedData.role = translateRoleToTamil(translatedData.role);
         }
       }

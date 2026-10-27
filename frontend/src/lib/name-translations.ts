@@ -907,3 +907,57 @@ export function translateRoleToTamil(role: string): string {
 
   return role;
 }
+
+/**
+ * Checks if a role is a Primary Wing Coordinator (English or Tamil)
+ */
+export function isCoordinatorRole(role?: string | null): boolean {
+  if (!role || typeof role !== 'string') return false;
+  const upper = role.toUpperCase().trim();
+  if (upper === 'COORDINATOR') return true;
+  // Tamil: 'ஒருங்கிணைப்பாளர்' (exclude 'இணை ஒருங்கிணைப்பாளர்' which is Co-coordinator)
+  if (role.includes('ஒருங்கிணைப்பாளர்') && !role.includes('இணை')) return true;
+  return false;
+}
+
+/**
+ * Checks if a role is a Co-Coordinator (English or Tamil)
+ */
+export function isCoCoordinatorRole(role?: string | null): boolean {
+  if (!role || typeof role !== 'string') return false;
+  const upper = role.toUpperCase().trim();
+  if (
+    upper === 'CO_COORDINATOR' ||
+    upper === 'CO-COORDINATOR' ||
+    upper === 'COCOORDINATOR' ||
+    upper === 'CO COORDINATOR'
+  ) {
+    return true;
+  }
+  // Tamil: 'இணை ஒருங்கிணைப்பாளர்'
+  if (role.includes('இணை ஒருங்கிணைப்பாளர்') || (role.includes('இணை') && role.includes('ஒருங்கிணைப்பாளர்'))) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Normalizes a wing role to its canonical enum ('COORDINATOR' | 'CO_COORDINATOR')
+ */
+export function getCanonicalWingRole(role?: string | null): 'COORDINATOR' | 'CO_COORDINATOR' {
+  if (isCoCoordinatorRole(role)) return 'CO_COORDINATOR';
+  return 'COORDINATOR';
+}
+
+/**
+ * Checks if a role is a Secretary (English or Tamil, excluding Joint/Deputy)
+ */
+export function isSecretaryRole(role?: string | null): boolean {
+  if (!role || typeof role !== 'string') return false;
+  const upper = role.toUpperCase().trim();
+  if (upper === 'SECRETARY' || upper === 'DISTRICT_SECRETARY') return true;
+  // Tamil: 'செயலாளர்' (exclude 'இணைச் செயலாளர்' / 'துணைச் செயலாளர்')
+  if (role.includes('செயலாளர்') && !role.includes('இணை') && !role.includes('துணை')) return true;
+  return false;
+}
+

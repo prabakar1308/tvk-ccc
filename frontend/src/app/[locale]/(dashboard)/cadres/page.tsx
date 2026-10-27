@@ -252,20 +252,20 @@ function matchesRoleFilter(rawRole: string | undefined | null, filterId: string)
 
   if (filterId === 'SECRETARY') {
     // Secretary only - exclude Joint Secretary and Deputy Secretary
-    const isJointOrDeputy = upper.includes('JOINT') || upper.includes('DEPUTY');
-    return !isJointOrDeputy && upper.includes('SECRETARY');
+    const isJointOrDeputy = upper.includes('JOINT') || upper.includes('DEPUTY') || rawRole.includes('இணை') || rawRole.includes('துணை');
+    return !isJointOrDeputy && (upper.includes('SECRETARY') || rawRole.includes('செயலாளர்'));
   }
 
   if (filterId === 'JOINT_SECRETARY') {
-    return upper.includes('JOINT');
+    return upper.includes('JOINT') || rawRole.includes('இணை');
   }
 
   if (filterId === 'TREASURER') {
-    return upper.includes('TREASURER');
+    return upper.includes('TREASURER') || rawRole.includes('பொருளாளர்');
   }
 
   if (filterId === 'DEPUTY_SECRETARY') {
-    return upper.includes('DEPUTY');
+    return upper.includes('DEPUTY') || rawRole.includes('துணை');
   }
 
   if (filterId === 'EC') {
@@ -275,7 +275,8 @@ function matchesRoleFilter(rawRole: string | undefined | null, filterId: string)
       upper === 'EC MEMBER' ||
       upper === 'EC_MEMBER' ||
       upper.startsWith('EC ') ||
-      upper.endsWith(' EC')
+      upper.endsWith(' EC') ||
+      rawRole.includes('செயற்குழு')
     );
   }
 

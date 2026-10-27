@@ -15,6 +15,8 @@ export interface Cadre {
   unionId?: string;
   homeKilaiId?: string;
   role?: string; // We'll handle primary role mapping if needed
+  rawRole?: string;
+  canonicalRole?: string;
   area?: string;
   boothNo?: string;
   officeBearerRoles?: { role: string }[];
