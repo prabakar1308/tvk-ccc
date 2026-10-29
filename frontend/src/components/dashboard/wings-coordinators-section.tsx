@@ -417,11 +417,11 @@ function WingCoordinatorCard({
             <h3 className="font-extrabold text-[15px] sm:text-[16px] text-zinc-900 dark:text-zinc-100 group-hover:text-[#8F0A1B] dark:group-hover:text-red-400 transition-colors line-clamp-1 leading-snug">
               {displayName}
             </h3>
-            {subtitleName && (
+            {/* {subtitleName && (
               <p className="text-[11px] font-medium text-muted-foreground truncate mt-0.5">
                 {subtitleName}
               </p>
-            )}
+            )} */}
           </div>
         </Link>
 
