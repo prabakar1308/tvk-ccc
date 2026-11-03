@@ -26,7 +26,7 @@ export class BoothsService {
   }
 
   async create(createBoothDto: CreateBoothDto) {
-    const { kilaiIds, agentIds, ...boothData } = createBoothDto;
+    const { kilaiIds, agentIds, villageIds, ...boothData } = createBoothDto;
 
     return this.prisma.booth.create({
       data: {
@@ -41,17 +41,37 @@ export class BoothsService {
               connect: agentIds.map((id) => ({ id })),
             }
           : undefined,
+        villages: villageIds
+          ? {
+              connect: villageIds.map((id) => ({ id })),
+            }
+          : undefined,
       },
       include: {
         kilais: true,
         agents: true,
+        panchayatRel: true,
+        villages: true,
       },
     });
   }
 
-  async findAll() {
+  async findAll(unionId?: string, panchayatId?: string, villageId?: string) {
+    const where: any = {};
+    if (unionId) where.unionId = unionId;
+    if (panchayatId) where.panchayatId = panchayatId;
+    if (villageId) {
+      where.villages = {
+        some: { id: villageId },
+      };
+    }
+
     const booths = await this.prisma.booth.findMany({
+      where,
       include: {
+        union: true,
+        panchayatRel: true,
+        villages: true,
         kilais: true,
         agents: true,
       },
@@ -67,6 +87,9 @@ export class BoothsService {
     const booth = await this.prisma.booth.findUnique({
       where: { id },
       include: {
+        union: true,
+        panchayatRel: true,
+        villages: true,
         kilais: true,
         agents: true,
       },
@@ -80,7 +103,7 @@ export class BoothsService {
   }
 
   async update(id: string, updateBoothDto: UpdateBoothDto) {
-    const { kilaiIds, agentIds, ...boothData } = updateBoothDto;
+    const { kilaiIds, agentIds, villageIds, ...boothData } = updateBoothDto;
 
     // Check if booth exists
     await this.findOne(id);
@@ -99,8 +122,16 @@ export class BoothsService {
               set: agentIds.map((id) => ({ id })),
             }
           : undefined,
+        villages: villageIds
+          ? {
+              set: villageIds.map((id) => ({ id })),
+            }
+          : undefined,
       },
       include: {
+        union: true,
+        panchayatRel: true,
+        villages: true,
         kilais: true,
         agents: true,
       },

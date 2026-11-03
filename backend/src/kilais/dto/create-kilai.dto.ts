@@ -25,6 +25,11 @@ export class CreateKilaiDto {
   panchayat?: string;
 
   @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  panchayatId?: string;
+
+  @ApiPropertyOptional()
   @IsOptional()
   translations?: any;
 
@@ -38,6 +43,12 @@ export class CreateKilaiDto {
   @IsString({ each: true })
   @IsOptional()
   villages?: string[];
+
+  @ApiPropertyOptional()
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  villageIds?: string[];
 
   @ApiPropertyOptional()
   @IsString()

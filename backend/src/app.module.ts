@@ -16,6 +16,8 @@ import { UploadModule } from './upload/upload.module';
 import { I18nModule } from './i18n/i18n.module';
 import { WingsModule } from './wings/wings.module';
 import { RolesModule } from './roles/roles.module';
+import { PanchayatsModule } from './panchayats/panchayats.module';
+import { VillagesModule } from './villages/villages.module';
 
 @Module({
   imports: [
@@ -32,6 +34,8 @@ import { RolesModule } from './roles/roles.module';
     I18nModule,
     WingsModule,
     RolesModule,
+    PanchayatsModule,
+    VillagesModule,
   ],
   controllers: [AppController],
   providers: [

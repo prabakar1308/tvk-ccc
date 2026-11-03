@@ -62,9 +62,17 @@ export default function KilaiDetailsPage() {
           </Link>
           <div>
             <h1 className="text-xl sm:text-lg md:text-xl lg:text-2xl font-heading font-bold text-gray-900">{kilaiData.name} {kilaiData.tamilName && <span className="text-xl font-normal text-muted-foreground">({kilaiData.tamilName})</span>}</h1>
-            <p className="text-muted-foreground font-medium mt-1 flex items-center gap-1.5">
-              <Building2 className="w-4 h-4" />
-              {locale === 'ta' ? 'அமைப்பு அலகு' : 'Union'}: {getOrgUnitName(kilaiData.union, locale) || (locale === 'ta' ? 'தெரியவில்லை' : 'Unknown')}
+            <p className="text-muted-foreground font-medium mt-1 flex flex-wrap items-center gap-2">
+              <span className="flex items-center gap-1.5">
+                <Building2 className="w-4 h-4" />
+                {locale === 'ta' ? 'அமைப்பு அலகு' : 'Union'}: {getOrgUnitName(kilaiData.union, locale) || (locale === 'ta' ? 'தெரியவில்லை' : 'Unknown')}
+              </span>
+              {(kilaiData.panchayatRel || kilaiData.panchayat) && (
+                <span className="flex items-center gap-1 text-primary font-semibold">
+                  • <MapPin className="w-3.5 h-3.5" />
+                  {locale === 'ta' ? 'ஊராட்சி' : 'Panchayat'}: {kilaiData.panchayatRel ? (locale === 'ta' && kilaiData.panchayatRel.nameTa ? kilaiData.panchayatRel.nameTa : kilaiData.panchayatRel.name) : kilaiData.panchayat}
+                </span>
+              )}
             </p>
           </div>
         </div>
@@ -100,7 +108,7 @@ export default function KilaiDetailsPage() {
           </div>
         </div>
 
-        {/* Linked Areas */}
+        {/* Linked Villages & Hamlets */}
         <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] border border-gray-100 flex items-start gap-3 sm:gap-4">
           <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-green-50 flex items-center justify-center shrink-0">
             <MapPin className="w-6 h-6 sm:w-8 sm:h-8 text-green-500" />
@@ -109,17 +117,25 @@ export default function KilaiDetailsPage() {
             <p className="text-[12px] sm:text-[13px] font-semibold text-gray-800">
               {locale === 'ta' ? 'இணைக்கப்பட்ட கிராமங்கள் / பகுதிகள்' : 'Linked Villages / Areas'}
             </p>
-            {kilaiData.villages && kilaiData.villages.length > 0 ? (
+            {((kilaiData.villagesRel && kilaiData.villagesRel.length > 0) || (kilaiData.villages && kilaiData.villages.length > 0)) ? (
               <div className="mt-2 flex flex-wrap gap-1.5">
-                {kilaiData.villages.map((area: string) => (
-                  <span key={area} className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full font-medium">
-                    {area}
-                  </span>
-                ))}
+                {kilaiData.villagesRel && kilaiData.villagesRel.length > 0 ? (
+                  kilaiData.villagesRel.map((v: any) => (
+                    <span key={v.id} className="bg-green-100 text-green-800 text-xs px-2.5 py-0.5 rounded-full font-medium">
+                      {locale === 'ta' && v.nameTa ? v.nameTa : v.name}
+                    </span>
+                  ))
+                ) : (
+                  kilaiData.villages.map((area: string) => (
+                    <span key={area} className="bg-green-100 text-green-800 text-xs px-2.5 py-0.5 rounded-full font-medium">
+                      {area}
+                    </span>
+                  ))
+                )}
               </div>
             ) : (
               <p className="text-sm text-gray-500 mt-1">
-                {locale === 'ta' ? 'பகுதிகள் இணைக்கப்படவில்லை' : 'No areas linked'}
+                {locale === 'ta' ? 'கிராமங்கள் இணைக்கப்படவில்லை' : 'No villages linked'}
               </p>
             )}
           </div>

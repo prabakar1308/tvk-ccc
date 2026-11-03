@@ -1,10 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { boothApi, Booth, CreateBoothDto } from '@/services/api/booths';
 
-export function useBooths() {
+export function useBooths(params?: { unionId?: string; panchayatId?: string; villageId?: string }) {
   return useQuery({
-    queryKey: ['booths'],
-    queryFn: boothApi.getAll,
+    queryKey: ['booths', params],
+    queryFn: () => boothApi.getAll(params),
   });
 }
 

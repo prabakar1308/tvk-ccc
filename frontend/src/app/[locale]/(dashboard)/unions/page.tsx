@@ -35,7 +35,7 @@ import { useDistricts } from '@/hooks/use-districts';
 import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
 import { PanchayatMultiSelect } from '@/components/shared/panchayat-multi-select';
 import { UserAvatar } from '@/components/ui/user-avatar';
-import { getOrgUnitName, getUnitTypeLabel, getAreasCoveredLabel, getGroupAreasCoveredLabel } from '@/lib/org-unit-translations';
+import { getOrgUnitName, getUnitTypeLabel, getAreasCoveredLabel, getGroupAreasCoveredLabel, getUnionSlug } from '@/lib/org-unit-translations';
 import { translatePersonNameToTamil } from '@/lib/name-translations';
 
 export default function UnionsPage() {
@@ -339,7 +339,7 @@ export default function UnionsPage() {
                         return (
                         <TableRow key={union.id} className="hover:bg-primary/5 transition-colors group border-b-primary/10">
                           <TableCell className="font-bold text-base py-4 text-foreground">
-                            <Link href={`/unions/${union.id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer group-hover:text-primary">
+                            <Link href={`/unions/${getUnionSlug(union.name) || union.id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer group-hover:text-primary">
                               {union.unitType === 'TOWN' ? (
                                 <div className="p-2 rounded-md bg-blue-50 border border-blue-100 shadow-sm">
                                   <Building className="h-4 w-4 text-blue-600" />
@@ -469,7 +469,7 @@ export default function UnionsPage() {
                         </Button>
                       </div>
                       
-                      <Link href={`/unions/${union.id}`} className="flex-1 flex flex-col cursor-pointer p-5 pb-4 md:pb-5">
+                      <Link href={`/unions/${getUnionSlug(union.name) || union.id}`} className="flex-1 flex flex-col cursor-pointer p-5 pb-4 md:pb-5">
                         
                         {/* Header Section */}
                         <div className="flex items-start gap-3.5 mb-4 pr-0 md:pr-16">

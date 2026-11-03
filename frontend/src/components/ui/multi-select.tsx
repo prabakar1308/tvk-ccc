@@ -24,6 +24,7 @@ export interface MultiSelectDropdownProps {
   placeholder?: string;
   searchPlaceholder?: string;
   emptyMessage?: string;
+  createLabel?: string;
   
   getOptionValue: (option: any) => string;
   getOptionLabel: (option: any) => string;
@@ -41,6 +42,7 @@ export function MultiSelectDropdown({
   placeholder = "Select items...",
   searchPlaceholder = "Search...",
   emptyMessage = "No items found.",
+  createLabel = "Create:",
   getOptionValue,
   getOptionLabel,
   getOptionBadgeLabel,
@@ -52,12 +54,24 @@ export function MultiSelectDropdown({
   const [search, setSearch] = React.useState("");
 
   const handleSelect = (currentValue: string) => {
-    const isSelected = value.includes(currentValue);
+    const opt = options.find((o) => getOptionValue(o) === currentValue);
+    const altValue = opt && typeof opt === 'object' && 'nameTa' in opt ? (opt as any).nameTa : null;
+
+    const isSelected = value.includes(currentValue) || (altValue ? value.includes(altValue) : false);
     if (isSelected) {
-      onChange(value.filter((v) => v !== currentValue));
+      onChange(value.filter((v) => v !== currentValue && v !== altValue));
     } else {
       onChange([...value, currentValue]);
     }
+  };
+
+  const handleCreate = (currentValue: string) => {
+    const trimmed = currentValue.trim();
+    if (!trimmed) return;
+    if (!value.includes(trimmed)) {
+      onChange([...value, trimmed]);
+    }
+    setSearch("");
   };
 
   const clearSelection = (e: React.MouseEvent | React.PointerEvent) => {
@@ -69,7 +83,12 @@ export function MultiSelectDropdown({
   const removeSingleSelection = (e: React.MouseEvent, itemValue: string) => {
     e.preventDefault();
     e.stopPropagation();
-    onChange(value.filter((v) => v !== itemValue));
+    const opt = options.find((o) => {
+      const v = getOptionValue(o);
+      return v === itemValue || (typeof o === 'object' && o !== null && ('nameTa' in o && o.nameTa === itemValue));
+    });
+    const altValue = opt && typeof opt === 'object' && 'nameTa' in opt ? (opt as any).nameTa : null;
+    onChange(value.filter((v) => v !== itemValue && v !== altValue));
   };
 
   return (
@@ -159,12 +178,11 @@ export function MultiSelectDropdown({
                     e.stopPropagation();
                   }}
                   onClick={() => {
-                    handleSelect(search.trim());
-                    setSearch("");
+                    handleCreate(search);
                     setOpen(false);
                   }}
                 >
-                  <span className="text-muted-foreground mr-1">Create:</span>
+                  <span className="text-muted-foreground mr-1">{createLabel}</span>
                   <span className="font-semibold text-foreground">"{search.trim()}"</span>
                 </div>
               ) : (
@@ -174,7 +192,8 @@ export function MultiSelectDropdown({
             <CommandGroup>
               {options.map((option) => {
                 const optionValue = getOptionValue(option);
-                const isSelected = value.includes(optionValue);
+                const isSelected = value.includes(optionValue) || 
+                  (typeof option === 'object' && option !== null && 'nameTa' in option && value.includes(option.nameTa));
                 const label = getOptionLabel(option);
                 return (
                   <CommandItem
@@ -196,11 +215,10 @@ export function MultiSelectDropdown({
                 <CommandItem
                   value={`create-${search.trim()}`}
                   onSelect={() => {
-                    handleSelect(search.trim());
-                    setSearch("");
+                    handleCreate(search);
                   }}
                 >
-                  <span className="text-muted-foreground mr-1">Create:</span>
+                  <span className="text-muted-foreground mr-1">{createLabel}</span>
                   <span className="font-semibold text-foreground">"{search.trim()}"</span>
                 </CommandItem>
               )}

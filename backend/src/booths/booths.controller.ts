@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { BoothsService } from './booths.service';
 import { CreateBoothDto } from './dto/create-booth.dto';
@@ -24,8 +25,12 @@ export class BoothsController {
   }
 
   @Get()
-  findAll() {
-    return this.boothsService.findAll();
+  findAll(
+    @Query('unionId') unionId?: string,
+    @Query('panchayatId') panchayatId?: string,
+    @Query('villageId') villageId?: string,
+  ) {
+    return this.boothsService.findAll(unionId, panchayatId, villageId);
   }
 
   @Get('areas')

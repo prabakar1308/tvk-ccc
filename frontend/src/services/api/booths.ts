@@ -9,6 +9,11 @@ export interface Booth {
   femaleCount: number;
   thirdGenderCount: number;
   totalCount: number;
+  unionId?: string;
+  panchayatId?: string;
+  union?: any;
+  panchayatRel?: any;
+  villages?: any[];
   kilais?: any[];
   agents?: any[];
   createdAt: string;
@@ -23,13 +28,21 @@ export interface CreateBoothDto {
   femaleCount?: number;
   thirdGenderCount?: number;
   totalCount?: number;
+  unionId?: string;
+  panchayatId?: string;
+  villageIds?: string[];
   kilaiIds?: string[];
   agentIds?: string[];
 }
 
 export const boothApi = {
-  getAll: async (): Promise<Booth[]> => {
-    const res = await fetchWithAuth('/api/v1/booths');
+  getAll: async (params?: { unionId?: string; panchayatId?: string; villageId?: string }): Promise<Booth[]> => {
+    const query = new URLSearchParams();
+    if (params?.unionId) query.append('unionId', params.unionId);
+    if (params?.panchayatId) query.append('panchayatId', params.panchayatId);
+    if (params?.villageId) query.append('villageId', params.villageId);
+    const qs = query.toString();
+    const res = await fetchWithAuth(`/api/v1/booths${qs ? `?${qs}` : ''}`);
     return res.json();
   },
 

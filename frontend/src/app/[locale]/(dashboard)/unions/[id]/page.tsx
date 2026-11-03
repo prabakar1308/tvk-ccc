@@ -3,10 +3,10 @@
 import { useParams } from 'next/navigation';
 import { useUnion } from '@/hooks/use-unions';
 import { ArrowLeft, Store, Building2, Users, Phone, Edit2, Trash2, Landmark, MapPin, ArrowUpRight, Search, LayoutGrid, ListFilter } from 'lucide-react';
-import { Link } from '@/i18n/routing';
+import { Link, useRouter } from '@/i18n/routing';
 import { useLocale } from 'next-intl';
 import { useDeleteCadre } from '@/hooks/use-cadres';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { CadreFormDialog } from '@/components/cadre-form-dialog';
 import { CadreViewDialog } from '@/components/cadre-view-dialog';
 import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
@@ -15,7 +15,7 @@ import { Plus } from 'lucide-react';
 import { CadreCard } from '@/components/cadre-card';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { useQueryClient } from '@tanstack/react-query';
-import { getOrgUnitName, getUnitTypeLabel, getAreasCoveredLabel } from '@/lib/org-unit-translations';
+import { getOrgUnitName, getUnitTypeLabel, getAreasCoveredLabel, getUnionSlug } from '@/lib/org-unit-translations';
 import { getAreaBilingualNames, isAreaNameMatch, createAreaSlug } from '@/lib/area-translations';
 import { Input } from '@/components/ui/input';
 import {
@@ -29,8 +29,21 @@ import {
 
 export default function UnionDetailsPage() {
   const locale = useLocale();
+  const router = useRouter();
   const { id } = useParams();
   const { data: union, isLoading } = useUnion(id as string);
+
+  // Canonicalize URL: redirect UUID to clean slug /unions/[unionSlug]
+  useEffect(() => {
+    if (!union?.name) return;
+    const cleanSlug = getUnionSlug(union.name);
+    if (!cleanSlug) return;
+
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id as string);
+    if (isUuid) {
+      router.replace(`/unions/${cleanSlug}`);
+    }
+  }, [union, id, router]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null);
@@ -41,7 +54,22 @@ export default function UnionDetailsPage() {
   const queryClient = useQueryClient();
   const deleteMutation = useDeleteCadre();
 
+  const dbPanchayats = useMemo(() => (union as any)?.panchayats || [], [union]);
+  const hasDbPanchayats = dbPanchayats.length > 0;
+
+  const filteredPanchayats = useMemo(() => {
+    if (!hasDbPanchayats) return [];
+    if (!areaSearch.trim()) return dbPanchayats;
+    const q = areaSearch.toLowerCase().trim();
+    return dbPanchayats.filter((p: any) =>
+      p.name?.toLowerCase().includes(q) ||
+      p.nameTa?.includes(q) ||
+      p.code?.toLowerCase().includes(q)
+    );
+  }, [dbPanchayats, hasDbPanchayats, areaSearch]);
+
   const filteredAreas = useMemo(() => {
+    if (hasDbPanchayats) return [];
     if (!union?.areasCovered) return [];
     if (!areaSearch.trim()) return union.areasCovered;
     const q = areaSearch.toLowerCase();
@@ -49,7 +77,7 @@ export default function UnionDetailsPage() {
       const { en, ta } = getAreaBilingualNames(area);
       return area.toLowerCase().includes(q) || en.toLowerCase().includes(q) || ta.includes(q);
     });
-  }, [union?.areasCovered, areaSearch]);
+  }, [union?.areasCovered, areaSearch, hasDbPanchayats]);
 
   const handleOpenEdit = (e: React.MouseEvent, cadre: any) => {
     e.stopPropagation();
@@ -197,154 +225,256 @@ export default function UnionDetailsPage() {
           {/* Cards View Mode */}
           {areaViewMode === 'cards' ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredAreas.map((area: string, idx: number) => {
-                const { en: areaEn, ta: areaTa } = getAreaBilingualNames(area);
-                const primaryName = locale === 'ta' ? areaTa : areaEn;
-                const secondaryName = locale === 'ta' ? areaEn : areaTa;
+              {hasDbPanchayats
+                ? filteredPanchayats.map((p: any) => {
+                    const primaryName = locale === 'ta' ? p.nameTa : p.name;
+                    const secondaryName = locale === 'ta' ? p.name : p.nameTa;
+                    const kilaisCount = p._count?.kilais || 0;
+                    const boothsCount = p._count?.booths || 0;
+                    const villagesCount = p._count?.villages || p.villages?.length || 0;
+                    const isRural = p.type === 'VILLAGE_PANCHAYAT';
+                    const unitTag = isRural
+                      ? locale === 'ta'
+                        ? 'ஊராட்சி'
+                        : 'Panchayat'
+                      : locale === 'ta'
+                      ? 'வார்டு'
+                      : 'Ward';
 
-                // Match kilais
-                const matchingKilais = (union.kilais || []).filter(
-                  (k: any) =>
-                    isAreaNameMatch(k.panchayat, area) ||
-                    (k.villages || []).some((v: string) => isAreaNameMatch(v, area))
-                );
-
-                // Count unique booths
-                const uniqueBooths = new Set<string>();
-                matchingKilais.forEach((k: any) => {
-                  (k.booths || []).forEach((b: any) => uniqueBooths.add(b.id || b.boothNo));
-                  (k.linkedBooths || []).forEach((bNo: string) => uniqueBooths.add(bNo));
-                });
-
-                // Count cadres
-                const cadresCount = matchingKilais.reduce(
-                  (sum: number, k: any) => sum + (k._count?.cadres || 0),
-                  0
-                );
-
-                const slug = createAreaSlug(area);
-                const isUnionUnit = (union.unitType || 'UNION').toUpperCase() === 'UNION';
-                const unitTag = isUnionUnit
-                  ? locale === 'ta'
-                    ? 'ஊராட்சி'
-                    : 'Panchayat'
-                  : locale === 'ta'
-                  ? 'வார்டு'
-                  : 'Ward';
-
-                return (
-                  <Link
-                    key={idx}
-                    href={`/unions/${union.id}/panchayats/${encodeURIComponent(slug)}`}
-                    className="group relative bg-white dark:bg-zinc-800/80 rounded-2xl p-4 sm:p-5 border-2 border-gray-100 dark:border-zinc-700/80 hover:border-primary/50 dark:hover:border-primary/50 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden"
-                  >
-                    {/* Top Accent Gradient Bar on Hover */}
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-amber-500 to-primary opacity-0 group-hover:opacity-100 transition-opacity" />
-
-                    <div>
-                      {/* Top Bar with Icon & Status Pill */}
-                      <div className="flex items-center justify-between gap-2 mb-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/10 to-amber-500/10 flex items-center justify-center text-primary border border-primary/20 group-hover:scale-105 transition-transform">
-                          <MapPin className="w-5 h-5 text-primary" />
-                        </div>
-
-                        <div className="flex items-center gap-1.5">
-                          {matchingKilais.length > 0 ? (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-300 border border-green-200 dark:border-green-800">
-                              <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                              {locale === 'ta' ? 'செயலில்' : 'Active'}
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                              {locale === 'ta' ? 'கிளை தயார்' : 'Coverage'}
-                            </span>
-                          )}
-
-                          <span className="p-1 rounded-full text-gray-400 group-hover:text-primary group-hover:bg-primary/10 transition-colors">
-                            <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Panchayat Names */}
-                      <div className="mb-3.5">
-                        <div className="flex items-baseline gap-2">
-                          <h3 className="font-heading font-bold text-gray-900 dark:text-white text-lg group-hover:text-primary transition-colors leading-snug">
-                            {primaryName}
-                          </h3>
-                        </div>
-                        {secondaryName && secondaryName !== primaryName && (
-                          <p className="text-xs text-muted-foreground font-medium mt-0.5">
-                            {secondaryName} • <span className="text-gray-500">{unitTag}</span>
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Micro-Stats Strip */}
-                      <div className="grid grid-cols-3 gap-2 p-2.5 rounded-xl bg-gray-50/80 dark:bg-zinc-800/50 border border-gray-100 dark:border-zinc-700/50 text-center">
-                        <div>
-                          <div className="flex items-center justify-center gap-1 text-gray-900 dark:text-white font-bold text-sm">
-                            <Store className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
-                            {matchingKilais.length}
-                          </div>
-                          <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-                            {locale === 'ta' ? 'கிளைகள்' : 'Kilais'}
-                          </p>
-                        </div>
+                    return (
+                      <Link
+                        key={p.id}
+                        href={`/panchayats/${p.code || p.id}`}
+                        className="group relative bg-white dark:bg-zinc-800/80 rounded-2xl p-4 sm:p-5 border-2 border-gray-100 dark:border-zinc-700/80 hover:border-primary/50 dark:hover:border-primary/50 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden"
+                      >
+                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-amber-500 to-primary opacity-0 group-hover:opacity-100 transition-opacity" />
 
                         <div>
-                          <div className="flex items-center justify-center gap-1 text-gray-900 dark:text-white font-bold text-sm">
-                            <Building2 className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />
-                            {uniqueBooths.size}
+                          <div className="flex items-center justify-between gap-2 mb-3">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/10 to-amber-500/10 flex items-center justify-center text-primary border border-primary/20 group-hover:scale-105 transition-transform">
+                              <MapPin className="w-5 h-5 text-primary" />
+                            </div>
+
+                            <div className="flex items-center gap-1.5">
+                              {kilaisCount > 0 ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-300 border border-green-200 dark:border-green-800">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                  {locale === 'ta' ? 'செயலில்' : 'Active'}
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                                  {locale === 'ta' ? 'கிளை தயார்' : 'Coverage'}
+                                </span>
+                              )}
+
+                              <span className="p-1 rounded-full text-gray-400 group-hover:text-primary group-hover:bg-primary/10 transition-colors">
+                                <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                              </span>
+                            </div>
                           </div>
-                          <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-                            {locale === 'ta' ? 'சாவடிகள்' : 'Booths'}
-                          </p>
+
+                          <div className="mb-3.5">
+                            <h3 className="font-heading font-bold text-gray-900 dark:text-white text-lg group-hover:text-primary transition-colors leading-snug">
+                              {primaryName}
+                            </h3>
+                            {secondaryName && secondaryName !== primaryName && (
+                              <p className="text-xs text-muted-foreground font-medium mt-0.5">
+                                {secondaryName} • <span className="text-gray-500">{unitTag}</span>
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-2 p-2.5 rounded-xl bg-gray-50/80 dark:bg-zinc-800/50 border border-gray-100 dark:border-zinc-700/50 text-center">
+                            <div>
+                              <div className="flex items-center justify-center gap-1 text-gray-900 dark:text-white font-bold text-sm">
+                                <MapPin className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                                {villagesCount}
+                              </div>
+                              <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
+                                {locale === 'ta' ? 'கிராமங்கள்' : 'Villages'}
+                              </p>
+                            </div>
+
+                            <div>
+                              <div className="flex items-center justify-center gap-1 text-gray-900 dark:text-white font-bold text-sm">
+                                <Store className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+                                {kilaisCount}
+                              </div>
+                              <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
+                                {locale === 'ta' ? 'கிளைகள்' : 'Kilais'}
+                              </p>
+                            </div>
+
+                            <div>
+                              <div className="flex items-center justify-center gap-1 text-gray-900 dark:text-white font-bold text-sm">
+                                <Building2 className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />
+                                {boothsCount}
+                              </div>
+                              <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
+                                {locale === 'ta' ? 'சாவடிகள்' : 'Booths'}
+                              </p>
+                            </div>
+                          </div>
                         </div>
+
+                        <div className="pt-3 mt-3 border-t border-gray-100 dark:border-zinc-700/50 flex items-center justify-between text-xs font-semibold text-primary">
+                          <span>{locale === 'ta' ? 'கிராமங்கள் & கிளைகள்' : 'Explore Villages & Kilais'}</span>
+                          <span className="group-hover:translate-x-1 transition-transform">→</span>
+                        </div>
+                      </Link>
+                    );
+                  })
+                : filteredAreas.map((area: string, idx: number) => {
+                    const { en: areaEn, ta: areaTa } = getAreaBilingualNames(area);
+                    const primaryName = locale === 'ta' ? areaTa : areaEn;
+                    const secondaryName = locale === 'ta' ? areaEn : areaTa;
+
+                    const matchingKilais = (union.kilais || []).filter(
+                      (k: any) =>
+                        isAreaNameMatch(k.panchayat, area) ||
+                        (k.villages || []).some((v: string) => isAreaNameMatch(v, area))
+                    );
+
+                    const uniqueBooths = new Set<string>();
+                    matchingKilais.forEach((k: any) => {
+                      (k.booths || []).forEach((b: any) => uniqueBooths.add(b.id || b.boothNo));
+                      (k.linkedBooths || []).forEach((bNo: string) => uniqueBooths.add(bNo));
+                    });
+
+                    const cadresCount = matchingKilais.reduce(
+                      (sum: number, k: any) => sum + (k._count?.cadres || 0),
+                      0
+                    );
+
+                    const slug = createAreaSlug(area);
+                    const isUnionUnit = (union.unitType || 'UNION').toUpperCase() === 'UNION';
+                    const unitTag = isUnionUnit
+                      ? locale === 'ta'
+                        ? 'ஊராட்சி'
+                        : 'Panchayat'
+                      : locale === 'ta'
+                      ? 'வார்டு'
+                      : 'Ward';
+
+                    return (
+                      <Link
+                        key={idx}
+                        href={`/panchayats/${encodeURIComponent(slug)}`}
+                        className="group relative bg-white dark:bg-zinc-800/80 rounded-2xl p-4 sm:p-5 border-2 border-gray-100 dark:border-zinc-700/80 hover:border-primary/50 dark:hover:border-primary/50 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden"
+                      >
+                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-amber-500 to-primary opacity-0 group-hover:opacity-100 transition-opacity" />
 
                         <div>
-                          <div className="flex items-center justify-center gap-1 text-gray-900 dark:text-white font-bold text-sm">
-                            <Users className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                            {cadresCount}
-                          </div>
-                          <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
-                            {locale === 'ta' ? 'நிர்வாகிகள்' : 'Cadres'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                          <div className="flex items-center justify-between gap-2 mb-3">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/10 to-amber-500/10 flex items-center justify-center text-primary border border-primary/20 group-hover:scale-105 transition-transform">
+                              <MapPin className="w-5 h-5 text-primary" />
+                            </div>
 
-                    {/* Card Footer Action */}
-                    <div className="pt-3 mt-3 border-t border-gray-100 dark:border-zinc-700/50 flex items-center justify-between text-xs font-semibold text-primary">
-                      <span>{locale === 'ta' ? 'கள விவரங்கள் & வரைபடம்' : 'View Details & Field Map'}</span>
-                      <span className="group-hover:translate-x-1 transition-transform">→</span>
-                    </div>
-                  </Link>
-                );
-              })}
+                            <div className="flex items-center gap-1.5">
+                              {matchingKilais.length > 0 ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-300 border border-green-200 dark:border-green-800">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                  {locale === 'ta' ? 'செயலில்' : 'Active'}
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                                  {locale === 'ta' ? 'கிளை தயார்' : 'Coverage'}
+                                </span>
+                              )}
+
+                              <span className="p-1 rounded-full text-gray-400 group-hover:text-primary group-hover:bg-primary/10 transition-colors">
+                                <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="mb-3.5">
+                            <h3 className="font-heading font-bold text-gray-900 dark:text-white text-lg group-hover:text-primary transition-colors leading-snug">
+                              {primaryName}
+                            </h3>
+                            {secondaryName && secondaryName !== primaryName && (
+                              <p className="text-xs text-muted-foreground font-medium mt-0.5">
+                                {secondaryName} • <span className="text-gray-500">{unitTag}</span>
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="grid grid-cols-3 gap-2 p-2.5 rounded-xl bg-gray-50/80 dark:bg-zinc-800/50 border border-gray-100 dark:border-zinc-700/50 text-center">
+                            <div>
+                              <div className="flex items-center justify-center gap-1 text-gray-900 dark:text-white font-bold text-sm">
+                                <Store className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
+                                {matchingKilais.length}
+                              </div>
+                              <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
+                                {locale === 'ta' ? 'கிளைகள்' : 'Kilais'}
+                              </p>
+                            </div>
+
+                            <div>
+                              <div className="flex items-center justify-center gap-1 text-gray-900 dark:text-white font-bold text-sm">
+                                <Building2 className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />
+                                {uniqueBooths.size}
+                              </div>
+                              <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
+                                {locale === 'ta' ? 'சாவடிகள்' : 'Booths'}
+                              </p>
+                            </div>
+
+                            <div>
+                              <div className="flex items-center justify-center gap-1 text-gray-900 dark:text-white font-bold text-sm">
+                                <Users className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                                {cadresCount}
+                              </div>
+                              <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
+                                {locale === 'ta' ? 'நிர்வாகிகள்' : 'Cadres'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="pt-3 mt-3 border-t border-gray-100 dark:border-zinc-700/50 flex items-center justify-between text-xs font-semibold text-primary">
+                          <span>{locale === 'ta' ? 'கள விவரங்கள் & வரைபடம்' : 'View Details & Field Map'}</span>
+                          <span className="group-hover:translate-x-1 transition-transform">→</span>
+                        </div>
+                      </Link>
+                    );
+                  })}
             </div>
           ) : (
             /* Compact Chips View Mode */
             <div className="flex flex-wrap gap-2.5">
-              {filteredAreas.map((area: string, idx: number) => {
-                const { en: areaEn, ta: areaTa } = getAreaBilingualNames(area);
-                const slug = createAreaSlug(area);
-                return (
-                  <Link
-                    key={idx}
-                    href={`/unions/${union.id}/panchayats/${encodeURIComponent(slug)}`}
-                    className="inline-flex items-center gap-2 text-xs font-bold tracking-wide uppercase bg-gray-50 dark:bg-zinc-800/80 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-700 rounded-lg px-3.5 py-2 shadow-xs hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all group"
-                  >
-                    <MapPin className="w-3.5 h-3.5 text-primary group-hover:scale-110 transition-transform" />
-                    <span>{locale === 'ta' ? areaTa : areaEn}</span>
-                    <ArrowUpRight className="w-3 h-3 text-gray-400 group-hover:text-primary transition-colors" />
-                  </Link>
-                );
-              })}
+              {hasDbPanchayats
+                ? filteredPanchayats.map((p: any) => (
+                    <Link
+                      key={p.id}
+                      href={`/panchayats/${p.code || p.id}`}
+                      className="inline-flex items-center gap-2 text-xs font-bold tracking-wide uppercase bg-gray-50 dark:bg-zinc-800/80 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-700 rounded-lg px-3.5 py-2 shadow-xs hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all group"
+                    >
+                      <MapPin className="w-3.5 h-3.5 text-primary group-hover:scale-110 transition-transform" />
+                      <span>{locale === 'ta' ? p.nameTa : p.name}</span>
+                      <ArrowUpRight className="w-3 h-3 text-gray-400 group-hover:text-primary transition-colors" />
+                    </Link>
+                  ))
+                : filteredAreas.map((area: string, idx: number) => {
+                    const { en: areaEn, ta: areaTa } = getAreaBilingualNames(area);
+                    const slug = createAreaSlug(area);
+                    return (
+                      <Link
+                        key={idx}
+                        href={`/panchayats/${encodeURIComponent(slug)}`}
+                        className="inline-flex items-center gap-2 text-xs font-bold tracking-wide uppercase bg-gray-50 dark:bg-zinc-800/80 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-700 rounded-lg px-3.5 py-2 shadow-xs hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all group"
+                      >
+                        <MapPin className="w-3.5 h-3.5 text-primary group-hover:scale-110 transition-transform" />
+                        <span>{locale === 'ta' ? areaTa : areaEn}</span>
+                        <ArrowUpRight className="w-3 h-3 text-gray-400 group-hover:text-primary transition-colors" />
+                      </Link>
+                    );
+                  })}
             </div>
           )}
 
-          {filteredAreas.length === 0 && (
+          {((hasDbPanchayats && filteredPanchayats.length === 0) ||
+            (!hasDbPanchayats && filteredAreas.length === 0)) && (
             <div className="text-center py-8 text-muted-foreground text-xs font-medium">
               {locale === 'ta' ? 'பொருத்தமான ஊராட்சிகள் எதுவும் கிடைக்கவில்லை.' : 'No matching panchayats found.'}
             </div>

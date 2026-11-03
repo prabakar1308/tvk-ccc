@@ -220,3 +220,18 @@ export function getGroupAreasCoveredLabel(unions?: any[], locale: string = 'en')
   }
   return locale === 'ta' ? 'உட்பட்ட ஊராட்சிகள் / வார்டுகள்' : "Panchayat's / Ward's Included";
 }
+
+/**
+ * Creates a clean, human-readable URL slug for a union name.
+ * e.g. "South East Union" -> "south-east"
+ *      "Kurinjipadi Town" -> "kurinjipadi-town"
+ */
+export function getUnionSlug(name?: string | null): string {
+  if (!name) return '';
+  return name
+    .toLowerCase()
+    .replace(/\s*union\s*$/i, '')
+    .trim()
+    .replace(/[\s\-_]+/g, '-')
+    .replace(/[^a-z0-9\-]/g, '');
+}

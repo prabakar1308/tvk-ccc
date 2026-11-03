@@ -12,8 +12,23 @@ export class KilaisService {
   ) {}
 
   async create(createKilaiDto: CreateKilaiDto) {
-    const { linkedBooths, ...data } = createKilaiDto;
+    const { linkedBooths, villageIds, ...data } = createKilaiDto;
     const createData: any = { ...data };
+
+    if (!createData.panchayatId && createData.panchayat) {
+      const matchPanchayat = await this.prisma.panchayat.findFirst({
+        where: {
+          OR: [
+            { name: { equals: createData.panchayat.trim(), mode: 'insensitive' } },
+            { nameTa: { equals: createData.panchayat.trim(), mode: 'insensitive' } },
+          ],
+          ...(createData.unionId ? { unionId: createData.unionId } : {}),
+        },
+      });
+      if (matchPanchayat) {
+        createData.panchayatId = matchPanchayat.id;
+      }
+    }
 
     if (linkedBooths && linkedBooths.length > 0) {
       createData.booths = {
@@ -27,6 +42,49 @@ export class KilaisService {
       };
     }
 
+    const resolvedVillageIds = new Set<string>(villageIds || []);
+    if (createData.villages && createData.villages.length > 0) {
+      const matchingVillages = await this.prisma.village.findMany({
+        where: {
+          OR: createData.villages.flatMap((vName: string) => [
+            { name: { equals: vName.trim(), mode: 'insensitive' } },
+            { nameTa: { equals: vName.trim(), mode: 'insensitive' } },
+          ]),
+          ...(createData.panchayatId ? { panchayatId: createData.panchayatId } : {}),
+        },
+      });
+      matchingVillages.forEach((v) => resolvedVillageIds.add(v.id));
+
+      if (createData.panchayatId) {
+        for (const vName of createData.villages) {
+          const trimmed = vName.trim();
+          if (!trimmed) continue;
+          const exists = matchingVillages.some(
+            (v) =>
+              v.name.toLowerCase() === trimmed.toLowerCase() ||
+              (v.nameTa && v.nameTa.toLowerCase() === trimmed.toLowerCase()),
+          );
+          if (!exists) {
+            const newVillage = await this.prisma.village.create({
+              data: {
+                name: trimmed,
+                nameTa: trimmed,
+                code: trimmed.toLowerCase().replace(/[^a-z0-9]/g, '').trim() || undefined,
+                panchayatId: createData.panchayatId,
+              },
+            });
+            resolvedVillageIds.add(newVillage.id);
+          }
+        }
+      }
+    }
+
+    if (resolvedVillageIds.size > 0) {
+      createData.villagesRel = {
+        connect: Array.from(resolvedVillageIds).map((id: string) => ({ id })),
+      };
+    }
+
     if (createData.name && !createData.translations) {
       createData.translations =
         await this.i18nService.generateTranslationsForEntity({
@@ -37,14 +95,35 @@ export class KilaisService {
 
     return this.prisma.kilai.create({
       data: createData,
+      include: {
+        panchayatRel: true,
+        villagesRel: true,
+        booths: true,
+      },
     });
   }
 
   async createBulk(createKilaiDtos: CreateKilaiDto[]) {
+    const panchayats = await this.prisma.panchayat.findMany();
+    const villages = await this.prisma.village.findMany();
+
     return this.prisma.$transaction(
       createKilaiDtos.map((dto) => {
-        const { linkedBooths, ...data } = dto;
+        const { linkedBooths, villageIds, ...data } = dto;
         const createData: any = { ...data };
+
+        if (!createData.panchayatId && createData.panchayat) {
+          const pNorm = createData.panchayat.trim().toLowerCase();
+          const matched = panchayats.find(
+            (p) =>
+              (p.name.toLowerCase() === pNorm ||
+                (p.nameTa && p.nameTa.toLowerCase() === pNorm)) &&
+              (!createData.unionId || p.unionId === createData.unionId),
+          );
+          if (matched) {
+            createData.panchayatId = matched.id;
+          }
+        }
 
         if (linkedBooths && linkedBooths.length > 0) {
           createData.booths = {
@@ -55,6 +134,28 @@ export class KilaisService {
                 );
               return isUuid ? { id: identifier } : { boothNo: identifier };
             }),
+          };
+        }
+
+        const resolvedVIds = new Set<string>(villageIds || []);
+        if (createData.villages && createData.villages.length > 0) {
+          createData.villages.forEach((vName: string) => {
+            const vNorm = vName.trim().toLowerCase();
+            const matchedV = villages.find(
+              (v) =>
+                (v.name.toLowerCase() === vNorm ||
+                  (v.nameTa && v.nameTa.toLowerCase() === vNorm)) &&
+                (!createData.panchayatId || v.panchayatId === createData.panchayatId),
+            );
+            if (matchedV) {
+              resolvedVIds.add(matchedV.id);
+            }
+          });
+        }
+
+        if (resolvedVIds.size > 0) {
+          createData.villagesRel = {
+            connect: Array.from(resolvedVIds).map((id: string) => ({ id })),
           };
         }
 
@@ -69,6 +170,8 @@ export class KilaisService {
       where,
       include: {
         union: true,
+        panchayatRel: true,
+        villagesRel: true,
         booths: true,
         _count: {
           select: {
@@ -104,6 +207,8 @@ export class KilaisService {
       where: { id },
       include: {
         union: true,
+        panchayatRel: true,
+        villagesRel: true,
         booths: true,
         officeBearers: {
           include: { cadre: true },
@@ -177,8 +282,23 @@ export class KilaisService {
       throw new NotFoundException(`Kilai with ID ${id} not found`);
     }
 
-    const { linkedBooths, ...data } = updateKilaiDto;
+    const { linkedBooths, villageIds, ...data } = updateKilaiDto;
     const updateData: any = { ...data };
+
+    if (!updateData.panchayatId && updateData.panchayat) {
+      const matchPanchayat = await this.prisma.panchayat.findFirst({
+        where: {
+          OR: [
+            { name: { equals: updateData.panchayat.trim(), mode: 'insensitive' } },
+            { nameTa: { equals: updateData.panchayat.trim(), mode: 'insensitive' } },
+          ],
+          unionId: updateData.unionId || kilai.unionId,
+        },
+      });
+      if (matchPanchayat) {
+        updateData.panchayatId = matchPanchayat.id;
+      }
+    }
 
     if (linkedBooths !== undefined) {
       updateData.booths = {
@@ -192,9 +312,59 @@ export class KilaisService {
       };
     }
 
+    const pId = updateData.panchayatId || kilai.panchayatId;
+    const resolvedUpdateVillageIds = new Set<string>(villageIds || []);
+
+    if (updateData.villages && updateData.villages.length > 0) {
+      const matchingVillages = await this.prisma.village.findMany({
+        where: {
+          OR: updateData.villages.flatMap((vName: string) => [
+            { name: { equals: vName.trim(), mode: 'insensitive' } },
+            { nameTa: { equals: vName.trim(), mode: 'insensitive' } },
+          ]),
+          ...(pId ? { panchayatId: pId } : {}),
+        },
+      });
+      matchingVillages.forEach((v) => resolvedUpdateVillageIds.add(v.id));
+
+      if (pId) {
+        for (const vName of updateData.villages) {
+          const trimmed = vName.trim();
+          if (!trimmed) continue;
+          const exists = matchingVillages.some(
+            (v) =>
+              v.name.toLowerCase() === trimmed.toLowerCase() ||
+              (v.nameTa && v.nameTa.toLowerCase() === trimmed.toLowerCase()),
+          );
+          if (!exists) {
+            const newVillage = await this.prisma.village.create({
+              data: {
+                name: trimmed,
+                nameTa: trimmed,
+                code: trimmed.toLowerCase().replace(/[^a-z0-9]/g, '').trim() || undefined,
+                panchayatId: pId,
+              },
+            });
+            resolvedUpdateVillageIds.add(newVillage.id);
+          }
+        }
+      }
+    }
+
+    if (villageIds !== undefined || updateData.villages !== undefined) {
+      updateData.villagesRel = {
+        set: Array.from(resolvedUpdateVillageIds).map((villageId: string) => ({ id: villageId })),
+      };
+    }
+
     return this.prisma.kilai.update({
       where: { id },
       data: updateData,
+      include: {
+        panchayatRel: true,
+        villagesRel: true,
+        booths: true,
+      },
     });
   }
 

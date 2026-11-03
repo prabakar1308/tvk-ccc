@@ -10,7 +10,15 @@ import { translateOrgUnitNameToTamil } from '../i18n/org-unit-translations';
 export class UnionsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  getMasterAreas() {
+  async getMasterAreas() {
+    const dbPanchayats = await this.prisma.panchayat.findMany({
+      select: { name: true, nameTa: true },
+      distinct: ['name'],
+      orderBy: { name: 'asc' },
+    });
+    if (dbPanchayats.length > 0) {
+      return dbPanchayats;
+    }
     return getMasterAreas();
   }
 
@@ -91,8 +99,23 @@ export class UnionsService {
   }
 
   async findOne(id: string) {
-    const union = await this.prisma.union.findUnique({
-      where: { id },
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
+    const normalized = id.trim().toLowerCase().replace(/-/g, ' ');
+    const where: any = isUuid
+      ? { id }
+      : {
+          OR: [
+            { name: { equals: id, mode: 'insensitive' as const } },
+            { name: { equals: normalized, mode: 'insensitive' as const } },
+            { name: { equals: `${normalized} union`, mode: 'insensitive' as const } },
+            { name: { equals: normalized.replace(/\s*union\s*$/i, ''), mode: 'insensitive' as const } },
+          ],
+        };
+
+    const union = await this.prisma.union.findFirst({
+      where,
       include: {
         district: true,
         kilais: {
@@ -110,7 +133,24 @@ export class UnionsService {
           select: {
             kilais: true,
             cadres: true,
+            panchayats: true,
           },
+        },
+        panchayats: {
+          include: {
+            villages: true,
+            _count: {
+              select: {
+                villages: true,
+                kilais: true,
+                booths: true,
+              },
+            },
+          },
+          orderBy: [
+            { wardNumber: 'asc' },
+            { name: 'asc' },
+          ],
         },
       },
     });

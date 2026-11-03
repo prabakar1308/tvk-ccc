@@ -14,9 +14,13 @@ export interface Kilai {
     photoUrl?: string;
   };
   panchayat?: string;
+  panchayatId?: string;
+  panchayatRel?: any;
   description?: string;
   unionId: string;
   villages?: string[];
+  villageIds?: string[];
+  villagesRel?: any[];
   address?: string;
   pincode?: string;
   latitude?: number;
@@ -39,9 +43,11 @@ export interface CreateKilaiDto {
   tamilName?: string;
   secretaryName?: string;
   panchayat?: string;
+  panchayatId?: string;
   description?: string;
   unionId: string;
   villages?: string[];
+  villageIds?: string[];
   address?: string;
   pincode?: string;
   latitude?: number;

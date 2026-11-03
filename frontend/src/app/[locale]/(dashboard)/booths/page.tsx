@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, Plus, Eye, Edit2, Building2, Users, CheckCircle2, ChevronDown, Check, X, Trash2, ChevronLeft, ChevronRight, Filter, LayoutGrid, List } from "lucide-react";
+import { Search, Plus, Eye, Edit2, Building2, Users, CheckCircle2, ChevronDown, Check, X, Trash2, ChevronLeft, ChevronRight, Filter, LayoutGrid, List, MapPin } from "lucide-react";
 import { 
   Dialog, 
   DialogContent, 
@@ -31,10 +31,14 @@ import {
 import { useBooths, useCreateBooth, useUpdateBooth, useDeleteBooth } from '@/hooks/use-booths';
 import { useKilais } from '@/hooks/use-kilais';
 import { useUnions } from '@/hooks/use-unions';
+import { usePanchayats } from '@/hooks/use-panchayats';
+import { useVillages } from '@/hooks/use-villages';
 import { shortenBoothName } from '@/lib/booth-utils';
-import { useTranslations } from 'next-intl';
+import { getOrgUnitName } from '@/lib/org-unit-translations';
+import { useTranslations, useLocale } from 'next-intl';
 import { MultiAutocomplete } from '@/components/ui/autocomplete';
 import { cadreApi } from '@/services/api/cadres';
+import { cn } from '@/lib/utils';
 
 // Custom MultiSelect Dropdown
 function MultiSelectDropdown({ 
@@ -131,6 +135,7 @@ function MultiSelectDropdown({
 }
 
 export default function BoothsPage() {
+  const locale = useLocale();
   const t = useTranslations('Booths');
   const tCommon = useTranslations('Common');
   const { data: booths, isLoading } = useBooths();
@@ -159,6 +164,9 @@ export default function BoothsPage() {
     name: '',
     boothNo: '',
     area: '',
+    unionId: '',
+    panchayatId: '',
+    villageIds: [] as string[],
     maleCount: 0,
     femaleCount: 0,
     thirdGenderCount: 0,
@@ -169,6 +177,9 @@ export default function BoothsPage() {
   };
   const [formData, setFormData] = useState(initialFormState);
 
+  const { data: unionPanchayats } = usePanchayats(formData.unionId || undefined);
+  const { data: panchayatVillages } = useVillages(formData.panchayatId || undefined);
+
   const handleOpenDialog = (booth?: any) => {
     if (booth) {
       setEditingBooth(booth);
@@ -176,6 +187,9 @@ export default function BoothsPage() {
         name: booth.name || '',
         boothNo: booth.boothNo || '',
         area: booth.area || '',
+        unionId: booth.unionId || '',
+        panchayatId: booth.panchayatId || '',
+        villageIds: booth.villages?.map((v: any) => v.id) || [],
         maleCount: booth.maleCount || 0,
         femaleCount: booth.femaleCount || 0,
         thirdGenderCount: booth.thirdGenderCount || 0,
@@ -301,6 +315,101 @@ export default function BoothsPage() {
                 />
               </div>
 
+              {/* Administrative Hierarchy Selection */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="boothUnion">{locale === 'ta' ? 'அமைப்பு அலகு (ஒன்றியம் / நகரம்)' : 'Org Unit (Union / Town)'}</Label>
+                  <Select 
+                    value={formData.unionId} 
+                    onValueChange={(val) => setFormData({
+                      ...formData, 
+                      unionId: val || '',
+                      panchayatId: '',
+                      villageIds: []
+                    })}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder={locale === 'ta' ? 'அமைப்பு அலகைத் தேர்ந்தெடுக்கவும்' : 'Select Org Unit'}>
+                        {formData.unionId 
+                          ? getOrgUnitName(unions?.find((u: any) => String(u.id || u._id) === formData.unionId), locale) 
+                          : (locale === 'ta' ? 'அமைப்பு அலகைத் தேர்ந்தெடுக்கவும்' : 'Select Org Unit')}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {unions?.map((u: any) => (
+                        <SelectItem key={u.id || u._id} value={String(u.id || u._id)}>
+                          {getOrgUnitName(u, locale)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="boothPanchayat">{locale === 'ta' ? 'ஊராட்சி / வார்டு' : 'Panchayat / Ward'}</Label>
+                  <Select 
+                    value={formData.panchayatId} 
+                    onValueChange={(val) => setFormData({
+                      ...formData, 
+                      panchayatId: val || '',
+                      villageIds: []
+                    })}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder={locale === 'ta' ? 'ஊராட்சியைத் தேர்ந்தெடுக்கவும்' : 'Select Panchayat / Ward'}>
+                        {formData.panchayatId 
+                          ? (() => {
+                              const p = unionPanchayats?.find(p => p.id === formData.panchayatId);
+                              return p ? (locale === 'ta' && p.nameTa ? `${p.nameTa} (${p.name})` : p.name) : formData.panchayatId;
+                            })()
+                          : (locale === 'ta' ? 'ஊராட்சியைத் தேர்ந்தெடுக்கவும்' : 'Select Panchayat / Ward')}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {unionPanchayats?.map((p: any) => (
+                        <SelectItem key={p.id} value={p.id}>
+                          {locale === 'ta' && p.nameTa ? `${p.nameTa} (${p.name})` : p.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Villages / Hamlets Covered on Electoral Roll */}
+              {formData.panchayatId && panchayatVillages && panchayatVillages.length > 0 && (
+                <div className="space-y-2">
+                  <Label>{locale === 'ta' ? 'வாக்குச்சாவடிக்குட்பட்ட கிராமங்கள் / குடியிருப்புகள்' : 'Villages / Hamlets Covered (Voter Roll)'}</Label>
+                  <div className="flex flex-wrap gap-1.5 p-2 rounded-lg border bg-muted/20">
+                    {panchayatVillages.map((v) => {
+                      const isSelected = formData.villageIds?.includes(v.id);
+                      return (
+                        <button
+                          type="button"
+                          key={v.id}
+                          onClick={() => {
+                            const curr = formData.villageIds || [];
+                            setFormData({
+                              ...formData,
+                              villageIds: isSelected ? curr.filter(id => id !== v.id) : [...curr, v.id]
+                            });
+                          }}
+                          className={cn(
+                            "text-xs px-2.5 py-1 rounded-full border transition-all flex items-center gap-1",
+                            isSelected
+                              ? "bg-primary text-white border-primary font-semibold"
+                              : "bg-background hover:bg-muted text-foreground border-border"
+                          )}
+                        >
+                          {isSelected && <Check className="w-3 h-3" />}
+                          {locale === 'ta' && v.nameTa ? v.nameTa : v.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               <div className="space-y-2">
                 <Label>{t('linkedKilais')}</Label>
                 <MultiSelectDropdown 
@@ -393,10 +502,43 @@ export default function BoothsPage() {
           <DialogContent className="sm:max-w-[500px] w-[95vw] max-w-full overflow-x-hidden overflow-y-auto max-h-[90vh]">
             <DialogHeader>
               <DialogTitle className="text-xl sm:text-2xl text-primary break-all pr-8 leading-tight">{viewingBooth?.name}</DialogTitle>
-              <p className="text-muted-foreground font-medium break-words whitespace-normal">{t('boothHeader')} {viewingBooth?.boothNo} {viewingBooth?.area ? `• ${viewingBooth?.area}` : ''}</p>
+              <div className="flex flex-wrap items-center gap-2 mt-1">
+                <span className="text-muted-foreground font-semibold">{t('boothHeader')} {viewingBooth?.boothNo}</span>
+                {viewingBooth?.panchayatRel && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary">
+                    <MapPin className="w-3 h-3" />
+                    {locale === 'ta' && viewingBooth.panchayatRel.nameTa ? viewingBooth.panchayatRel.nameTa : viewingBooth.panchayatRel.name}
+                  </span>
+                )}
+                {viewingBooth?.union && (
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-secondary text-secondary-foreground">
+                    <Building2 className="w-3 h-3" />
+                    {getOrgUnitName(viewingBooth.union, locale)}
+                  </span>
+                )}
+              </div>
             </DialogHeader>
             
             <div className="space-y-6 mt-2">
+              {/* Linked Villages & Hamlets Covered on Electoral Roll */}
+              <div>
+                <h4 className="text-sm font-semibold mb-2 text-foreground/80 flex items-center gap-1.5">
+                  <MapPin className="w-4 h-4 text-primary" />
+                  {locale === 'ta' ? 'வாக்குச்சாவடிக்குட்பட்ட கிராமங்கள் / குடியிருப்புகள்' : 'Villages / Hamlets Covered'}
+                </h4>
+                <div className="flex flex-wrap gap-2">
+                  {viewingBooth?.villages?.length ? viewingBooth.villages.map((v: any) => (
+                    <span key={v.id} className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-800 border border-blue-200">
+                      {locale === 'ta' && v.nameTa ? v.nameTa : v.name}
+                    </span>
+                  )) : (
+                    <span className="text-xs text-muted-foreground italic bg-muted px-2.5 py-1 rounded-md">
+                      {locale === 'ta' ? 'குறிப்பிட்ட கிராமங்கள் எதுவும் இணைக்கப்படவில்லை' : 'No specific villages recorded'}
+                    </span>
+                  )}
+                </div>
+              </div>
+
               {/* Linked Kilais */}
               <div>
                 <h4 className="text-sm font-semibold mb-3 text-foreground/80">{t('linkedKilais')}</h4>
@@ -684,11 +826,16 @@ export default function BoothsPage() {
                                 ? `${booth.boothNo} - ${shortenBoothName(booth.name)}`
                                 : booth.boothNo}
                             </span>
+                            {booth.panchayatRel && (
+                              <span className="inline-flex items-center gap-1 mt-0.5 text-xs text-primary font-medium">
+                                <MapPin className="w-3 h-3" />
+                                {locale === 'ta' && booth.panchayatRel.nameTa ? booth.panchayatRel.nameTa : booth.panchayatRel.name}
+                              </span>
+                            )}
                           </div>
                         </TooltipTrigger>
                         <TooltipContent side="right" className="max-w-[350px] whitespace-normal">
                           <p className="font-semibold text-sm mb-1">{booth.name}</p>
-                          {/* <p className="text-xs text-muted-foreground">{booth.area || t('noAreaSpecified')}</p> */}
                         </TooltipContent>
                       </Tooltip>
                     </TableCell>
@@ -762,14 +909,41 @@ export default function BoothsPage() {
                       </TooltipTrigger>
                       <TooltipContent side="bottom" className="max-w-[350px] whitespace-normal z-50">
                         <p className="font-semibold text-sm mb-1">{booth.name}</p>
-                        {/* <p className="text-xs text-muted-foreground">{booth.area || t('noAreaSpecified')}</p> */}
                       </TooltipContent>
                     </Tooltip>
+                    <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                      {booth.panchayatRel && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-primary/10 text-primary">
+                          <MapPin className="w-3 h-3" />
+                          {locale === 'ta' && booth.panchayatRel.nameTa ? booth.panchayatRel.nameTa : booth.panchayatRel.name}
+                        </span>
+                      )}
+                      {booth.union && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-muted text-muted-foreground">
+                          {getOrgUnitName(booth.union, locale)}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
                 
                 <CardContent className="p-5 space-y-5">
                   <div className="space-y-4">
+                    {booth.villages && booth.villages.length > 0 && (
+                      <div>
+                        <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                          <MapPin className="w-3.5 h-3.5"/> {locale === 'ta' ? 'வாக்குச்சாவடிக்குட்பட்ட பகுதிகள்' : 'Villages Covered'}
+                        </p>
+                        <div className="flex flex-wrap gap-1 min-h-[1.5rem]">
+                          {booth.villages.map((v: any) => (
+                            <span key={v.id} className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40">
+                              {locale === 'ta' && v.nameTa ? v.nameTa : v.name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     <div>
                       <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2 flex items-center gap-1.5"><Building2 className="w-3.5 h-3.5"/> {t('linkedKilais')}</p>
                       <div className="flex flex-wrap gap-1.5 min-h-[1.5rem]">

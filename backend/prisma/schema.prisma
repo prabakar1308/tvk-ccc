@@ -108,11 +108,69 @@ model Union {
   attachments  Json?
   translations Json?
 
+  panchayats Panchayat[]
   kilais Kilai[]
   cadres Cadre[]
+  booths Booth[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum PanchayatType {
+  VILLAGE_PANCHAYAT
+  TOWN_PANCHAYAT_WARD
+  MUNICIPALITY_WARD
+}
+
+model Panchayat {
+  id           String        @id @default(uuid())
+  name         String
+  nameTa       String
+  code         String?
+  type         PanchayatType @default(VILLAGE_PANCHAYAT)
+  wardNumber   Int?
+
+  centerLat    Float?
+  centerLng    Float?
+  boundary     Json?
+  description  String?
+  translations Json?
+
+  unionId      String
+  union        Union         @relation(fields: [unionId], references: [id], onDelete: Cascade)
+
+  villages     Village[]
+  kilais       Kilai[]
+  booths       Booth[]
+
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@unique([unionId, name])
+  @@index([unionId])
+}
+
+model Village {
+  id          String    @id @default(uuid())
+  name        String
+  nameTa      String
+  code        String?
+  centerLat   Float?
+  centerLng   Float?
+  description String?
+
+  panchayatId String
+  panchayat   Panchayat @relation(fields: [panchayatId], references: [id], onDelete: Cascade)
+
+  kilais      Kilai[]   @relation("KilaiVillages")
+  booths      Booth[]   @relation("VillageBooths")
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([panchayatId, name])
+  @@index([panchayatId])
 }
 
 enum KilaiStatus {
@@ -141,6 +199,10 @@ model Kilai {
 
   unionId String
   union   Union  @relation(fields: [unionId], references: [id])
+
+  panchayatId  String?
+  panchayatRel Panchayat? @relation(fields: [panchayatId], references: [id])
+  villagesRel  Village[]  @relation("KilaiVillages")
 
   cadres        Cadre[]        @relation("KilaiCadres")
   officeBearers OfficeBearer[]
@@ -252,6 +314,14 @@ model Booth {
   femaleCount      Int     @default(0)
   thirdGenderCount Int     @default(0)
   totalCount       Int     @default(0)
+
+  unionId          String?
+  union            Union?      @relation(fields: [unionId], references: [id])
+
+  panchayatId      String?
+  panchayatRel     Panchayat?  @relation(fields: [panchayatId], references: [id])
+
+  villages         Village[]   @relation("VillageBooths")
 
   kilais Kilai[]
   agents Cadre[] @relation("BoothAgents")

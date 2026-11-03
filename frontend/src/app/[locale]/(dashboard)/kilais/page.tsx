@@ -38,9 +38,11 @@ import { Label } from "@/components/ui/label";
 import { useKilais, useCreateKilai, useUpdateKilai, useDeleteKilai } from '@/hooks/use-kilais';
 import { useUnions } from '@/hooks/use-unions';
 import { useBooths, useBoothAreas } from '@/hooks/use-booths';
+import { usePanchayats } from '@/hooks/use-panchayats';
+import { useVillages } from '@/hooks/use-villages';
 import { CreateKilaiDto } from '@/services/api/kilais';
 import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
-import { PanchayatMultiSelect } from '@/components/shared/panchayat-multi-select';
+import { VillageMultiSelect } from '@/components/shared/village-multi-select';
 import { getOrgUnitName } from '@/lib/org-unit-translations';
 import { translatePersonNameToTamil } from '@/lib/name-translations';
 
@@ -66,14 +68,17 @@ export default function KilaisPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [callConfirmation, setCallConfirmation] = useState<{name: string, phone: string} | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'tile'>('tile');
+  const [isPanchayatOpen, setIsPanchayatOpen] = useState(false);
 
   const initialFormData: CreateKilaiDto = {
     name: '',
     secretaryName: '',
     panchayat: '',
+    panchayatId: '',
     description: '',
     unionId: '',
     villages: [],
+    villageIds: [],
     address: '',
     pincode: '',
     phone: '',
@@ -84,21 +89,30 @@ export default function KilaisPage() {
 
   const [formData, setFormData] = useState<CreateKilaiDto>(initialFormData);
 
+  const { data: unionPanchayats } = usePanchayats(formData.unionId || undefined);
+
   const handleOpenCreate = () => {
     setEditingId(null);
     setFormData(initialFormData);
+    setIsPanchayatOpen(false);
     setIsModalOpen(true);
   };
 
   const handleOpenEdit = (kilai: any) => {
     setEditingId(kilai.id);
+    setIsPanchayatOpen(false);
     setFormData({
       name: kilai.name || '',
       secretaryName: kilai.secretaryName || '',
       panchayat: kilai.panchayat || '',
+      panchayatId: kilai.panchayatId || '',
       description: kilai.description || '',
       unionId: kilai.unionId ? String(kilai.unionId) : '',
-      villages: kilai.villages || [],
+      villages: Array.from(new Set([
+        ...(kilai.villages || []),
+        ...(kilai.villagesRel ? kilai.villagesRel.map((v: any) => v.name) : [])
+      ])),
+      villageIds: kilai.villagesRel ? kilai.villagesRel.map((v: any) => v.id) : (kilai.villageIds || []),
       address: kilai.address || '',
       pincode: kilai.pincode || '',
       phone: kilai.phone || '',
@@ -204,19 +218,19 @@ export default function KilaisPage() {
                   onChange={(e) => setFormData({...formData, secretaryName: e.target.value})}
                 />
               </div>
-              <div className="space-y-2 flex flex-col">
-                <Label htmlFor="panchayat">{locale === 'ta' ? 'ஊராட்சி' : 'Panchayat'}</Label>
-                <PanchayatMultiSelect
-                  value={formData.panchayat ? formData.panchayat.split(',').map((s) => s.trim()).filter(Boolean) : []}
-                  onChange={(val) => setFormData((prev) => ({ ...prev, panchayat: val.join(', ') }))}
-                  displayStyle="badges"
-                />
-              </div>
+              {/* 1. Union Selection */}
               <div className="space-y-2">
                 <Label htmlFor="unionId">{t('union')} *</Label>
                 <Select 
                   value={formData.unionId} 
-                  onValueChange={(val) => setFormData({...formData, unionId: val || ''})}
+                  onValueChange={(val) => setFormData({
+                    ...formData, 
+                    unionId: val || '',
+                    panchayatId: '',
+                    panchayat: '',
+                    villageIds: [],
+                    villages: []
+                  })}
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder={t('selectUnion')}>
@@ -228,12 +242,87 @@ export default function KilaisPage() {
                   <SelectContent>
                     {unions?.map((u: any) => (
                       <SelectItem key={u.id || u._id} value={String(u.id || u._id)}>
-                        {u.name}
+                        {getOrgUnitName(u, locale)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* 2. Panchayat / Ward Selection */}
+              <div className="space-y-2 flex flex-col">
+                <Label htmlFor="panchayat">{locale === 'ta' ? 'ஊராட்சி / வார்டு' : 'Panchayat / Ward'} *</Label>
+                <Popover open={isPanchayatOpen} onOpenChange={setIsPanchayatOpen}>
+                  <PopoverTrigger className="flex h-11 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm hover:bg-accent hover:text-accent-foreground font-normal">
+                    <span className={formData.panchayatId || formData.panchayat ? "text-foreground font-medium" : "text-muted-foreground"}>
+                      {(() => {
+                        const matched = unionPanchayats?.find(p => p.id === formData.panchayatId || p.name.toLowerCase() === (formData.panchayat || '').toLowerCase());
+                        if (matched) {
+                          return locale === 'ta' && matched.nameTa ? `${matched.nameTa} (${matched.name})` : matched.name;
+                        }
+                        return formData.panchayat || (locale === 'ta' ? 'ஊராட்சியைத் தேர்ந்தெடுக்கவும்' : 'Select Panchayat / Ward');
+                      })()}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[300px] sm:w-[375px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder={locale === 'ta' ? 'ஊராட்சியைத் தேடவும்...' : 'Search panchayat...'} />
+                      <CommandList>
+                        <CommandEmpty>{locale === 'ta' ? 'ஊராட்சி கிடைக்கவில்லை' : 'No panchayat found'}</CommandEmpty>
+                        <CommandGroup>
+                          {unionPanchayats?.map((p: any) => {
+                            const isSelected = formData.panchayatId === p.id || formData.panchayat === p.name;
+                            return (
+                              <CommandItem
+                                key={p.id}
+                                value={`${p.name} ${p.nameTa || ''}`}
+                                onSelect={() => {
+                                  setFormData({
+                                    ...formData,
+                                    panchayatId: p.id,
+                                    panchayat: p.name,
+                                    villageIds: [],
+                                    villages: []
+                                  });
+                                  setIsPanchayatOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    isSelected ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {locale === 'ta' && p.nameTa ? `${p.nameTa} (${p.name})` : p.name}
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {/* 3. Villages / Hamlets Selection (Many-to-Many Multi-Select with Custom Add) */}
+              <div className="space-y-2 flex flex-col">
+                <Label htmlFor="villages">{locale === 'ta' ? 'கிராமங்கள் / குடியிருப்புகள்' : 'Villages / Hamlets'}</Label>
+                <VillageMultiSelect
+                  panchayatId={formData.panchayatId}
+                  value={formData.villages || []}
+                  onChange={(newNames, newIds) => {
+                    setFormData((prev) => ({
+                      ...prev,
+                      villages: newNames,
+                      villageIds: newIds,
+                    }));
+                  }}
+                  disabled={!formData.panchayatId}
+                />
+              </div>
+
+              {/* 4. Linked Booths */}
               <div className="space-y-2 flex flex-col">
                 <Label>{t('linkedBooths')}</Label>
                 <Popover>
@@ -300,77 +389,6 @@ export default function KilaisPage() {
                                   )}
                                 />
                                 {booth.boothNo} - {booth.name}
-                              </CommandItem>
-                            );
-                          })}
-                        </CommandGroup>
-                      </CommandList>
-                    </Command>
-                  </PopoverContent>
-                </Popover>
-              </div>
-              <div className="space-y-2 flex flex-col">
-                <Label>{t('villagesAreas')}</Label>
-                <Popover>
-                  <PopoverTrigger className="flex h-auto min-h-11 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm hover:bg-accent hover:text-accent-foreground font-normal">
-                      <div className="flex flex-wrap gap-1 items-center">
-                        {formData.villages && formData.villages.length > 0 ? (
-                          formData.villages.map((area) => (
-                            <div
-                              key={area}
-                              className="bg-primary/10 text-primary text-xs rounded-md px-2 py-1 flex items-center gap-1"
-                            >
-                              {area}
-                              <div
-                                className="cursor-pointer hover:bg-primary/20 rounded-full p-0.5"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  setFormData({
-                                    ...formData,
-                                    villages: formData.villages?.filter((a) => a !== area)
-                                  });
-                                }}
-                              >
-                                <X className="h-3 w-3" />
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <span className="text-muted-foreground">{t('selectAreas')}</span>
-                        )}
-                      </div>
-                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </PopoverTrigger>
-                  <PopoverContent className="w-[300px] sm:w-[375px] p-0" align="start">
-                    <Command>
-                      <CommandInput placeholder={t('searchAreas')} />
-                      <CommandList>
-                        <CommandEmpty>{t('noAreaFound')}</CommandEmpty>
-                        <CommandGroup>
-                          {areas?.map((area: string) => {
-                            const isSelected = formData.villages?.includes(area);
-                            return (
-                              <CommandItem
-                                key={area}
-                                value={area}
-                                onSelect={() => {
-                                  const current = formData.villages || [];
-                                  setFormData({
-                                    ...formData,
-                                    villages: isSelected
-                                      ? current.filter((a) => a !== area)
-                                      : [...current, area]
-                                  });
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    isSelected ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                                {area}
                               </CommandItem>
                             );
                           })}
@@ -503,7 +521,9 @@ export default function KilaisPage() {
                           </TableCell>
                           <TableCell className="py-4">
                             <span className="inline-flex items-center text-sm font-medium">
-                              {kilai.panchayat || '-'}
+                              {kilai.panchayatRel 
+                                ? (locale === 'ta' && kilai.panchayatRel.nameTa ? kilai.panchayatRel.nameTa : kilai.panchayatRel.name)
+                                : (kilai.panchayat || '-')}
                             </span>
                           </TableCell>
                           <TableCell className="py-4">
@@ -684,13 +704,17 @@ export default function KilaisPage() {
 
                         {/* Panchayat & Union Badges */}
                         <div className="flex flex-wrap items-center gap-1.5 my-2 justify-between">
-                          {kilai.panchayat && (
+                          {(kilai.panchayatRel || kilai.panchayat) && (
                             <div 
                               className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold text-white shadow-xs"
                               style={{ backgroundColor: '#6d9188ff', color: 'white' }}
                             >
                               <MapPin className="w-3 h-3 text-white" />
-                              <span className="truncate max-w-[120px] text-white">{kilai.panchayat}</span>
+                              <span className="truncate max-w-[140px] text-white">
+                                {kilai.panchayatRel 
+                                  ? (locale === 'ta' && kilai.panchayatRel.nameTa ? kilai.panchayatRel.nameTa : kilai.panchayatRel.name)
+                                  : kilai.panchayat}
+                              </span>
                             </div>
                           )}
                           {kilaiUnion?.name && (
@@ -717,6 +741,10 @@ export default function KilaisPage() {
                           <div className="flex items-center gap-1.5 px-2 font-bold">
                             <Layers className="w-3.5 h-3.5 text-[#8F0A1B]" />
                             <span><strong className="text-zinc-900 font-bold">{kilai.booths?.length || kilai.linkedBooths?.length || 0}</strong> {locale === 'ta' ? 'சாவடிகள்' : 'Booths'}</span>
+                          </div>
+                          <div className="flex items-center gap-1.5 px-2 font-bold">
+                            <MapPin className="w-3.5 h-3.5 text-[#8F0A1B]" />
+                            <span><strong className="text-zinc-900 font-bold">{kilai.villagesRel?.length || kilai.villages?.length || 0}</strong> {locale === 'ta' ? 'கிராமங்கள்' : 'Villages'}</span>
                           </div>
                           <div className="flex items-center gap-1.5 px-2 font-bold">
                             <Users className="w-3.5 h-3.5 text-[#8F0A1B]" />

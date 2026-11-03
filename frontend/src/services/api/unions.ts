@@ -23,6 +23,7 @@ export interface Union {
   totalBooths?: number;
   unionCadres?: Cadre[];
   kilais?: any[];
+  panchayats?: any[];
 }
 
 export interface CreateUnionDto {

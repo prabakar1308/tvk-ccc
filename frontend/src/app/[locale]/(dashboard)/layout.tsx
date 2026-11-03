@@ -60,7 +60,7 @@ export default function DashboardLayout({
 
   const navItems = [
     { name: tSidebar('home'), href: '/', icon: 'home', permission: null },
-    { name: tSidebar('unions'), href: '/unions', icon: 'building', permission: 'unions:read' },
+    { name: tSidebar('unions'), href: '/unions', icon: 'building', permission: 'unions:read', matchPrefixes: ['/unions', '/panchayats', '/villages'] },
     { name: tSidebar('kilais'), href: '/kilais', icon: 'git-branch', permission: 'kilais:read' },
     { name: tSidebar('cadres'), href: '/cadres', icon: 'users', permission: 'cadres:read' },
     { name: tSidebar('wings'), href: '/wings', icon: 'bird', permission: 'wings:read' },
@@ -111,7 +111,10 @@ export default function DashboardLayout({
 
         <nav className="flex-1 min-h-0 overflow-y-auto py-2 px-3 space-y-0.5 custom-scrollbar">
           {navItems.map((item) => {
-            const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
+            const isActive =
+              pathname === item.href ||
+              (item.href !== '/' && pathname.startsWith(item.href)) ||
+              Boolean(item.matchPrefixes && item.matchPrefixes.some((prefix) => pathname.startsWith(prefix)));
             return (
               <Link key={item.name} href={item.href} onClick={() => setIsOverlayOpen(false)}>
                 <div

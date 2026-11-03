@@ -46,6 +46,7 @@ export interface PanchayatMapProps {
   }>;
   locale?: string;
   height?: string;
+  onSaveGeo?: (geo: { center: [number, number]; boundaryCoords: [number, number][] }) => void;
 }
 
 export default function PanchayatMap({
@@ -61,6 +62,7 @@ export default function PanchayatMap({
   kilais = [],
   locale = 'en',
   height = '520px',
+  onSaveGeo,
 }: PanchayatMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
@@ -145,7 +147,7 @@ export default function PanchayatMap({
     return result;
   };
 
-  // Initialize Leaflet Map
+  // Initialize Leaflet Map once on mount
   useEffect(() => {
     let isMounted = true;
 
@@ -155,6 +157,20 @@ export default function PanchayatMap({
       const L = (await import('leaflet')).default;
       if (!isMounted || !mapContainerRef.current) return;
 
+      // Safeguard Leaflet DomUtil against detached/undefined elements in async animation frames
+      if (L.DomUtil) {
+        const origGetPos = L.DomUtil.getPosition;
+        L.DomUtil.getPosition = function (el: any) {
+          if (!el) return new L.Point(0, 0);
+          return origGetPos.call(this, el);
+        };
+        const origSetPos = L.DomUtil.setPosition;
+        L.DomUtil.setPosition = function (el: any, point: any) {
+          if (!el) return;
+          return origSetPos.call(this, el, point);
+        };
+      }
+
       // Fix default Leaflet icon paths
       delete (L.Icon.Default.prototype as any)._getIconUrl;
       L.Icon.Default.mergeOptions({
@@ -162,10 +178,6 @@ export default function PanchayatMap({
         iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
         shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
       });
-
-      if ((mapContainerRef.current as any)._leaflet_id) {
-        (mapContainerRef.current as any)._leaflet_id = null;
-      }
 
       // Initialize map instance
       const map = L.map(mapContainerRef.current, {
@@ -176,7 +188,7 @@ export default function PanchayatMap({
         scrollWheelZoom: true,
       });
 
-      // Default Layer: Official OpenStreetMap Standard (100% Free, Zero API Key / Watermarks)
+      // Default Layer: Official OpenStreetMap Standard
       const osmLayer = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
         maxZoom: 19,
@@ -185,78 +197,14 @@ export default function PanchayatMap({
       osmLayer.addTo(map);
       tileLayerRef.current = osmLayer;
 
-      // Render Boundary Polygon
-      if (activeBoundary && activeBoundary.length > 2) {
-        const polygon = L.polygon(activeBoundary as any, {
-          color: '#EA4335',
-          weight: 2.5,
-          opacity: 0.95,
-          dashArray: '6, 6', // Red dotted demarcation
-          fillColor: '#EA4335',
-          fillOpacity: 0.05,
-        }).addTo(map);
+      // Layer groups
+      const kilaiGroup = L.layerGroup();
+      kilaiGroup.addTo(map);
+      kilaiLayerGroupRef.current = kilaiGroup;
 
-        polygonRef.current = polygon;
-        map.fitBounds(polygon.getBounds(), { padding: [28, 28], maxZoom: 15.25 });
-      }
-
-      // Center Village Label
-      const updateCenterMarker = (pos: [number, number]) => {
-        if (centerLabelMarkerRef.current) {
-          map.removeLayer(centerLabelMarkerRef.current);
-        }
-
-        const centerLabelHtml = `
-          <div style="text-align: center; pointer-events: auto; transform: translate(-50%, -50%); white-space: nowrap; cursor: pointer;">
-            <div style="font-family: system-ui, -apple-system, sans-serif; font-size: 15px; font-weight: 700; color: #D93025; text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 0 6px #ffffff, 0 0 10px #ffffff; line-height: 1.15; letter-spacing: -0.2px;">
-              ${enName}
-            </div>
-            ${taName && taName !== enName ? `
-            <div style="font-family: system-ui, -apple-system, sans-serif; font-size: 14px; font-weight: 600; color: #D93025; text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 0 6px #ffffff, 0 0 10px #ffffff; line-height: 1.15; margin-top: 1px;">
-              ${taName}
-            </div>` : ''}
-          </div>
-        `;
-
-        const centerLabelIcon = L.divIcon({
-          className: 'village-map-center-label',
-          html: centerLabelHtml,
-          iconSize: [120, 40],
-          iconAnchor: [60, 20],
-        });
-
-        const labelMarker = L.marker(pos, { icon: centerLabelIcon }).addTo(map);
-
-        const popupHtml = `
-          <div style="font-family: inherit; min-width: 200px; padding: 4px;">
-            <div style="font-size: 15px; font-weight: 700; color: #D93025; margin-bottom: 2px;">
-              ${enName}
-            </div>
-            ${taName ? `<div style="font-size: 13px; font-weight: 600; color: #64748B; margin-bottom: 8px;">${taName}</div>` : ''}
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 6px; text-align: center;">
-              <div>
-                <div style="font-size: 14px; font-weight: 700; color: #1E293B;">${kilaiCount}</div>
-                <div style="font-size: 10px; font-weight: 600; color: #64748B;">${locale === 'ta' ? 'கிளைகள்' : 'Kilais'}</div>
-              </div>
-              <div>
-                <div style="font-size: 14px; font-weight: 700; color: #1E293B;">${boothCount}</div>
-                <div style="font-size: 10px; font-weight: 600; color: #64748B;">${locale === 'ta' ? 'சாவடிகள்' : 'Booths'}</div>
-              </div>
-              <div>
-                <div style="font-size: 14px; font-weight: 700; color: #1E293B;">${cadreCount}</div>
-                <div style="font-size: 10px; font-weight: 600; color: #64748B;">${locale === 'ta' ? 'நிர்வாகிகள்' : 'Cadres'}</div>
-              </div>
-            </div>
-            <div style="margin-top: 8px; font-size: 10px; color: #64748B; font-family: monospace; text-align: center;">
-              ${pos[0].toFixed(5)}, ${pos[1].toFixed(5)}
-            </div>
-          </div>
-        `;
-        labelMarker.bindPopup(popupHtml);
-        centerLabelMarkerRef.current = labelMarker;
-      };
-
-      updateCenterMarker(activeCenter);
+      const editGroup = L.layerGroup();
+      editGroup.addTo(map);
+      editMarkersLayerRef.current = editGroup;
 
       // Map Click Handler (for "Pick on Map" mode)
       map.on('click', (e: any) => {
@@ -270,15 +218,6 @@ export default function PanchayatMap({
         }
       });
 
-      // Layer groups
-      const kilaiGroup = L.layerGroup();
-      kilaiGroup.addTo(map);
-      kilaiLayerGroupRef.current = kilaiGroup;
-
-      const editGroup = L.layerGroup();
-      editGroup.addTo(map);
-      editMarkersLayerRef.current = editGroup;
-
       mapInstanceRef.current = map;
     }
 
@@ -287,28 +226,121 @@ export default function PanchayatMap({
     return () => {
       isMounted = false;
       if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
+        try {
+          mapInstanceRef.current.stop();
+          mapInstanceRef.current.remove();
+        } catch (_) {}
         mapInstanceRef.current = null;
       }
-      if (mapContainerRef.current) {
-        (mapContainerRef.current as any)._leaflet_id = null;
-      }
     };
-  }, [enName, taName, kilaiCount, boothCount, cadreCount, locale]);
+  }, []);
+
+  // Update Center Village Label Marker when activeCenter or info changes
+  useEffect(() => {
+    if (!mapInstanceRef.current) return;
+    const map = mapInstanceRef.current;
+
+    async function updateCenterMarker() {
+      const L = (await import('leaflet')).default;
+      if (!mapInstanceRef.current) return;
+
+      if (centerLabelMarkerRef.current) {
+        try {
+          map.removeLayer(centerLabelMarkerRef.current);
+        } catch (_) {}
+        centerLabelMarkerRef.current = null;
+      }
+
+      if (!activeCenter || !activeCenter[0] || !activeCenter[1]) return;
+
+      const centerLabelHtml = `
+        <div style="text-align: center; pointer-events: auto; transform: translate(-50%, -50%); white-space: nowrap; cursor: pointer;">
+          <div style="font-family: system-ui, -apple-system, sans-serif; font-size: 15px; font-weight: 700; color: #D93025; text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 0 6px #ffffff, 0 0 10px #ffffff; line-height: 1.15; letter-spacing: -0.2px;">
+            ${enName}
+          </div>
+          ${taName && taName !== enName ? `
+          <div style="font-family: system-ui, -apple-system, sans-serif; font-size: 14px; font-weight: 600; color: #D93025; text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 0 6px #ffffff, 0 0 10px #ffffff; line-height: 1.15; margin-top: 1px;">
+            ${taName}
+          </div>` : ''}
+        </div>
+      `;
+
+      const centerLabelIcon = L.divIcon({
+        className: 'village-map-center-label',
+        html: centerLabelHtml,
+        iconSize: [120, 40],
+        iconAnchor: [60, 20],
+      });
+
+      const labelMarker = L.marker(activeCenter, { icon: centerLabelIcon }).addTo(map);
+
+      const popupHtml = `
+        <div style="font-family: inherit; min-width: 200px; padding: 4px;">
+          <div style="font-size: 15px; font-weight: 700; color: #D93025; margin-bottom: 2px;">
+            ${enName}
+          </div>
+          ${taName ? `<div style="font-size: 13px; font-weight: 600; color: #64748B; margin-bottom: 8px;">${taName}</div>` : ''}
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 6px; text-align: center;">
+            <div>
+              <div style="font-size: 14px; font-weight: 700; color: #1E293B;">${kilaiCount}</div>
+              <div style="font-size: 10px; font-weight: 600; color: #64748B;">${locale === 'ta' ? 'கிளைகள்' : 'Kilais'}</div>
+            </div>
+            <div>
+              <div style="font-size: 14px; font-weight: 700; color: #1E293B;">${boothCount}</div>
+              <div style="font-size: 10px; font-weight: 600; color: #64748B;">${locale === 'ta' ? 'சாவடிகள்' : 'Booths'}</div>
+            </div>
+            <div>
+              <div style="font-size: 14px; font-weight: 700; color: #1E293B;">${cadreCount}</div>
+              <div style="font-size: 10px; font-weight: 600; color: #64748B;">${locale === 'ta' ? 'நிர்வாகிகள்' : 'Cadres'}</div>
+            </div>
+          </div>
+          <div style="margin-top: 8px; font-size: 10px; color: #64748B; font-family: monospace; text-align: center;">
+            ${activeCenter[0].toFixed(5)}, ${activeCenter[1].toFixed(5)}
+          </div>
+        </div>
+      `;
+      labelMarker.bindPopup(popupHtml);
+      centerLabelMarkerRef.current = labelMarker;
+    }
+
+    updateCenterMarker();
+  }, [activeCenter, enName, taName, kilaiCount, boothCount, cadreCount, locale]);
 
   // Update polygon geometry when activeBoundary changes
   useEffect(() => {
-    if (!polygonRef.current || !activeBoundary || activeBoundary.length < 3) return;
-    polygonRef.current.setLatLngs(activeBoundary);
-  }, [activeBoundary]);
+    if (!mapInstanceRef.current) return;
+    const map = mapInstanceRef.current;
 
-  // Update center marker when activeCenter changes
-  useEffect(() => {
-    if (!mapInstanceRef.current || !activeCenter) return;
-    if (centerLabelMarkerRef.current) {
-      centerLabelMarkerRef.current.setLatLng(activeCenter);
+    async function syncPolygon() {
+      const L = (await import('leaflet')).default;
+      if (!mapInstanceRef.current) return;
+
+      if (polygonRef.current) {
+        try {
+          map.removeLayer(polygonRef.current);
+        } catch (_) {}
+        polygonRef.current = null;
+      }
+
+      if (activeBoundary && activeBoundary.length > 2) {
+        const polygon = L.polygon(activeBoundary as any, {
+          color: '#EA4335',
+          weight: 2.5,
+          opacity: 0.95,
+          dashArray: '6, 6',
+          fillColor: '#EA4335',
+          fillOpacity: 0.05,
+        }).addTo(map);
+
+        polygonRef.current = polygon;
+        try {
+          map.fitBounds(polygon.getBounds(), { padding: [28, 28], maxZoom: 15.25, animate: false });
+        } catch (_) {}
+      }
     }
-  }, [activeCenter]);
+
+    syncPolygon();
+  }, [activeBoundary]);
 
   // Render Kilais with verified ground coordinates & interactive positioning
   useEffect(() => {
@@ -316,6 +348,7 @@ export default function PanchayatMap({
 
     async function updateKilaiPins() {
       const L = (await import('leaflet')).default;
+      if (!mapInstanceRef.current || !kilaiLayerGroupRef.current) return;
       const group = kilaiLayerGroupRef.current;
       group.clearLayers();
 
@@ -426,6 +459,7 @@ export default function PanchayatMap({
 
     async function updateEditHandles() {
       const L = (await import('leaflet')).default;
+      if (!mapInstanceRef.current || !editMarkersLayerRef.current) return;
       const group = editMarkersLayerRef.current;
       group.clearLayers();
 
@@ -588,6 +622,10 @@ export default function PanchayatMap({
         `tvk_panchayat_geo_${areaKey}`,
         JSON.stringify({ center: newCenter, boundaryCoords: newCoords })
       );
+    }
+
+    if (onSaveGeo) {
+      onSaveGeo({ center: newCenter, boundaryCoords: newCoords });
     }
 
     if (mapInstanceRef.current) {
