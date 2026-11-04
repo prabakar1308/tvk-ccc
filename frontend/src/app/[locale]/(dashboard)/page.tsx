@@ -124,9 +124,9 @@ export default function DashboardPage() {
       </div>
 
       {/* Hero Banner Image */}
-      <div className="w-full rounded-[20px] sm:rounded-[24px] overflow-hidden shadow-md relative bg-[#8F0A1B] border border-[#8F0A1B]/20 group">
+      <div className="w-full rounded-[20px] sm:rounded-[24px] overflow-hidden shadow-md relative bg-[#8F0A1B] border border-[#8F0A1B]/20 group h-[400px] sm:h-[350px] lg:h-[360px] xl:h-[400px] 2xl:h-[500px]">
         {/* Mobile View Image (< 640px) */}
-        <div className="relative aspect-[941/1672] w-full overflow-hidden block sm:hidden">
+        <div className="relative w-full h-full overflow-hidden block sm:hidden">
           <Image
             src={dbImageMobile}
             alt="TVK Leaders - வெற்றி தமிழ்நாடு"
@@ -138,7 +138,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Tablet View Image (640px - 1023px) */}
-        <div className="relative aspect-[1586/992] w-full overflow-hidden hidden sm:block lg:hidden">
+        <div className="relative w-full h-full overflow-hidden hidden sm:block lg:hidden">
           <Image
             src={dbImageTablet}
             alt="TVK Leaders - வெற்றி தமிழ்நாடு"
@@ -150,7 +150,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Desktop View Image (1024px - 1600px) */}
-        <div className="relative aspect-[1945/808] w-full overflow-hidden hidden [@media(min-width:1024px)_and_(max-width:1600px)]:block">
+        <div className="relative w-full h-full overflow-hidden hidden [@media(min-width:1024px)_and_(max-width:1600px)]:block">
           <Image
             src={dbImageDesktop}
             alt="TVK Leaders - வெற்றி தமிழ்நாடு"
@@ -162,7 +162,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Large Desktop View Image (> 1600px) */}
-        <div className="relative aspect-[1942/809] w-full overflow-hidden hidden min-[1601px]:block">
+        <div className="relative w-full h-full overflow-hidden hidden min-[1601px]:block">
           <Image
             src={dbImageDesktopLarge}
             alt="TVK Leaders - வெற்றி தமிழ்நாடு"

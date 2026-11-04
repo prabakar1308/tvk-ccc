@@ -56,7 +56,13 @@ export class AuthService {
             }
           }
         },
-        cadre: true
+        cadre: {
+          include: {
+            homeKilai: true,
+            union: true,
+            district: true,
+          }
+        }
       }
     });
     if (user && (await bcrypt.compare(pass, user.passwordHash))) {
@@ -69,14 +75,20 @@ export class AuthService {
 
   async login(user: any) {
     const permissions = user.role?.permissions?.map((rp: any) => rp.permission.action) || [];
+    const userCadre = user.cadre;
+    const resolvedUnionId = userCadre?.unionId || userCadre?.homeKilai?.unionId || null;
     const payload = {
       userId: user.userId,
       sub: user.id,
       role: user.role?.name || null,
-      unionId: user.cadre?.unionId || null,
+      scopeLevel: user.role?.scopeLevel || null,
+      level: userCadre?.level || null,
+      unionId: resolvedUnionId,
+      districtId: userCadre?.districtId || null,
+      homeKilaiId: userCadre?.homeKilaiId || null,
       permissions,
-      name: user.cadre?.name || user.userId,
-      photoUrl: user.cadre?.photoUrl || null,
+      name: userCadre?.name || user.userId,
+      photoUrl: userCadre?.photoUrl || null,
     };
     return {
       access_token: this.jwtService.sign(payload),

@@ -238,8 +238,7 @@ export function BoothsSection({
       ) : viewMode === 'table' ? (
         /* Table View with Expandable Rows */
         <div className="w-full overflow-hidden rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xs">
-          <div className="overflow-x-auto">
-            <Table className="w-full">
+          <Table className="w-full">
               <TableHeader className="bg-gray-50/80 dark:bg-zinc-800/50">
                 <TableRow className="hover:bg-transparent border-b border-gray-200 dark:border-zinc-800">
                   <TableHead className="w-14 text-center text-xs font-bold text-gray-500 dark:text-zinc-400 py-3.5">
@@ -464,9 +463,9 @@ export function BoothsSection({
 
                       {/* Expanded Drawer: Full Booth Name, Voter Demographics, Agents Roster */}
                       {isExpanded && (
-                        <TableRow className="bg-[#f4f3f7] hover:bg-[#f4f3f7] dark:bg-zinc-850/60 dark:hover:bg-zinc-850/60 border-b border-slate-200/50 dark:border-zinc-700/60">
+                        <TableRow className="bg-[#f3f3ed] hover:bg-[#f3f3ed] dark:bg-zinc-850/60 dark:hover:bg-zinc-850/60 border-b border-slate-200/50 dark:border-zinc-700/60">
                           <TableCell colSpan={tableColSpan} className="p-0">
-                            <div className="w-full min-w-0 border-l-4 border-l-slate-500 bg-[#f4f3f7] dark:bg-zinc-900/95 p-3.5 sm:p-5 md:p-6 space-y-4">
+                            <div className="w-full max-w-full min-w-0 border-l-4 border-l-primary bg-[#f3f3ed] dark:bg-zinc-900/95 p-3.5 sm:p-5 md:p-6 space-y-4 overflow-hidden">
                               {/* Drawer Header: Station Name & Direct Link */}
                               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-zinc-800">
                                 <div className="space-y-1.5 min-w-0 flex-1">
@@ -527,7 +526,7 @@ export function BoothsSection({
                                   </span>
                                 </div>
 
-                                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-2.5">
+                                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-2.5">
                                   {/* Male Voters Card */}
                                   <div className="p-2.5 sm:p-3 rounded-xl bg-blue-100/50 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-900/40">
                                     <div className="flex items-center justify-between gap-1">
@@ -630,7 +629,7 @@ export function BoothsSection({
                                 </div>
 
                                 {agentsList.length > 0 ? (
-                                  <div className="grid gap-2 sm:gap-2.5 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+                                  <div className="grid gap-2 sm:gap-2.5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                                     {agentsList.map((agent: any) => {
                                       const agentName =
                                         locale === 'ta'
@@ -696,7 +695,6 @@ export function BoothsSection({
                 })}
               </TableBody>
             </Table>
-          </div>
         </div>
       ) : (
         /* Attractive Modern Tile View with Demographics */

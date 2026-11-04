@@ -43,6 +43,7 @@ export interface UserCadre {
   homeKilai?: {
     id: string;
     name: string;
+    unionId?: string | null;
   } | null;
   wingId?: string | null;
   wing?: {

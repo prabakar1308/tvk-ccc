@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import {
   Table,
   TableBody,
@@ -12,7 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
-import { Search, Plus, Eye, Edit2, Building2, Users, CheckCircle2, ChevronDown, Check, X, Trash2, ChevronLeft, ChevronRight, Filter, LayoutGrid, List, MapPin } from "lucide-react";
+import { Search, Plus, Eye, Edit2, Building2, Users, CheckCircle2, ChevronDown, ChevronUp, Phone, Check, X, Trash2, ChevronLeft, ChevronRight, Filter, LayoutGrid, List, MapPin } from "lucide-react";
 import { 
   Dialog, 
   DialogContent, 
@@ -39,6 +39,8 @@ import { useTranslations, useLocale } from 'next-intl';
 import { MultiAutocomplete } from '@/components/ui/autocomplete';
 import { cadreApi } from '@/services/api/cadres';
 import { cn } from '@/lib/utils';
+import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
+import { translatePersonNameToTamil } from '@/lib/name-translations';
 
 // Custom MultiSelect Dropdown
 function MultiSelectDropdown({ 
@@ -154,7 +156,16 @@ export default function BoothsPage() {
   const [filterKilaiId, setFilterKilaiId] = useState<string>('');
   const [filterAgentId, setFilterAgentId] = useState<string>('');
   const [currentPage, setCurrentPage] = useState(1);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
+  const [expandedBoothIds, setExpandedBoothIds] = useState<Record<string, boolean>>({});
+  const [callConfirmation, setCallConfirmation] = useState<{ name: string; phone: string } | null>(null);
+
+  // Default to Table view on desktop, Tile view on mobile 1024px)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+      setViewMode('grid');
+    }
+  }, []);
   const itemsPerPage = 10;
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBooth, setEditingBooth] = useState<any>(null);
@@ -264,6 +275,27 @@ export default function BoothsPage() {
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );
+
+  const toggleExpand = (id: string) => {
+    setExpandedBoothIds(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+
+  const allExpanded = paginatedBooths.length > 0 && paginatedBooths.every((b: any) => expandedBoothIds[b.id]);
+
+  const toggleAllExpanded = () => {
+    if (allExpanded) {
+      setExpandedBoothIds({});
+    } else {
+      const next: Record<string, boolean> = {};
+      paginatedBooths.forEach((b: any) => {
+        next[b.id] = true;
+      });
+      setExpandedBoothIds(next);
+    }
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both">
@@ -678,6 +710,27 @@ export default function BoothsPage() {
             </Button>
           </div>
           <div className="flex gap-2 w-full sm:w-auto justify-end">
+            {viewMode === 'list' && paginatedBooths.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleAllExpanded}
+                className="h-11 px-3 text-xs font-semibold text-primary border-primary/20 hover:bg-primary/10 flex items-center gap-1.5 shadow-2xs mr-1"
+                title={allExpanded ? (locale === 'ta' ? 'அனைத்தையும் சுருக்கு' : 'Collapse All') : (locale === 'ta' ? 'அனைத்தையும் விரி' : 'Expand All')}
+              >
+                {allExpanded ? (
+                  <>
+                    <ChevronUp className="w-4 h-4 text-primary" />
+                    <span className="hidden sm:inline">{locale === 'ta' ? 'அனைத்தையும் சுருக்கு' : 'Collapse All'}</span>
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="w-4 h-4 text-primary" />
+                    <span className="hidden sm:inline">{locale === 'ta' ? 'அனைத்தையும் விரி' : 'Expand All'}</span>
+                  </>
+                )}
+              </Button>
+            )}
             <div className="flex bg-muted/40 p-1 rounded-lg border border-primary/10 shadow-inner mr-2 items-center">
               <button
                 type="button"
@@ -696,7 +749,7 @@ export default function BoothsPage() {
                 <List className="w-5 h-5" />
               </button>
             </div>
-            <Button variant="outline" className="h-11 rounded-md px-6 font-medium border-primary/20 text-primary hover:bg-primary/5">{tCommon('exportCsv')}</Button>
+            <Button variant="outline" className="h-11 rounded-md px-6 font-medium border-primary/20 text-primary hover:bg-[#eae8d3]">{tCommon('exportCsv')}</Button>
           </div>
         </div>
 
@@ -795,14 +848,14 @@ export default function BoothsPage() {
       {viewMode === 'list' ? (
         <div className="rounded-lg border border-primary/20 bg-card shadow-sm overflow-hidden p-2 animate-in fade-in duration-300">
           <Table>
-            <TableHeader className="bg-primary/5">
+            <TableHeader className="bg-[#d7d4cf]">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="font-semibold text-primary py-4">{t('boothHeader')}</TableHead>
-                <TableHead className="font-semibold text-primary py-4">{t('linkedKilais')}</TableHead>
-                <TableHead className="font-semibold text-primary py-4">{t('agentsCadres')}</TableHead>
-                <TableHead className="font-semibold text-primary py-4 text-center">{t('mf3rd')}</TableHead>
-                <TableHead className="font-semibold text-primary py-4 text-center">{t('totalCount')}</TableHead>
-                <TableHead className="font-semibold text-primary py-4 text-right sticky right-0 z-10 bg-card border-l">{tCommon('actions')}</TableHead>
+                <TableHead className="w-[30%] min-w-[180px] font-semibold text-primary py-4">{t('boothHeader')}</TableHead>
+                <TableHead className="w-[18%] min-w-[120px] font-semibold text-primary py-4">{t('linkedKilais')}</TableHead>
+                <TableHead className="w-[22%] min-w-[130px] font-semibold text-primary py-4">{t('agentsCadres')}</TableHead>
+                <TableHead className="w-[14%] min-w-[100px] font-semibold text-primary py-4 text-center whitespace-nowrap">{t('mf3rd')}</TableHead>
+                <TableHead className="w-[8%] min-w-[70px] font-semibold text-primary py-4 text-center whitespace-nowrap">{t('totalCount')}</TableHead>
+                <TableHead className="w-[8%] min-w-[70px] font-semibold text-primary py-4 text-right pr-3">{tCommon('actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -815,69 +868,367 @@ export default function BoothsPage() {
                   <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">{t('noBooths')}</TableCell>
                 </TableRow>
               ) : (
-                paginatedBooths.map((booth: any) => (
-                  <TableRow key={booth.id} className="hover:bg-primary/5 transition-colors group border-b-primary/10">
-                    <TableCell className="py-4">
-                      <Tooltip>
-                        <TooltipTrigger onClick={() => setViewingBooth(booth)}>
-                          <div className="flex flex-col items-start text-left cursor-pointer max-w-[200px] sm:max-w-[300px] lg:max-w-[450px]">
-                            <span className="font-bold text-sm md:text-base text-foreground underline decoration-dashed decoration-primary/30 underline-offset-4 hover:text-primary transition-colors truncate w-full block">
-                              {booth.name 
-                                ? `${booth.boothNo} - ${shortenBoothName(booth.name)}`
-                                : booth.boothNo}
-                            </span>
-                            {booth.panchayatRel && (
-                              <span className="inline-flex items-center gap-1 mt-0.5 text-xs text-primary font-medium">
-                                <MapPin className="w-3 h-3" />
-                                {locale === 'ta' && booth.panchayatRel.nameTa ? booth.panchayatRel.nameTa : booth.panchayatRel.name}
-                              </span>
-                            )}
+                paginatedBooths.map((booth: any) => {
+                  const isExpanded = Boolean(expandedBoothIds[booth.id]);
+                  const totalCount = booth.totalCount || 0;
+                  const maleCount = booth.maleCount || 0;
+                  const femaleCount = booth.femaleCount || 0;
+                  const thirdCount = booth.thirdGenderCount || 0;
+                  const malePct = totalCount > 0 ? Math.round((maleCount / totalCount) * 100) : 0;
+                  const femalePct = totalCount > 0 ? Math.round((femaleCount / totalCount) * 100) : 0;
+                  const thirdPct = totalCount > 0 && thirdCount > 0 ? Math.round((thirdCount / totalCount) * 100) : 0;
+                  const agentsList = booth.agents || [];
+
+                  return (
+                    <React.Fragment key={booth.id}>
+                      {/* Main Table Row */}
+                      <TableRow 
+                        onClick={() => toggleExpand(booth.id)}
+                        className={`transition-colors group border-b cursor-pointer select-none ${
+                          isExpanded 
+                            ? 'bg-[#f3f3de] border-primary/20' 
+                            : 'hover:bg-[#eae8d3] border-b-primary/10'
+                        }`}
+                      >
+                        <TableCell className="py-4 w-[30%] min-w-[180px]">
+                          <div className="flex items-start gap-2 min-w-0">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleExpand(booth.id);
+                              }}
+                              className={`w-6 h-6 rounded-md flex items-center justify-center transition-all shrink-0 mt-0.5 ${
+                                isExpanded
+                                  ? 'bg-primary text-white shadow-2xs rotate-180 hover:bg-primary/90'
+                                  : 'bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20'
+                              }`}
+                              title={isExpanded ? (locale === 'ta' ? 'சுருக்கு' : 'Collapse') : (locale === 'ta' ? 'விரி' : 'Expand')}
+                            >
+                              <ChevronDown className="w-3.5 h-3.5 transition-transform duration-200" />
+                            </button>
+                            <div className="flex flex-col items-start text-left min-w-0 flex-1">
+                              <Tooltip>
+                                <TooltipTrigger 
+                                  onClick={(e) => { 
+                                    e.stopPropagation(); 
+                                    toggleExpand(booth.id); 
+                                  }} 
+                                  className="cursor-pointer text-left focus:outline-none w-full">
+
+                                  <span className="font-bold text-xs sm:text-sm text-foreground underline decoration-dashed decoration-primary/30 underline-offset-4 hover:text-primary transition-colors break-words leading-snug w-full block">
+                                    {booth.name 
+                                      ? `${booth.boothNo} - ${shortenBoothName(booth.name)}`
+                                      : booth.boothNo}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent side="right" className="max-w-[350px] whitespace-normal">
+                                  <p className="font-semibold text-sm mb-1">{booth.name}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                              {booth.panchayatRel && (
+                                <span className="inline-flex items-center gap-1 mt-0.5 text-xs text-primary font-medium break-words">
+                                  <MapPin className="w-3 h-3 shrink-0" />
+                                  <span>{locale === 'ta' && booth.panchayatRel.nameTa ? booth.panchayatRel.nameTa : booth.panchayatRel.name}</span>
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="right" className="max-w-[350px] whitespace-normal">
-                          <p className="font-semibold text-sm mb-1">{booth.name}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TableCell>
-                    <TableCell className="font-medium py-4">
-                      <div className="flex flex-wrap gap-1">
-                        {booth.kilais?.map((kilai: any, i: number) => (
-                          <span key={i} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 border border-green-200">
-                            {kilai.name}
-                          </span>
-                        ))}
-                      </div>
-                    </TableCell>
-                    <TableCell className="py-4">
-                      <div className="flex flex-wrap gap-1">
-                        {booth.agents?.map((agent: any, index: number) => (
-                          <span key={index} className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-primary/10 text-primary border border-primary/20">
-                            {agent.name}
-                          </span>
-                        ))}
-                        {!booth.agents?.length && <span className="text-xs text-muted-foreground italic">{t('noneAssigned')}</span>}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-center py-4 font-medium text-muted-foreground">
-                      <span className="text-blue-600">{booth.maleCount}</span> / <span className="text-pink-600">{booth.femaleCount}</span> / <span className="text-purple-600">{booth.thirdGenderCount}</span>
-                    </TableCell>
-                    <TableCell className="text-center font-bold text-foreground py-4">
-                      {booth.totalCount}
-                    </TableCell>
-                    <TableCell className="text-right py-4 sticky right-0 z-10 bg-card group-hover:bg-zinc-50 dark:group-hover:bg-zinc-800/50 border-l">
-                      <div className="flex justify-end gap-2 transition-opacity">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-primary hover:bg-primary/10 rounded-full" onClick={() => handleOpenDialog(booth)}>
-                          <Edit2 className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:bg-destructive/10 rounded-full" onClick={() => handleDelete(booth.id)}>
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
+                        </TableCell>
+                        <TableCell className="font-medium py-4 w-[18%] min-w-[120px]">
+                          <div className="flex flex-wrap gap-1">
+                            {booth.kilais?.map((kilai: any, i: number) => (
+                              <span key={i} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 border border-green-200 max-w-full break-words">
+                                {kilai.name}
+                              </span>
+                            ))}
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-4 w-[22%] min-w-[130px]">
+                          <div className="flex flex-wrap gap-1">
+                            {agentsList.map((agent: any, index: number) => {
+                              const aName = locale === 'ta' ? translatePersonNameToTamil(agent.name) || agent.name : agent.name;
+                              return (
+                                <span key={index} className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-primary/10 text-primary border border-primary/20 max-w-full truncate">
+                                  {aName}
+                                </span>
+                              );
+                            })}
+                            {!agentsList.length && <span className="text-xs text-muted-foreground italic">{t('noneAssigned')}</span>}
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-center py-4 font-medium text-muted-foreground w-[14%] min-w-[100px] whitespace-nowrap text-xs sm:text-sm">
+                          <span className="text-blue-600 font-bold">{booth.maleCount || 0}</span> / <span className="text-pink-600 font-bold">{booth.femaleCount || 0}</span> / <span className="text-purple-600 font-bold">{booth.thirdGenderCount || 0}</span>
+                        </TableCell>
+                        <TableCell className="text-center font-bold text-foreground py-4 w-[8%] min-w-[70px] whitespace-nowrap text-xs sm:text-sm">
+                          {booth.totalCount || 0}
+                        </TableCell>
+                        <TableCell className="text-right py-4 pr-3 w-[8%] min-w-[70px]">
+                          <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-primary hover:bg-primary/10 rounded-full" 
+                              onClick={() => handleOpenDialog(booth)}
+                              title={t('editBooth')}
+                            >
+                              <Edit2 className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="h-8 w-8 text-destructive hover:bg-destructive/10 rounded-full" 
+                              onClick={() => handleDelete(booth.id)}
+                              title="Delete"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+
+                      {/* Inline Expanded Details Drawer (#f3f3ed background) */}
+                      {isExpanded && (
+                        <TableRow className="bg-[#f3f3ed] hover:bg-[#f3f3ed] dark:bg-zinc-850/60 dark:hover:bg-zinc-850/60 border-b border-primary/20">
+                          <TableCell colSpan={6} className="p-0">
+                            <div className="w-full max-w-full min-w-0 border-l-4 border-l-primary bg-[#f3f3ed] dark:bg-zinc-900/95 p-3.5 sm:p-5 md:p-6 space-y-4 overflow-hidden">
+                              {/* Drawer Header */}
+                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-primary/15 dark:border-zinc-800">
+                                <div className="space-y-1.5 min-w-0 flex-1">
+                                  <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                                    <span className="bg-primary text-white text-xs font-bold font-mono px-2.5 py-0.5 rounded-md shadow-2xs shrink-0">
+                                      #{booth.boothNo}
+                                    </span>
+                                    {booth.area && (
+                                      <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-semibold text-gray-700 dark:text-zinc-300 bg-white dark:bg-zinc-800 px-2 py-0.5 rounded border border-gray-200 dark:border-zinc-700 shrink-0">
+                                        <MapPin className="w-3 h-3 text-muted-foreground" />
+                                        <span>{booth.area}</span>
+                                      </span>
+                                    )}
+                                    {booth.panchayatRel && (
+                                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary shrink-0">
+                                        <MapPin className="w-3 h-3" />
+                                        {locale === 'ta' && booth.panchayatRel.nameTa ? booth.panchayatRel.nameTa : booth.panchayatRel.name}
+                                      </span>
+                                    )}
+                                    {booth.union && (
+                                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-secondary text-secondary-foreground shrink-0">
+                                        <Building2 className="w-3 h-3" />
+                                        {getOrgUnitName(booth.union, locale)}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white leading-snug break-words">
+                                    {booth.name}
+                                  </h3>
+                                </div>
+
+                                <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
+                                  {/* <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => handleOpenDialog(booth)}
+                                    className="h-8 text-xs font-semibold text-primary border-primary/20 hover:bg-primary/10 gap-1.5"
+                                  >
+                                    <Edit2 className="w-3.5 h-3.5" />
+                                    <span>{t('editBooth')}</span>
+                                  </Button> */}
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleExpand(booth.id)}
+                                    className="text-xs font-semibold text-muted-foreground hover:text-foreground flex items-center gap-1 px-2 py-1 rounded hover:bg-black/5 dark:hover:bg-white/5"
+                                  >
+                                    <span>{locale === 'ta' ? 'சுருக்கு' : 'Collapse'}</span>
+                                    <ChevronUp className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Voter Demographics Matrix */}
+                              <div className="space-y-2">
+                                <div className="flex flex-wrap items-center justify-between gap-1 text-xs font-bold text-gray-800 dark:text-zinc-200">
+                                  <span className="flex items-center gap-1.5 text-primary">
+                                    <Users className="w-4 h-4" />
+                                    <span>{t('demographics')}</span>
+                                  </span>
+                                  <span className="text-[11px] font-mono text-muted-foreground">
+                                    {t('total')}: <span className="font-bold text-gray-900 dark:text-white">{totalCount.toLocaleString()}</span>
+                                  </span>
+                                </div>
+
+                                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-2.5">
+                                  <div className="p-3 rounded-xl bg-white dark:bg-zinc-800/90 border border-blue-200/60 dark:border-blue-900/40 shadow-2xs">
+                                    <div className="flex items-center justify-between gap-1">
+                                      <span className="text-xs font-semibold text-blue-700 dark:text-blue-300 truncate">
+                                        {t('male')}
+                                      </span>
+                                      <span className="text-[10px] font-mono font-bold text-blue-600 dark:text-blue-400 shrink-0">
+                                        {malePct}%
+                                      </span>
+                                    </div>
+                                    <p className="text-base sm:text-lg font-extrabold font-mono text-gray-900 dark:text-white mt-1">
+                                      {maleCount.toLocaleString()}
+                                    </p>
+                                  </div>
+
+                                  <div className="p-3 rounded-xl bg-white dark:bg-zinc-800/90 border border-pink-200/60 dark:border-pink-900/40 shadow-2xs">
+                                    <div className="flex items-center justify-between gap-1">
+                                      <span className="text-xs font-semibold text-pink-700 dark:text-pink-300 truncate">
+                                        {t('female')}
+                                      </span>
+                                      <span className="text-[10px] font-mono font-bold text-pink-600 dark:text-pink-400 shrink-0">
+                                        {femalePct}%
+                                      </span>
+                                    </div>
+                                    <p className="text-base sm:text-lg font-extrabold font-mono text-gray-900 dark:text-white mt-1">
+                                      {femaleCount.toLocaleString()}
+                                    </p>
+                                  </div>
+
+                                  <div className="p-3 rounded-xl bg-white dark:bg-zinc-800/90 border border-purple-200/60 dark:border-purple-900/40 shadow-2xs">
+                                    <div className="flex items-center justify-between gap-1">
+                                      <span className="text-xs font-semibold text-purple-700 dark:text-purple-300 truncate" title={t('thirdGender')}>
+                                        {t('thirdGender')}
+                                      </span>
+                                      <span className="text-[10px] font-mono font-bold text-purple-600 dark:text-purple-400 shrink-0">
+                                        {thirdPct}%
+                                      </span>
+                                    </div>
+                                    <p className="text-base sm:text-lg font-extrabold font-mono text-gray-900 dark:text-white mt-1">
+                                      {thirdCount.toLocaleString()}
+                                    </p>
+                                  </div>
+
+                                  <div className="p-3 rounded-xl bg-white dark:bg-zinc-800/90 border border-primary/30 shadow-2xs">
+                                    <div className="flex items-center justify-between gap-1">
+                                      <span className="text-xs font-bold text-primary truncate">
+                                        {t('total')}
+                                      </span>
+                                      <span className="text-[10px] font-mono font-bold text-primary shrink-0">
+                                        100%
+                                      </span>
+                                    </div>
+                                    <p className="text-base sm:text-lg font-extrabold font-mono text-primary mt-1">
+                                      {totalCount.toLocaleString()}
+                                    </p>
+                                  </div>
+                                </div>
+
+                                {totalCount > 0 && (
+                                  <div className="w-full h-2 rounded-full bg-gray-200/70 dark:bg-zinc-800 flex overflow-hidden">
+                                    <div style={{ width: `${malePct}%` }} className="bg-blue-500 h-full" title={`Male: ${malePct}%`} />
+                                    <div style={{ width: `${femalePct}%` }} className="bg-pink-500 h-full" title={`Female: ${femalePct}%`} />
+                                    {thirdCount > 0 && (
+                                      <div style={{ width: `${thirdPct}%` }} className="bg-purple-500 h-full" title={`Other: ${thirdPct}%`} />
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Villages / Hamlets Covered */}
+                              {booth.villages && booth.villages.length > 0 && (
+                                <div className="space-y-1.5 pt-1 border-t border-primary/10 dark:border-zinc-800">
+                                  <h4 className="text-xs font-bold text-gray-800 dark:text-zinc-200 flex items-center gap-1.5">
+                                    <MapPin className="w-3.5 h-3.5 text-primary" />
+                                    <span>{locale === 'ta' ? 'வாக்குச்சாவடிக்குட்பட்ட கிராமங்கள் / குடியிருப்புகள்' : 'Villages / Hamlets Covered'}</span>
+                                  </h4>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {booth.villages.map((v: any) => (
+                                      <span key={v.id} className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-white dark:bg-zinc-800 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40">
+                                        {locale === 'ta' && v.nameTa ? v.nameTa : v.name}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Linked Kilais */}
+                              {booth.kilais && booth.kilais.length > 0 && (
+                                <div className="space-y-1.5 pt-1 border-t border-primary/10 dark:border-zinc-800">
+                                  <h4 className="text-xs font-bold text-gray-800 dark:text-zinc-200 flex items-center gap-1.5">
+                                    <Building2 className="w-3.5 h-3.5 text-green-600" />
+                                    <span>{t('linkedKilais')}</span>
+                                  </h4>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {booth.kilais.map((k: any, i: number) => (
+                                      <span key={i} className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-white dark:bg-zinc-800 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800/40">
+                                        {k.name}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Booth Agents Section */}
+                              <div className="space-y-2 pt-1 border-t border-primary/10 dark:border-zinc-800">
+                                <h4 className="text-xs font-bold text-gray-800 dark:text-zinc-200 flex items-center gap-1.5">
+                                  <Users className="w-3.5 h-3.5 text-primary" />
+                                  <span>{t('agentsCadres')}</span>
+                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                                    {agentsList.length}
+                                  </span>
+                                </h4>
+
+                                {agentsList.length > 0 ? (
+                                  <div className="grid gap-2 sm:gap-2.5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                                    {agentsList.map((agent: any) => {
+                                      const agentName = locale === 'ta' ? translatePersonNameToTamil(agent.name) || agent.name : agent.name;
+                                      return (
+                                        <div
+                                          key={agent.id || agent.name}
+                                          className="p-2.5 rounded-xl bg-white dark:bg-zinc-800 border border-gray-200/80 dark:border-zinc-700/80 shadow-2xs flex flex-wrap sm:flex-nowrap items-center justify-between gap-2"
+                                        >
+                                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                            {/* Avatar with bg-red-800 */}
+                                            <div className="w-7 h-7 rounded-full bg-red-800 text-white font-bold text-[10px] flex items-center justify-center shrink-0 shadow-2xs">
+                                              {agent.name?.charAt(0) || 'A'}
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                              <p className="font-bold text-xs text-gray-900 dark:text-white truncate">
+                                                {agentName}
+                                              </p>
+                                              <p className="text-[10px] text-muted-foreground truncate">
+                                                {agent.designation || agent.role || (locale === 'ta' ? 'சாவடி முகவர்' : 'Booth Agent')}
+                                              </p>
+                                            </div>
+                                          </div>
+
+                                          {agent.phone && (
+                                            <button
+                                              type="button"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setCallConfirmation({
+                                                  name: agentName,
+                                                  phone: agent.phone,
+                                                });
+                                              }}
+                                              className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[11px] font-mono font-bold hover:bg-emerald-100 transition-colors shrink-0"
+                                            >
+                                              <Phone className="w-2.5 h-2.5 text-emerald-600" />
+                                              <span>{agent.phone}</span>
+                                            </button>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                ) : (
+                                  <div className="p-3 rounded-xl bg-white/60 dark:bg-zinc-800/40 border border-dashed border-gray-200 dark:border-zinc-700 text-center">
+                                    <p className="text-xs text-muted-foreground">
+                                      {locale === 'ta' ? 'இந்த வாக்குச்சாவடிக்கு முகவர்கள் இன்னும் நியமிக்கப்படவில்லை.' : 'No agents assigned to this booth yet.'}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </React.Fragment>
+                  );
+                })
+              )}</TableBody>
           </Table>
         </div>
       ) : (
@@ -898,7 +1249,7 @@ export default function BoothsPage() {
                   </Button>
                 </div>
                 
-                <div className="bg-primary/5 p-4 border-b border-primary/10">
+                <div className="bg-[#eae8d3] p-4 border-b border-primary/10">
                   <div className="pr-14">
                     <h3 className="font-bold text-lg text-primary mb-0.5 truncate" title={booth.boothNo}>{booth.boothNo}</h3>
                     <Tooltip>

@@ -279,7 +279,7 @@ export function KilaisSection({
         </div>
       ) : viewMode === 'table' ? (
         /* Table View */
-        <div className="overflow-x-auto rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xs">
+        <div className="overflow-hidden rounded-xl border border-gray-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-2xs">
           <Table>
             <TableHeader className="bg-gray-50/80 dark:bg-zinc-800/50">
               <TableRow className="hover:bg-transparent border-b border-gray-200 dark:border-zinc-800">
@@ -487,9 +487,9 @@ export function KilaisSection({
 
                     {/* Interactive Drawer for Other Cadres */}
                     {isExpanded && otherCadres.length > 0 && (
-                      <TableRow className="bg-[#f4f3f7] hover:bg-[#f4f3f7] dark:bg-zinc-850/60 dark:hover:bg-zinc-850/60 border-b border-teal-200/50 dark:border-zinc-700/60">
+                      <TableRow className="bg-[#f3f3ed] hover:bg-[#f3f3ed] dark:bg-zinc-850/60 dark:hover:bg-zinc-850/60 border-b border-teal-200/50 dark:border-zinc-700/60">
                         <TableCell colSpan={7} className="p-0">
-                          <div className="w-full min-w-0 border-l-4 border-l-slate-600 bg-[#f4f3f7] dark:bg-zinc-900/95 p-3.5 sm:p-5 md:p-6 space-y-3.5">
+                          <div className="w-full max-w-full min-w-0 border-l-4 border-l-primary bg-[#f3f3ed] dark:bg-zinc-900/95 p-3.5 sm:p-5 md:p-6 space-y-3.5 overflow-hidden">
                             {/* Drawer Header Bar */}
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-teal-100 dark:border-zinc-800">
                               <div className="flex items-start sm:items-center gap-2 min-w-0 flex-1">
@@ -529,7 +529,7 @@ export function KilaisSection({
                             </div>
 
                             {/* Cadres Grid / Cards */}
-                            <div className="grid gap-2 sm:gap-2.5 grid-cols-1 md:grid-cols-2 xl:grid-cols-3 pt-1">
+                            <div className="grid gap-2 sm:gap-2.5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 pt-1">
                               {otherCadres.map((cadre: any) => {
                                 const cadreName =
                                   locale === 'ta' &&
@@ -545,7 +545,7 @@ export function KilaisSection({
                                   >
                                     <div className="flex flex-wrap sm:flex-nowrap items-start justify-between gap-2">
                                       <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                        <div className="w-8 h-8 rounded-full bg-slate-800 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs">
+                                        <div className="w-8 h-8 rounded-full bg-red-800 text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs">
                                           {cadre.name?.charAt(0) || 'C'}
                                         </div>
                                         <div className="min-w-0 flex-1">

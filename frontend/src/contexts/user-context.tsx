@@ -2,15 +2,21 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { jwtDecode } from 'jwt-decode';
+import { authApi } from '@/services/api/auth';
 
-interface User {
+export interface User {
   userId: string;
   sub: string;
   role: string | null;
-  unionId?: string;
+  scopeLevel?: string | null;
+  level?: string | null;
+  unionId?: string | null;
+  homeKilaiId?: string | null;
+  districtId?: string | null;
   permissions?: string[];
   name?: string | null;
   photoUrl?: string | null;
+  cadre?: any;
 }
 
 interface UserContextType {
@@ -42,6 +48,28 @@ export function UserProvider({ children }: { children: ReactNode }) {
           const stored = localStorage.getItem('tcc_active_union_id');
           if (stored) setActiveUnionId(stored);
         }
+
+        // Fetch fresh profile to populate complete cadre hierarchy (level, unionId, homeKilai)
+        authApi.getMe().then((profile) => {
+          if (profile) {
+            const cadreUnionId = profile.cadre?.unionId || profile.cadre?.homeKilai?.unionId || null;
+            setUser((prev) => ({
+              ...prev!,
+              role: profile.role?.name || prev?.role || null,
+              scopeLevel: profile.role?.scopeLevel || prev?.scopeLevel || null,
+              level: profile.cadre?.level || prev?.level || null,
+              unionId: cadreUnionId || prev?.unionId || null,
+              homeKilaiId: profile.cadre?.homeKilaiId || prev?.homeKilaiId || null,
+              districtId: profile.cadre?.districtId || prev?.districtId || null,
+              cadre: profile.cadre,
+            }));
+            if (profile.role?.name !== 'SUPER_ADMIN' && cadreUnionId) {
+              setActiveUnionId(cadreUnionId);
+            }
+          }
+        }).catch((err) => {
+          console.error('Failed to load user profile in context', err);
+        });
       } catch (err) {
         console.error('Invalid token', err);
       }

@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useUser } from '@/contexts/user-context';
 import {
   Table,
   TableBody,
@@ -60,9 +61,69 @@ export default function KilaisPage() {
   const updateMutation = useUpdateKilai();
   const deleteMutation = useDeleteKilai();
 
+  const { user, activeUnionId } = useUser();
   const [searchQuery, setSearchQuery] = useState('');
   const searchParams = useSearchParams();
-  const [selectedUnion, setSelectedUnion] = useState<string>(searchParams.get('union') || 'all');
+  const queryUnion = searchParams.get('union');
+  const [selectedUnion, setSelectedUnion] = useState<string>(queryUnion || '');
+  const [isUserInteracted, setIsUserInteracted] = useState(false);
+
+  const userRole = (user?.role || '').toUpperCase();
+  const userLevel = (user?.level || user?.cadre?.level || '').toUpperCase();
+  const scopeLevel = (user?.scopeLevel || user?.cadre?.role?.scopeLevel || '').toUpperCase();
+
+  const isKilaiOrUnion = useMemo(() => {
+    return (
+      userLevel === 'UNION' ||
+      userLevel === 'KILAI' ||
+      userRole === 'UNION_LEADER' ||
+      userRole === 'KILAI_LEADER' ||
+      scopeLevel === 'UNION' ||
+      scopeLevel === 'KILAI' ||
+      Boolean(
+        user?.unionId ||
+        user?.cadre?.unionId ||
+        user?.cadre?.homeKilai?.unionId ||
+        (activeUnionId && userRole !== 'SUPER_ADMIN' && userRole !== 'DISTRICT_LEADER')
+      )
+    );
+  }, [userLevel, userRole, scopeLevel, user?.unionId, user?.cadre, activeUnionId]);
+
+  const personUnionId = useMemo(() => {
+    return (
+      user?.unionId ||
+      user?.cadre?.unionId ||
+      user?.cadre?.homeKilai?.unionId ||
+      (isKilaiOrUnion ? activeUnionId : null)
+    );
+  }, [user?.unionId, user?.cadre, isKilaiOrUnion, activeUnionId]);
+
+  useEffect(() => {
+    if (isUserInteracted) return;
+
+    if (queryUnion) {
+      setSelectedUnion(queryUnion);
+      return;
+    }
+
+    if (!unions || unions.length === 0) return;
+
+    // Rule 1: If person belongs to Kilai/Union, the respective Org Unit should be selected by default
+    if (isKilaiOrUnion && personUnionId) {
+      const match = unions.find((u: any) => String(u.id) === String(personUnionId));
+      if (match) {
+        setSelectedUnion(String(match.id));
+        return;
+      }
+      setSelectedUnion(String(personUnionId));
+      return;
+    }
+
+    // Rule 2: If person belongs to District (or fallback), the first entry of Org units should be selected by default
+    if (unions.length > 0) {
+      setSelectedUnion(String(unions[0].id));
+    }
+  }, [unions, queryUnion, isUserInteracted, isKilaiOrUnion, personUnionId]);
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -152,7 +213,7 @@ export default function KilaisPage() {
     
     const filtered = kilais.filter((kilai) => {
       const matchesSearch = kilai.name?.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesUnion = selectedUnion === 'all' || kilai.unionId === selectedUnion;
+      const matchesUnion = !selectedUnion || selectedUnion === 'all' || kilai.unionId === selectedUnion;
       
       return matchesSearch && matchesUnion;
     });
@@ -448,7 +509,13 @@ export default function KilaisPage() {
 
         <div className="flex flex-col sm:flex-row items-center w-full sm:w-auto gap-4">
           <div className="w-full sm:w-64">
-            <Select value={selectedUnion} onValueChange={(value) => setSelectedUnion(value || '')}>
+            <Select 
+              value={selectedUnion || 'all'} 
+              onValueChange={(value) => {
+                setSelectedUnion(value || 'all');
+                setIsUserInteracted(true);
+              }}
+            >
               <SelectTrigger className="!h-11 border-primary/20 bg-zinc-50 dark:bg-zinc-900 focus:ring-primary/30 rounded-md w-full">
                 <SelectValue placeholder={t('filterUnion')}>
                   {selectedUnion === 'all' 
