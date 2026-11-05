@@ -26,6 +26,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import PanchayatMapDynamic from '@/components/maps/panchayat-map-dynamic';
 import { getUnionSlug } from '@/lib/org-unit-translations';
+import { getAreaGeoData, generateDynamicAreaBoundary } from '@/lib/area-translations';
 import { KilaisSection } from '../../components/kilais-section';
 import { BoothsSection } from '../../components/booths-section';
 
@@ -82,17 +83,57 @@ export default function VillageDetailsPage() {
     return cadres;
   }, [village]);
 
-  // Prepare map data if coordinates exist
+  // Prepare map data with guaranteed center and boundary
   const geoData = useMemo(() => {
-    if (village?.centerLat && village?.centerLng) {
-      return {
-        center: [village.centerLat, village.centerLng] as [number, number],
-        boundaryCoords: [] as [number, number][],
-        isSurveyed: false,
-      };
+    if (!village) return null;
+
+    // Collect any GPS points from assigned kilais and booths
+    const associatedPoints: [number, number][] = [];
+    (village.kilais || []).forEach((k: any) => {
+      if (k.latitude && k.longitude) {
+        associatedPoints.push([Number(k.latitude), Number(k.longitude)]);
+      }
+      (k.booths || []).forEach((b: any) => {
+        if (b.latitude && b.longitude) {
+          associatedPoints.push([Number(b.latitude), Number(b.longitude)]);
+        }
+      });
+    });
+    (village.booths || []).forEach((b: any) => {
+      if (b.latitude && b.longitude) {
+        associatedPoints.push([Number(b.latitude), Number(b.longitude)]);
+      }
+    });
+
+    // Determine center coordinates: village center -> panchayat center -> kilai/booth centroid -> areaGeoData fallback
+    let center: [number, number];
+    if (village.centerLat && village.centerLng) {
+      center = [village.centerLat, village.centerLng];
+    } else if (village.panchayat?.centerLat && village.panchayat?.centerLng) {
+      center = [village.panchayat.centerLat, village.panchayat.centerLng];
+    } else if (associatedPoints.length > 0) {
+      const avgLat = associatedPoints.reduce((sum, p) => sum + p[0], 0) / associatedPoints.length;
+      const avgLng = associatedPoints.reduce((sum, p) => sum + p[1], 0) / associatedPoints.length;
+      center = [Number(avgLat.toFixed(5)), Number(avgLng.toFixed(5))];
+    } else {
+      const fallback = getAreaGeoData(village.name || areaParam, village.kilais || []);
+      center = fallback.center;
     }
-    return null;
-  }, [village]);
+
+    // Determine boundary: DB boundary -> generated organic village boundary
+    const dbBoundary = village.boundary as [number, number][] | null | undefined;
+    const hasDbBoundary = Array.isArray(dbBoundary) && dbBoundary.length > 2;
+
+    const boundaryCoords = hasDbBoundary
+      ? (dbBoundary as [number, number][])
+      : generateDynamicAreaBoundary(center, village.name || 'Village', associatedPoints, 0.85);
+
+    return {
+      center,
+      boundaryCoords,
+      isSurveyed: hasDbBoundary,
+    };
+  }, [village, areaParam]);
 
   const effectiveUnion = village?.panchayat?.union;
   const effectiveUnionSlug = getUnionSlug(effectiveUnion?.name) || (unionId && unionId !== 'all' ? unionId : effectiveUnion?.id);
@@ -325,7 +366,7 @@ export default function VillageDetailsPage() {
         locale={locale}
       />
 
-      {/* 5. Geographic Map (if coordinates exist) */}
+      {/* 5. Geographic Map (always rendered when village loaded) */}
       {geoData && (
         <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 sm:p-6 shadow-sm border border-gray-100 dark:border-zinc-800 space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-zinc-800">
@@ -339,18 +380,19 @@ export default function VillageDetailsPage() {
                 </h2>
                 <p className="text-xs text-muted-foreground">
                   {locale === 'ta'
-                    ? 'புவியியல் அமைவிடம் மற்றும் கள வரைபடம்'
+                    ? 'புவியியல் அமைவிடம் மற்றும் கள எல்லைப் பரப்பு'
                     : 'Geographic coordinate position and field boundary'}
                 </p>
               </div>
             </div>
             <span className="text-xs font-mono text-muted-foreground">
-              {village.centerLat?.toFixed(4)}° N, {village.centerLng?.toFixed(4)}° E
+              {geoData.center[0].toFixed(4)}° N, {geoData.center[1].toFixed(4)}° E
             </span>
           </div>
 
           <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-zinc-800">
             <PanchayatMapDynamic
+              key={`${geoData.center[0]}-${geoData.center[1]}-${geoData.boundaryCoords.length}-${village.id || villageId}`}
               center={geoData.center}
               boundaryCoords={geoData.boundaryCoords}
               title={villageName}

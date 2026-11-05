@@ -163,7 +163,7 @@ export class UnionsService {
       where: {
         kilais: {
           some: {
-            unionId: id,
+            unionId: union.id,
           },
         },
       },
@@ -171,11 +171,14 @@ export class UnionsService {
 
     const unionCadres = await this.prisma.cadre.findMany({
       where: {
-        unionId: id,
+        unionId: union.id,
         level: 'UNION',
       },
       include: {
         officeBearerRoles: true,
+        wing: true,
+        district: true,
+        union: true,
       },
     });
 
@@ -187,12 +190,25 @@ export class UnionsService {
     };
 
     const ROLE_WEIGHTS: Record<string, number> = {
-      Secretary: 1,
-      'Joint Secretary': 2,
-      Treasurer: 3,
-      'Deputy Secretary': 4,
-      'Executive Committee Member': 5,
-      'EC Member': 5,
+      President: 1,
+      Secretary: 2,
+      'Joint Secretary': 3,
+      Treasurer: 4,
+      'Deputy Secretary': 5,
+      'Executive Committee Member': 6,
+      'EC Member': 6,
+    };
+
+    const getRoleRank = (cadre: any) => {
+      const rawRole = cadre.officeBearerRoles?.[0]?.role || cadre.role || '';
+      const norm = rawRole.toUpperCase().replace(/[_\s]+/g, ' ').trim();
+      if (norm.includes('PRESIDENT')) return 1;
+      if (norm.includes('JOINT SECRETARY')) return 3;
+      if (norm.includes('DEPUTY SECRETARY')) return 5;
+      if (norm.includes('SECRETARY')) return 2;
+      if (norm.includes('TREASURER')) return 4;
+      if (norm.includes('EXECUTIVE') || norm.includes('EC')) return 6;
+      return ROLE_WEIGHTS[cadre.role || ''] || 99;
     };
 
     unionCadres.sort((a, b) => {
@@ -203,11 +219,11 @@ export class UnionsService {
         return levelA - levelB;
       }
 
-      const roleA = ROLE_WEIGHTS[a.role || ''] || 99;
-      const roleB = ROLE_WEIGHTS[b.role || ''] || 99;
+      const rankA = getRoleRank(a);
+      const rankB = getRoleRank(b);
 
-      if (roleA !== roleB) {
-        return roleA - roleB;
+      if (rankA !== rankB) {
+        return rankA - rankB;
       }
 
       return 0;
@@ -221,11 +237,17 @@ export class UnionsService {
   }
 
   async update(id: string, updateUnionDto: UpdateUnionDto) {
+    let targetId = id;
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      const u = await this.findOne(id);
+      if (u) targetId = u.id;
+    }
+
     const data: any = { ...updateUnionDto };
 
     if (data.name && typeof data.name === 'string') {
       const existing = await this.prisma.union.findUnique({
-        where: { id },
+        where: { id: targetId },
         select: { translations: true },
       });
       const currentTranslations = (existing?.translations as any) || {};
@@ -243,7 +265,7 @@ export class UnionsService {
 
     if (data.areasCovered && Array.isArray(data.areasCovered)) {
       const existing = await this.prisma.union.findUnique({
-        where: { id },
+        where: { id: targetId },
         select: { translations: true },
       });
       const currentTranslations = (existing?.translations as any) || {};
@@ -261,7 +283,7 @@ export class UnionsService {
 
     if (data.contactName && typeof data.contactName === 'string') {
       const existing = await this.prisma.union.findUnique({
-        where: { id },
+        where: { id: targetId },
         select: { translations: true },
       });
       const currentTranslations = (existing?.translations as any) || {};
@@ -278,12 +300,17 @@ export class UnionsService {
     }
 
     return this.prisma.union.update({
-      where: { id },
+      where: { id: targetId },
       data: data as any,
     });
   }
 
-  remove(id: string) {
-    return this.prisma.union.delete({ where: { id } });
+  async remove(id: string) {
+    let targetId = id;
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+      const u = await this.findOne(id);
+      if (u) targetId = u.id;
+    }
+    return this.prisma.union.delete({ where: { id: targetId } });
   }
 }

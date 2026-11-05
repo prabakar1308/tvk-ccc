@@ -78,6 +78,7 @@ export default function PanchayatMap({
 
   // Map layer type: OpenStreetMap Standard, Esri Satellite, or OSM HOT
   const [mapType, setMapType] = useState<'osm' | 'satellite' | 'hot'>('osm');
+  const [mapReady, setMapReady] = useState<boolean>(false);
   const [showKilaiPins, setShowKilaiPins] = useState<boolean>(true);
   const [isEditingBoundary, setIsEditingBoundary] = useState<boolean>(false);
   const [copiedNotification, setCopiedNotification] = useState<boolean>(false);
@@ -107,7 +108,7 @@ export default function PanchayatMap({
             setInputLat(String(parsed.center[0]));
             setInputLng(String(parsed.center[1]));
           }
-          if (parsed.boundaryCoords && Array.isArray(parsed.boundaryCoords)) {
+          if (parsed.boundaryCoords && Array.isArray(parsed.boundaryCoords) && parsed.boundaryCoords.length > 2) {
             setActiveBoundary(parsed.boundaryCoords);
             setCoordsText(parsed.boundaryCoords.map((c: any) => `${c[0]}, ${c[1]}`).join('\n'));
             return;
@@ -121,7 +122,7 @@ export default function PanchayatMap({
     setInputLat(String(center[0]));
     setInputLng(String(center[1]));
     setActiveBoundary(boundaryCoords || []);
-    if (boundaryCoords) {
+    if (boundaryCoords && boundaryCoords.length > 0) {
       setCoordsText(boundaryCoords.map((c) => `${c[0]}, ${c[1]}`).join('\n'));
     }
   }, [center, boundaryCoords, areaKey]);
@@ -219,6 +220,9 @@ export default function PanchayatMap({
       });
 
       mapInstanceRef.current = map;
+      if (isMounted) {
+        setMapReady(true);
+      }
     }
 
     initMap();
@@ -232,6 +236,7 @@ export default function PanchayatMap({
         } catch (_) {}
         mapInstanceRef.current = null;
       }
+      setMapReady(false);
     };
   }, []);
 
@@ -254,48 +259,68 @@ export default function PanchayatMap({
       if (!activeCenter || !activeCenter[0] || !activeCenter[1]) return;
 
       const centerLabelHtml = `
-        <div style="text-align: center; pointer-events: auto; transform: translate(-50%, -50%); white-space: nowrap; cursor: pointer;">
-          <div style="font-family: system-ui, -apple-system, sans-serif; font-size: 15px; font-weight: 700; color: #D93025; text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 0 6px #ffffff, 0 0 10px #ffffff; line-height: 1.15; letter-spacing: -0.2px;">
-            ${enName}
+        <div style="position: relative; width: 220px; height: 86px; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; pointer-events: auto; cursor: pointer; background: transparent;">
+          <!-- Floating Place Label Badge -->
+          <div style="display: flex; flex-direction: column; align-items: center; background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(6px); border: 1.5px solid #8F0A1B; border-radius: 9999px; padding: 4px 12px; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.22); white-space: nowrap; max-width: 210px; margin-bottom: 4px; pointer-events: auto;">
+            <span style="font-family: system-ui, -apple-system, sans-serif; font-size: 13px; font-weight: 800; color: #8F0A1B; letter-spacing: -0.2px; line-height: 1.2; text-overflow: ellipsis; overflow: hidden; max-width: 190px;">
+              ${enName}
+            </span>
+            ${taName && taName !== enName ? `
+            <span style="font-family: system-ui, -apple-system, sans-serif; font-size: 11px; font-weight: 700; color: #D93025; line-height: 1.1; margin-top: 1px; text-overflow: ellipsis; overflow: hidden; max-width: 190px;">
+              ${taName}
+            </span>` : ''}
           </div>
-          ${taName && taName !== enName ? `
-          <div style="font-family: system-ui, -apple-system, sans-serif; font-size: 14px; font-weight: 600; color: #D93025; text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff, 0 0 6px #ffffff, 0 0 10px #ffffff; line-height: 1.15; margin-top: 1px;">
-            ${taName}
-          </div>` : ''}
+
+          <!-- TVK Place Pin Marker -->
+          <div style="position: relative; width: 34px; height: 42px; display: flex; align-items: center; justify-content: center;">
+            <div style="position: absolute; width: 34px; height: 34px; top: 4px; border-radius: 50%; background: rgba(217, 48, 37, 0.25); animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+            <svg width="32" height="40" viewBox="0 0 24 30" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));">
+              <path d="M12 0C5.37258 0 0 5.37258 0 12C0 19.5 12 30 12 30C12 30 24 19.5 24 12C24 5.37258 18.6274 0 12 0Z" fill="#8F0A1B"/>
+              <circle cx="12" cy="11" r="5.5" fill="#FFD200"/>
+              <circle cx="12" cy="11" r="3" fill="#8F0A1B"/>
+            </svg>
+          </div>
         </div>
       `;
 
       const centerLabelIcon = L.divIcon({
         className: 'village-map-center-label',
         html: centerLabelHtml,
-        iconSize: [120, 40],
-        iconAnchor: [60, 20],
+        iconSize: [220, 86],
+        iconAnchor: [110, 84],
+        popupAnchor: [0, -82],
       });
 
       const labelMarker = L.marker(activeCenter, { icon: centerLabelIcon }).addTo(map);
 
       const popupHtml = `
-        <div style="font-family: inherit; min-width: 200px; padding: 4px;">
-          <div style="font-size: 15px; font-weight: 700; color: #D93025; margin-bottom: 2px;">
+        <div style="font-family: system-ui, -apple-system, sans-serif; min-width: 210px; padding: 4px;">
+          <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+            <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #8F0A1B;"></span>
+            <span style="font-size: 11px; font-weight: 700; color: #8F0A1B; text-transform: uppercase; letter-spacing: 0.5px;">
+              ${locale === 'ta' ? 'வருவாய் பகுதி மையம்' : 'Area Centroid & Scope'}
+            </span>
+          </div>
+          <div style="font-size: 16px; font-weight: 800; color: #1E293B; margin-bottom: 1px;">
             ${enName}
           </div>
-          ${taName ? `<div style="font-size: 13px; font-weight: 600; color: #64748B; margin-bottom: 8px;">${taName}</div>` : ''}
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 6px; text-align: center;">
+          ${taName ? `<div style="font-size: 13px; font-weight: 700; color: #D93025; margin-bottom: 8px;">${taName}</div>` : ''}
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 8px 6px; text-align: center;">
             <div>
-              <div style="font-size: 14px; font-weight: 700; color: #1E293B;">${kilaiCount}</div>
+              <div style="font-size: 15px; font-weight: 800; color: #1E293B;">${kilaiCount}</div>
               <div style="font-size: 10px; font-weight: 600; color: #64748B;">${locale === 'ta' ? 'கிளைகள்' : 'Kilais'}</div>
             </div>
             <div>
-              <div style="font-size: 14px; font-weight: 700; color: #1E293B;">${boothCount}</div>
+              <div style="font-size: 15px; font-weight: 800; color: #1E293B;">${boothCount}</div>
               <div style="font-size: 10px; font-weight: 600; color: #64748B;">${locale === 'ta' ? 'சாவடிகள்' : 'Booths'}</div>
             </div>
             <div>
-              <div style="font-size: 14px; font-weight: 700; color: #1E293B;">${cadreCount}</div>
+              <div style="font-size: 15px; font-weight: 800; color: #1E293B;">${cadreCount}</div>
               <div style="font-size: 10px; font-weight: 600; color: #64748B;">${locale === 'ta' ? 'நிர்வாகிகள்' : 'Cadres'}</div>
             </div>
           </div>
-          <div style="margin-top: 8px; font-size: 10px; color: #64748B; font-family: monospace; text-align: center;">
-            ${activeCenter[0].toFixed(5)}, ${activeCenter[1].toFixed(5)}
+          <div style="margin-top: 8px; font-size: 10px; color: #64748B; font-family: monospace; text-align: center; background: #F1F5F9; border-radius: 6px; padding: 3px 6px;">
+            📍 ${activeCenter[0].toFixed(5)}° N, ${activeCenter[1].toFixed(5)}° E
           </div>
         </div>
       `;
@@ -304,9 +329,9 @@ export default function PanchayatMap({
     }
 
     updateCenterMarker();
-  }, [activeCenter, enName, taName, kilaiCount, boothCount, cadreCount, locale]);
+  }, [mapReady, activeCenter, enName, taName, kilaiCount, boothCount, cadreCount, locale]);
 
-  // Update polygon geometry when activeBoundary changes
+  // Update polygon geometry when activeBoundary or activeCenter changes
   useEffect(() => {
     if (!mapInstanceRef.current) return;
     const map = mapInstanceRef.current;
@@ -324,23 +349,27 @@ export default function PanchayatMap({
 
       if (activeBoundary && activeBoundary.length > 2) {
         const polygon = L.polygon(activeBoundary as any, {
-          color: '#EA4335',
-          weight: 2.5,
-          opacity: 0.95,
-          dashArray: '6, 6',
+          color: '#D93025',
+          weight: 3,
+          opacity: 0.9,
+          dashArray: '8, 6',
           fillColor: '#EA4335',
-          fillOpacity: 0.05,
+          fillOpacity: 0.08,
         }).addTo(map);
 
         polygonRef.current = polygon;
         try {
-          map.fitBounds(polygon.getBounds(), { padding: [28, 28], maxZoom: 15.25, animate: false });
+          map.fitBounds(polygon.getBounds(), { padding: [35, 35], maxZoom: 15.25, animate: false });
+        } catch (_) {}
+      } else if (activeCenter && activeCenter[0] && activeCenter[1]) {
+        try {
+          map.setView(activeCenter, 14.5, { animate: false });
         } catch (_) {}
       }
     }
 
     syncPolygon();
-  }, [activeBoundary]);
+  }, [mapReady, activeBoundary, activeCenter]);
 
   // Render Kilais with verified ground coordinates & interactive positioning
   useEffect(() => {
@@ -451,7 +480,7 @@ export default function PanchayatMap({
     }
 
     updateKilaiPins();
-  }, [showKilaiPins, kilais, activeCenter, locale, isEditingBoundary]);
+  }, [mapReady, showKilaiPins, kilais, activeCenter, locale, isEditingBoundary]);
 
   // Interactive Boundary Vertex Handles (Visual Edit Mode)
   useEffect(() => {

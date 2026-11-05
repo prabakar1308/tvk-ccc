@@ -336,7 +336,12 @@ export function getAreaGeoData(
     master = MASTER_AREAS_DATA.find((item) => normalizeAreaKey(item.english) === enName);
   }
 
-  const center: [number, number] = master?.center || [11.690383964049264, 79.74372006471056];
+  let center: [number, number] = master?.center || [11.690383964049264, 79.74372006471056];
+  if (!master?.center && associatedPoints.length > 0) {
+    const avgLat = associatedPoints.reduce((sum, p) => sum + p[0], 0) / associatedPoints.length;
+    const avgLng = associatedPoints.reduce((sum, p) => sum + p[1], 0) / associatedPoints.length;
+    center = [Number(avgLat.toFixed(5)), Number(avgLng.toFixed(5))];
+  }
   const boundaryCoords = generateDynamicAreaBoundary(center, areaName, associatedPoints);
 
   return {

@@ -59,6 +59,23 @@ export default function DashboardPage() {
 
   const [cadresCarouselApi, setCadresCarouselApi] = useState<CarouselApi>();
   const isCadresDraggingRef = useRef(false);
+  const kpiSectionRef = useRef<HTMLDivElement>(null);
+
+  // On mobile (< 768px), auto-scroll and focus to Main KPI Stats Row after 1 second
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    if (window.innerWidth < 768) {
+      const timer = setTimeout(() => {
+        if (kpiSectionRef.current) {
+          kpiSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          kpiSectionRef.current.focus({ preventScroll: true });
+        }
+      }, 1500);
+
+      return () => clearTimeout(timer);
+    }
+  }, []);
 
   useEffect(() => {
     if (!cadresCarouselApi) return;
@@ -175,7 +192,11 @@ export default function DashboardPage() {
       </div>
 
       {/* Main KPI Stats Row - Matching Org Units Cards Design */}
-      <div className="space-y-3">
+      <div 
+        ref={kpiSectionRef} 
+        tabIndex={-1} 
+        className="space-y-3 scroll-mt-4 outline-none"
+      >
         <div className="flex items-center justify-between">
           <h2 className="text-lg sm:text-xl font-extrabold text-zinc-900 dark:text-zinc-50 flex items-center gap-2">
             <div className="w-2 h-5 bg-[#8F0A1B] rounded-sm"></div>

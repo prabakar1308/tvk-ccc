@@ -8,6 +8,7 @@ export interface Village {
   code?: string;
   centerLat?: number;
   centerLng?: number;
+  boundary?: any;
   description?: string;
   panchayatId: string;
   panchayat?: Panchayat;

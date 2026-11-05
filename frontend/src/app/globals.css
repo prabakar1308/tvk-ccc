@@ -235,3 +235,10 @@
 .dark .main-scrollbar::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 199, 44, 0.5);
 }
+
+/* Leaflet Custom DivIcon transparency reset */
+.village-map-center-label,
+.kilai-map-pin {
+  background: transparent !important;
+  border: none !important;
+}

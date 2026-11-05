@@ -245,7 +245,7 @@ export default function UnionDetailsPage() {
                       <Link
                         key={p.id}
                         href={`/panchayats/${p.code || p.id}`}
-                        className="group relative bg-white dark:bg-zinc-800/80 rounded-2xl p-4 sm:p-5 border-2 border-gray-100 dark:border-zinc-700/80 hover:border-primary/50 dark:hover:border-primary/50 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden"
+                        className="group relative bg-[#efeeea] dark:bg-zinc-800/80 rounded-2xl p-4 sm:p-5 border-2 border-gray-100 dark:border-zinc-700/80 hover:border-primary/50 dark:hover:border-primary/50 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden"
                       >
                         <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-amber-500 to-primary opacity-0 group-hover:opacity-100 transition-opacity" />
 
@@ -530,7 +530,7 @@ export default function UnionDetailsPage() {
         lockLevel={true}
         defaultUnionId={union.id}
         onSuccess={() => {
-          queryClient.invalidateQueries({ queryKey: ['unions', id] });
+          queryClient.invalidateQueries({ queryKey: ['unions'] });
         }}
       />
 
@@ -563,7 +563,7 @@ export default function UnionDetailsPage() {
                 if (deleteConfirmation) {
                   deleteMutation.mutate(deleteConfirmation, {
                     onSuccess: () => {
-                      queryClient.invalidateQueries({ queryKey: ['unions', union?.id] });
+                      queryClient.invalidateQueries({ queryKey: ['unions'] });
                       setDeleteConfirmation(null);
                     }
                   });

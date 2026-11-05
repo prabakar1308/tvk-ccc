@@ -5,6 +5,8 @@ import { Cadre } from './cadres';
 export interface Union {
   id: string;
   name: string;
+  nameTa?: string;
+  translations?: any;
   districtId?: string;
   group: string;
   unitType?: string;

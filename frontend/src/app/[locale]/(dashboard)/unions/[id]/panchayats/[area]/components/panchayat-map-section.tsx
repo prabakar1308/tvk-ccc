@@ -63,7 +63,7 @@ export function PanchayatMapSection({
 
       {/* Map Canvas */}
       <PanchayatMapDynamic
-        key={`${geoData.center[0]}-${geoData.center[1]}-${areaParam}`}
+        key={`${geoData.center[0]}-${geoData.center[1]}-${geoData.boundaryCoords.length}-${areaParam}`}
         center={geoData.center}
         boundaryCoords={geoData.boundaryCoords}
         title={locale === 'ta' ? areaNameTa : areaNameEn}

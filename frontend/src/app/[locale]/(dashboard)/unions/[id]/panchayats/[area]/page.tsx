@@ -9,6 +9,7 @@ import {
   getAreaGeoData,
   getAreaBilingualNames,
   isAreaNameMatch,
+  generateDynamicAreaBoundary,
 } from '@/lib/area-translations';
 import { usePanchayat, useUpdatePanchayatGeo } from '@/hooks/use-panchayats';
 import { useBooths } from '@/hooks/use-booths';
@@ -131,17 +132,6 @@ export default function PanchayatDetailsPage() {
   const areaNameEn = dbPanchayat?.name || legacyEn;
   const areaNameTa = dbPanchayat?.nameTa || legacyTa;
 
-  const geoData = useMemo(() => {
-    if (dbPanchayat?.centerLat && dbPanchayat?.centerLng) {
-      return {
-        center: [dbPanchayat.centerLat, dbPanchayat.centerLng] as [number, number],
-        boundaryCoords: (dbPanchayat.boundary as [number, number][]) || [],
-        isSurveyed: !!(dbPanchayat.boundary && (dbPanchayat.boundary as any).length > 2),
-      };
-    }
-    return getAreaGeoData(areaParam, panchayatKilais);
-  }, [dbPanchayat, areaParam, panchayatKilais]);
-
   // Collect only booths related strictly to the selected panchayat
   const panchayatBooths = useMemo(() => {
     const pId = targetPanchayatId;
@@ -193,6 +183,55 @@ export default function PanchayatDetailsPage() {
       kilaiId: b.kilais?.[0]?.id || b.kilaiId,
     }));
   }, [dedicatedBooths, dbPanchayat, targetPanchayatId, panchayatKilais, areaParam, areaNameEn, areaNameTa, locale]);
+
+  const geoData = useMemo(() => {
+    // Collect all associated coordinates from Kilais and Booths for precise boundary coverage
+    const associatedPoints: [number, number][] = [];
+    panchayatKilais.forEach((k: any) => {
+      if (k.latitude && k.longitude) {
+        associatedPoints.push([Number(k.latitude), Number(k.longitude)]);
+      }
+      (k.booths || []).forEach((b: any) => {
+        if (b.latitude && b.longitude) {
+          associatedPoints.push([Number(b.latitude), Number(b.longitude)]);
+        }
+      });
+    });
+    panchayatBooths.forEach((b: any) => {
+      if (b.latitude && b.longitude) {
+        associatedPoints.push([Number(b.latitude), Number(b.longitude)]);
+      }
+    });
+
+    // Check if database already holds an official surveyed polygon
+    const dbBoundary = dbPanchayat?.boundary as [number, number][] | null | undefined;
+    const hasDbBoundary = Array.isArray(dbBoundary) && dbBoundary.length > 2;
+
+    if (dbPanchayat?.centerLat && dbPanchayat?.centerLng) {
+      const center: [number, number] = [dbPanchayat.centerLat, dbPanchayat.centerLng];
+      const boundaryCoords = hasDbBoundary
+        ? (dbBoundary as [number, number][])
+        : generateDynamicAreaBoundary(center, areaNameEn, associatedPoints);
+
+      return {
+        center,
+        boundaryCoords,
+        isSurveyed: hasDbBoundary,
+      };
+    }
+
+    // Fallback to area name resolution
+    const fallbackGeo = getAreaGeoData(areaParam, panchayatKilais);
+    const boundaryCoords = fallbackGeo.boundaryCoords && fallbackGeo.boundaryCoords.length > 2
+      ? fallbackGeo.boundaryCoords
+      : generateDynamicAreaBoundary(fallbackGeo.center, areaNameEn, associatedPoints);
+
+    return {
+      center: fallbackGeo.center,
+      boundaryCoords,
+      isSurveyed: fallbackGeo.isSurveyed,
+    };
+  }, [dbPanchayat, areaParam, areaNameEn, panchayatKilais, panchayatBooths]);
 
   // Enriched village data with linked kilais and booths
   const enrichedVillages = useMemo(() => {
