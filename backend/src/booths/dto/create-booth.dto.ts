@@ -6,8 +6,8 @@ export class CreateBoothDto {
   femaleCount?: number;
   thirdGenderCount?: number;
   totalCount?: number;
-  unionId?: string;
-  panchayatId?: string;
+  unionId?: string | null;
+  panchayatId?: string | null;
   villageIds?: string[];
   kilaiIds?: string[];
   agentIds?: string[];

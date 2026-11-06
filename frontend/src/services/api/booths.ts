@@ -9,8 +9,8 @@ export interface Booth {
   femaleCount: number;
   thirdGenderCount: number;
   totalCount: number;
-  unionId?: string;
-  panchayatId?: string;
+  unionId?: string | null;
+  panchayatId?: string | null;
   union?: any;
   panchayatRel?: any;
   villages?: any[];
@@ -28,8 +28,8 @@ export interface CreateBoothDto {
   femaleCount?: number;
   thirdGenderCount?: number;
   totalCount?: number;
-  unionId?: string;
-  panchayatId?: string;
+  unionId?: string | null;
+  panchayatId?: string | null;
   villageIds?: string[];
   kilaiIds?: string[];
   agentIds?: string[];

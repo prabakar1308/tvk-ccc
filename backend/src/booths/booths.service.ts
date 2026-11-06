@@ -25,27 +25,82 @@ export class BoothsService {
       .filter((a) => a && a.trim() !== '') as string[];
   }
 
+  private async sanitizeBoothData(dto: any) {
+    const { kilaiIds, agentIds, villageIds, agents, ...rawBoothData } = dto;
+    const boothData = { ...rawBoothData };
+
+    if ('unionId' in boothData) {
+      const trimmed =
+        typeof boothData.unionId === 'string'
+          ? boothData.unionId.trim()
+          : null;
+      if (trimmed && trimmed !== '__NONE__') {
+        const union = await this.prisma.union.findUnique({
+          where: { id: trimmed },
+          select: { id: true },
+        });
+        boothData.unionId = union ? union.id : null;
+      } else {
+        boothData.unionId = null;
+      }
+    }
+
+    if ('panchayatId' in boothData) {
+      const trimmed =
+        typeof boothData.panchayatId === 'string'
+          ? boothData.panchayatId.trim()
+          : null;
+      if (trimmed && trimmed !== '__NONE__') {
+        const panchayat = await this.prisma.panchayat.findUnique({
+          where: { id: trimmed },
+          select: { id: true, unionId: true },
+        });
+        if (panchayat) {
+          boothData.panchayatId = panchayat.id;
+          if (!boothData.unionId && panchayat.unionId) {
+            boothData.unionId = panchayat.unionId;
+          }
+        } else {
+          boothData.panchayatId = null;
+        }
+      } else {
+        boothData.panchayatId = null;
+      }
+    }
+
+    return {
+      boothData,
+      kilaiIds,
+      agentIds,
+      villageIds,
+    };
+  }
+
   async create(createBoothDto: CreateBoothDto) {
-    const { kilaiIds, agentIds, villageIds, ...boothData } = createBoothDto;
+    const { boothData, kilaiIds, agentIds, villageIds } =
+      await this.sanitizeBoothData(createBoothDto);
 
     return this.prisma.booth.create({
       data: {
         ...boothData,
-        kilais: kilaiIds
-          ? {
-              connect: kilaiIds.map((id) => ({ id })),
-            }
-          : undefined,
-        agents: agentIds
-          ? {
-              connect: agentIds.map((id) => ({ id })),
-            }
-          : undefined,
-        villages: villageIds
-          ? {
-              connect: villageIds.map((id) => ({ id })),
-            }
-          : undefined,
+        kilais:
+          kilaiIds && kilaiIds.length > 0
+            ? {
+                connect: kilaiIds.map((id: string) => ({ id })),
+              }
+            : undefined,
+        agents:
+          agentIds && agentIds.length > 0
+            ? {
+                connect: agentIds.map((id: string) => ({ id })),
+              }
+            : undefined,
+        villages:
+          villageIds && villageIds.length > 0
+            ? {
+                connect: villageIds.map((id: string) => ({ id })),
+              }
+            : undefined,
       },
       include: {
         kilais: true,
@@ -103,30 +158,34 @@ export class BoothsService {
   }
 
   async update(id: string, updateBoothDto: UpdateBoothDto) {
-    const { kilaiIds, agentIds, villageIds, ...boothData } = updateBoothDto;
-
     // Check if booth exists
     await this.findOne(id);
+
+    const { boothData, kilaiIds, agentIds, villageIds } =
+      await this.sanitizeBoothData(updateBoothDto);
 
     return this.prisma.booth.update({
       where: { id },
       data: {
         ...boothData,
-        kilais: kilaiIds
-          ? {
-              set: kilaiIds.map((id) => ({ id })),
-            }
-          : undefined,
-        agents: agentIds
-          ? {
-              set: agentIds.map((id) => ({ id })),
-            }
-          : undefined,
-        villages: villageIds
-          ? {
-              set: villageIds.map((id) => ({ id })),
-            }
-          : undefined,
+        kilais:
+          kilaiIds !== undefined
+            ? {
+                set: kilaiIds.map((id: string) => ({ id })),
+              }
+            : undefined,
+        agents:
+          agentIds !== undefined
+            ? {
+                set: agentIds.map((id: string) => ({ id })),
+              }
+            : undefined,
+        villages:
+          villageIds !== undefined
+            ? {
+                set: villageIds.map((id: string) => ({ id })),
+              }
+            : undefined,
       },
       include: {
         union: true,

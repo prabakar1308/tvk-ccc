@@ -219,12 +219,15 @@ export default function BoothsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const { agents, ...restFormData } = formData;
       const payload = {
-        ...formData,
-        maleCount: Number(formData.maleCount),
-        femaleCount: Number(formData.femaleCount),
-        thirdGenderCount: Number(formData.thirdGenderCount),
-        totalCount: Number(formData.totalCount),
+        ...restFormData,
+        unionId: restFormData.unionId && restFormData.unionId !== '__NONE__' ? restFormData.unionId : null,
+        panchayatId: restFormData.panchayatId && restFormData.panchayatId !== '__NONE__' ? restFormData.panchayatId : null,
+        maleCount: Number(restFormData.maleCount) || 0,
+        femaleCount: Number(restFormData.femaleCount) || 0,
+        thirdGenderCount: Number(restFormData.thirdGenderCount) || 0,
+        totalCount: Number(restFormData.totalCount) || 0,
       };
 
       if (editingBooth) {
@@ -352,22 +355,25 @@ export default function BoothsPage() {
                 <div className="space-y-2">
                   <Label htmlFor="boothUnion">{locale === 'ta' ? 'அமைப்பு அலகு (ஒன்றியம் / நகரம்)' : 'Org Unit (Union / Town)'}</Label>
                   <Select 
-                    value={formData.unionId} 
+                    value={formData.unionId || '__NONE__'} 
                     onValueChange={(val) => setFormData({
                       ...formData, 
-                      unionId: val || '',
+                      unionId: (!val || val === '__NONE__') ? '' : val,
                       panchayatId: '',
                       villageIds: []
                     })}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder={locale === 'ta' ? 'அமைப்பு அலகைத் தேர்ந்தெடுக்கவும்' : 'Select Org Unit'}>
-                        {formData.unionId 
+                        {formData.unionId && formData.unionId !== '__NONE__'
                           ? getOrgUnitName(unions?.find((u: any) => String(u.id || u._id) === formData.unionId), locale) 
-                          : (locale === 'ta' ? 'அமைப்பு அலகைத் தேர்ந்தெடுக்கவும்' : 'Select Org Unit')}
+                          : (locale === 'ta' ? 'அமைப்பு அலகு இல்லை / தேர்ந்தெடுக்கப்படவில்லை' : 'None (Unassigned)')}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="__NONE__">
+                        {locale === 'ta' ? 'அமைப்பு அலகு இல்லை / தேர்ந்தெடுக்கப்படவில்லை' : 'None (Unassigned)'}
+                      </SelectItem>
                       {unions?.map((u: any) => (
                         <SelectItem key={u.id || u._id} value={String(u.id || u._id)}>
                           {getOrgUnitName(u, locale)}
@@ -380,24 +386,27 @@ export default function BoothsPage() {
                 <div className="space-y-2">
                   <Label htmlFor="boothPanchayat">{locale === 'ta' ? 'ஊராட்சி / வார்டு' : 'Panchayat / Ward'}</Label>
                   <Select 
-                    value={formData.panchayatId} 
+                    value={formData.panchayatId || '__NONE__'} 
                     onValueChange={(val) => setFormData({
                       ...formData, 
-                      panchayatId: val || '',
+                      panchayatId: (!val || val === '__NONE__') ? '' : val,
                       villageIds: []
                     })}
                   >
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder={locale === 'ta' ? 'ஊராட்சியைத் தேர்ந்தெடுக்கவும்' : 'Select Panchayat / Ward'}>
-                        {formData.panchayatId 
+                        {formData.panchayatId && formData.panchayatId !== '__NONE__'
                           ? (() => {
                               const p = unionPanchayats?.find(p => p.id === formData.panchayatId);
                               return p ? (locale === 'ta' && p.nameTa ? `${p.nameTa} (${p.name})` : p.name) : formData.panchayatId;
                             })()
-                          : (locale === 'ta' ? 'ஊராட்சியைத் தேர்ந்தெடுக்கவும்' : 'Select Panchayat / Ward')}
+                          : (locale === 'ta' ? 'ஊராட்சி இல்லை / தேர்ந்தெடுக்கப்படவில்லை' : 'None (Unassigned)')}
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="__NONE__">
+                        {locale === 'ta' ? 'ஊராட்சி இல்லை / தேர்ந்தெடுக்கப்படவில்லை' : 'None (Unassigned)'}
+                      </SelectItem>
                       {unionPanchayats?.map((p: any) => (
                         <SelectItem key={p.id} value={p.id}>
                           {locale === 'ta' && p.nameTa ? `${p.nameTa} (${p.name})` : p.name}
