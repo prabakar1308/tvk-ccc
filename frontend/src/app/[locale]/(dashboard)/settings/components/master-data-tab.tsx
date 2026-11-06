@@ -70,6 +70,7 @@ import {
 import { useUnions } from '@/hooks/use-unions';
 import { Panchayat, CreatePanchayatDto } from '@/services/api/panchayats';
 import { Village, CreateVillageDto } from '@/services/api/villages';
+import MapCoordinatePickerModal from '@/components/maps/map-coordinate-picker-modal';
 
 export function MasterDataTab() {
   const locale = useLocale();
@@ -171,6 +172,23 @@ export function MasterDataTab() {
   const updateVillage = useUpdateVillage();
   const deleteVillage = useDeleteVillage();
 
+  // Map Coordinate Picker Dialog State
+  const [mapPickerState, setMapPickerState] = useState<{
+    isOpen: boolean;
+    target: 'panchayatForm' | 'villageForm' | 'quickPanchayat' | 'quickVillage';
+    entityId?: string;
+    title: string;
+    subtitle?: string;
+    lat?: number;
+    lng?: number;
+    entityType: 'panchayat' | 'village';
+  }>({
+    isOpen: false,
+    target: 'panchayatForm',
+    title: '',
+    entityType: 'village',
+  });
+
   // Dialog States - Panchayat
   const [isPanchayatDialogOpen, setIsPanchayatDialogOpen] = useState(false);
   const [editingPanchayat, setEditingPanchayat] = useState<Panchayat | null>(null);
@@ -180,6 +198,8 @@ export function MasterDataTab() {
     unionId: '',
     type: 'VILLAGE_PANCHAYAT',
     wardNumber: undefined,
+    centerLat: undefined,
+    centerLng: undefined,
     description: '',
   });
 
@@ -358,6 +378,8 @@ export function MasterDataTab() {
         unionId: panchayat.unionId,
         type: panchayat.type || 'VILLAGE_PANCHAYAT',
         wardNumber: panchayat.wardNumber || undefined,
+        centerLat: panchayat.centerLat ?? undefined,
+        centerLng: panchayat.centerLng ?? undefined,
         description: panchayat.description || '',
       });
     } else {
@@ -368,10 +390,47 @@ export function MasterDataTab() {
         unionId: selectedUnionId !== 'all' ? selectedUnionId : (unions[0]?.id || ''),
         type: 'VILLAGE_PANCHAYAT',
         wardNumber: undefined,
+        centerLat: undefined,
+        centerLng: undefined,
         description: '',
       });
     }
     setIsPanchayatDialogOpen(true);
+  };
+
+  // Callback from Map Coordinate Picker Modal
+  const handleConfirmMapPicker = async (lat: number, lng: number) => {
+    if (mapPickerState.target === 'panchayatForm') {
+      setPanchayatForm((prev) => ({
+        ...prev,
+        centerLat: lat,
+        centerLng: lng,
+      }));
+    } else if (mapPickerState.target === 'villageForm') {
+      setVillageForm((prev) => ({
+        ...prev,
+        centerLat: lat,
+        centerLng: lng,
+      }));
+    } else if (mapPickerState.target === 'quickPanchayat' && mapPickerState.entityId) {
+      try {
+        await updatePanchayat.mutateAsync({
+          id: mapPickerState.entityId,
+          data: { centerLat: lat, centerLng: lng },
+        });
+      } catch (err) {
+        console.error('Failed to update panchayat location:', err);
+      }
+    } else if (mapPickerState.target === 'quickVillage' && mapPickerState.entityId) {
+      try {
+        await updateVillage.mutateAsync({
+          id: mapPickerState.entityId,
+          data: { centerLat: lat, centerLng: lng },
+        });
+      } catch (err) {
+        console.error('Failed to update village location:', err);
+      }
+    }
   };
 
   // Handle save panchayat
@@ -1127,7 +1186,35 @@ export function MasterDataTab() {
                             {p._count?.booths ?? p.booths?.length ?? 0}
                           </td>
                           <td className="py-4 px-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setMapPickerState({
+                                    isOpen: true,
+                                    target: 'quickPanchayat',
+                                    entityId: p.id,
+                                    title: locale === 'ta' && p.nameTa ? `${p.nameTa} (${p.name})` : p.name,
+                                    subtitle: unionName ? `${unionName}` : undefined,
+                                    lat: p.centerLat || undefined,
+                                    lng: p.centerLng || undefined,
+                                    entityType: 'panchayat',
+                                  });
+                                }}
+                                className={`h-9 w-9 rounded-xl cursor-pointer ${
+                                  p.centerLat && p.centerLng
+                                    ? 'text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
+                                    : 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/40'
+                                }`}
+                                title={
+                                  p.centerLat && p.centerLng
+                                    ? `${locale === 'ta' ? 'அமைவிடம்' : 'Location'}: ${p.centerLat.toFixed(4)}, ${p.centerLng.toFixed(4)}`
+                                    : (locale === 'ta' ? 'வரைபடத்தில் அமைவிடத்தை அமை' : 'Set Location on Map')
+                                }
+                              >
+                                <MapPin className="w-4 h-4" />
+                              </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -1177,11 +1264,24 @@ export function MasterDataTab() {
                       {/* Top Row: Type & Ward badge */}
                       <div className="flex items-center justify-between gap-2 mb-3">
                         {renderTypeBadge(p.type)}
-                        {p.wardNumber !== undefined && p.wardNumber !== null && (
-                          <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700">
-                            Ward {p.wardNumber}
-                          </span>
-                        )}
+                        <div className="flex items-center gap-1.5">
+                          {p.wardNumber !== undefined && p.wardNumber !== null && (
+                            <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700">
+                              Ward {p.wardNumber}
+                            </span>
+                          )}
+                          {p.centerLat && p.centerLng ? (
+                            <span
+                              className="inline-flex items-center gap-1 text-[11px] font-mono font-semibold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800"
+                              title={`${p.centerLat.toFixed(4)}, ${p.centerLng.toFixed(4)}`}
+                            >
+                              <Globe className="w-3 h-3 text-emerald-600" />
+                              GPS
+                            </span>
+                          ) : (
+                            <span className="text-[11px] text-amber-600 dark:text-amber-400 font-medium">No GPS</span>
+                          )}
+                        </div>
                       </div>
 
                       {/* Header Avatar & Name */}
@@ -1256,6 +1356,34 @@ export function MasterDataTab() {
                       </Button>
 
                       <div className="flex items-center gap-1.5">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setMapPickerState({
+                              isOpen: true,
+                              target: 'quickPanchayat',
+                              entityId: p.id,
+                              title: locale === 'ta' && p.nameTa ? `${p.nameTa} (${p.name})` : p.name,
+                              subtitle: unionName ? `${unionName}` : undefined,
+                              lat: p.centerLat || undefined,
+                              lng: p.centerLng || undefined,
+                              entityType: 'panchayat',
+                            });
+                          }}
+                          className={`h-9 w-9 rounded-xl cursor-pointer ${
+                            p.centerLat && p.centerLng
+                              ? 'text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
+                              : 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/40'
+                          }`}
+                          title={
+                            p.centerLat && p.centerLng
+                              ? `${locale === 'ta' ? 'அமைவிடம்' : 'Location'}: ${p.centerLat.toFixed(4)}, ${p.centerLng.toFixed(4)}`
+                              : (locale === 'ta' ? 'வரைபடத்தில் அமைவிடத்தை அமை' : 'Set Location on Map')
+                          }
+                        >
+                          <MapPin className="w-4 h-4" />
+                        </Button>
                         <Button
                           variant="ghost"
                           size="icon"
@@ -1400,7 +1528,35 @@ export function MasterDataTab() {
                             {v._count?.booths ?? v.booths?.length ?? 0}
                           </td>
                           <td className="py-4 px-4 text-right">
-                            <div className="flex items-center justify-end gap-2">
+                            <div className="flex items-center justify-end gap-1.5">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setMapPickerState({
+                                    isOpen: true,
+                                    target: 'quickVillage',
+                                    entityId: v.id,
+                                    title: locale === 'ta' && v.nameTa ? `${v.nameTa} (${v.name})` : v.name,
+                                    subtitle: parentPanchayat ? `${parentPanchayat.name} • ${unionName}` : undefined,
+                                    lat: v.centerLat || parentPanchayat?.centerLat || undefined,
+                                    lng: v.centerLng || parentPanchayat?.centerLng || undefined,
+                                    entityType: 'village',
+                                  });
+                                }}
+                                className={`h-9 w-9 rounded-xl cursor-pointer ${
+                                  v.centerLat && v.centerLng
+                                    ? 'text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
+                                    : 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/40'
+                                }`}
+                                title={
+                                  v.centerLat && v.centerLng
+                                    ? `${locale === 'ta' ? 'அமைவிடம்' : 'Location'}: ${v.centerLat.toFixed(4)}, ${v.centerLng.toFixed(4)}`
+                                    : (locale === 'ta' ? 'வரைபடத்தில் அமைவிடத்தை அமை' : 'Set Location on Map')
+                                }
+                              >
+                                <MapPin className="w-4 h-4" />
+                              </Button>
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -1530,7 +1686,35 @@ export function MasterDataTab() {
                     </div>
 
                     {/* Card Footer Actions */}
-                    <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-end gap-2">
+                    <div className="pt-3 border-t border-zinc-100 dark:border-zinc-800 flex items-center justify-end gap-1.5">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          setMapPickerState({
+                            isOpen: true,
+                            target: 'quickVillage',
+                            entityId: v.id,
+                            title: locale === 'ta' && v.nameTa ? `${v.nameTa} (${v.name})` : v.name,
+                            subtitle: parentPanchayat ? `${parentPanchayat.name} • ${unionName}` : undefined,
+                            lat: v.centerLat || parentPanchayat?.centerLat || undefined,
+                            lng: v.centerLng || parentPanchayat?.centerLng || undefined,
+                            entityType: 'village',
+                          });
+                        }}
+                        className={`h-9 w-9 rounded-xl cursor-pointer ${
+                          v.centerLat && v.centerLng
+                            ? 'text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
+                            : 'text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/40'
+                        }`}
+                        title={
+                          v.centerLat && v.centerLng
+                            ? `${locale === 'ta' ? 'அமைவிடம்' : 'Location'}: ${v.centerLat.toFixed(4)}, ${v.centerLng.toFixed(4)}`
+                            : (locale === 'ta' ? 'வரைபடத்தில் அமைவிடத்தை அமை' : 'Set Location on Map')
+                        }
+                      >
+                        <MapPin className="w-4 h-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -1724,6 +1908,79 @@ export function MasterDataTab() {
               />
             </div>
 
+            {/* Geographic Coordinates (Lat / Long) */}
+            <div className="space-y-1.5 p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/80 dark:border-zinc-800">
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-xs sm:text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-[#8F0A1B]" />
+                  {locale === 'ta' ? 'புவியியல் அமைவிடம் (GPS)' : 'Coordinates (Lat / Long)'}
+                </Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const fallbackLat = panchayatForm.centerLat;
+                    const fallbackLng = panchayatForm.centerLng;
+                    setMapPickerState({
+                      isOpen: true,
+                      target: 'panchayatForm',
+                      title: panchayatForm.name
+                        ? (locale === 'ta' && panchayatForm.nameTa ? `${panchayatForm.nameTa} (${panchayatForm.name})` : panchayatForm.name)
+                        : (locale === 'ta' ? 'ஊராட்சி அமைவிடம்' : 'Panchayat Location'),
+                      subtitle: locale === 'ta' ? 'வரைபடத்தில் கிளிக் செய்து அட்சரேகை/தீர்க்கரேகையைத் தேர்வு செய்க' : 'Click on the map to pin precise coordinates',
+                      lat: fallbackLat,
+                      lng: fallbackLng,
+                      entityType: 'panchayat',
+                    });
+                  }}
+                  className="h-7 text-xs font-bold text-[#8F0A1B] dark:text-[#FFC72C] hover:bg-[#8F0A1B]/10 border-[#8F0A1B]/30 cursor-pointer"
+                >
+                  <MapPin className="w-3 h-3 mr-1" />
+                  {locale === 'ta' ? 'வரைபடத்தில் தேர்வு செய்' : 'Pick from Map'}
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold text-muted-foreground">
+                    {locale === 'ta' ? 'அட்சரேகை (Latitude)' : 'Latitude'}
+                  </Label>
+                  <Input
+                    type="number"
+                    step="any"
+                    value={panchayatForm.centerLat ?? ''}
+                    onChange={(e) =>
+                      setPanchayatForm({
+                        ...panchayatForm,
+                        centerLat: e.target.value ? parseFloat(e.target.value) : undefined,
+                      })
+                    }
+                    placeholder="11.564"
+                    className="h-9.5 rounded-lg text-xs sm:text-sm font-mono bg-white dark:bg-zinc-800"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold text-muted-foreground">
+                    {locale === 'ta' ? 'தீர்க்கரேகை (Longitude)' : 'Longitude'}
+                  </Label>
+                  <Input
+                    type="number"
+                    step="any"
+                    value={panchayatForm.centerLng ?? ''}
+                    onChange={(e) =>
+                      setPanchayatForm({
+                        ...panchayatForm,
+                        centerLng: e.target.value ? parseFloat(e.target.value) : undefined,
+                      })
+                    }
+                    placeholder="79.682"
+                    className="h-9.5 rounded-lg text-xs sm:text-sm font-mono bg-white dark:bg-zinc-800"
+                  />
+                </div>
+              </div>
+            </div>
+
             {/* Description */}
             <div className="space-y-1.5">
               <Label className="text-xs sm:text-sm font-bold uppercase tracking-wider text-muted-foreground">
@@ -1901,43 +2158,79 @@ export function MasterDataTab() {
               />
             </div>
 
-            {/* Coordinates (Optional) */}
-            <div className="grid grid-cols-2 gap-3.5">
-              <div className="space-y-1.5">
-                <Label className="text-xs sm:text-sm font-bold uppercase tracking-wider text-muted-foreground">
-                  {locale === 'ta' ? 'அட்சரேகை (Lat)' : 'Latitude'}
+            {/* Geographic Coordinates (Lat / Long) */}
+            <div className="space-y-1.5 p-3 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200/80 dark:border-zinc-800">
+              <div className="flex items-center justify-between gap-2">
+                <Label className="text-xs sm:text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                  <MapPin className="w-3.5 h-3.5 text-[#8F0A1B]" />
+                  {locale === 'ta' ? 'புவியியல் அமைவிடம் (GPS)' : 'Coordinates (Lat / Long)'}
                 </Label>
-                <Input
-                  type="number"
-                  step="any"
-                  value={villageForm.centerLat ?? ''}
-                  onChange={(e) =>
-                    setVillageForm({
-                      ...villageForm,
-                      centerLat: e.target.value ? parseFloat(e.target.value) : undefined,
-                    })
-                  }
-                  placeholder="11.564"
-                  className="h-11 rounded-xl text-sm sm:text-base font-mono"
-                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const parentPanchayat = panchayats.find((p: any) => p.id === villageForm.panchayatId);
+                    const lat = villageForm.centerLat || parentPanchayat?.centerLat;
+                    const lng = villageForm.centerLng || parentPanchayat?.centerLng;
+                    setMapPickerState({
+                      isOpen: true,
+                      target: 'villageForm',
+                      title: villageForm.name
+                        ? (locale === 'ta' && villageForm.nameTa ? `${villageForm.nameTa} (${villageForm.name})` : villageForm.name)
+                        : (locale === 'ta' ? 'கிராம அமைவிடம்' : 'Village Location'),
+                      subtitle: parentPanchayat
+                        ? (locale === 'ta' ? `தாய் ஊராட்சி: ${parentPanchayat.nameTa || parentPanchayat.name}` : `Panchayat: ${parentPanchayat.name}`)
+                        : undefined,
+                      lat,
+                      lng,
+                      entityType: 'village',
+                    });
+                  }}
+                  className="h-7 text-xs font-bold text-[#8F0A1B] dark:text-[#FFC72C] hover:bg-[#8F0A1B]/10 border-[#8F0A1B]/30 cursor-pointer"
+                >
+                  <MapPin className="w-3 h-3 mr-1" />
+                  {locale === 'ta' ? 'வரைபடத்தில் தேர்வு செய்' : 'Pick from Map'}
+                </Button>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs sm:text-sm font-bold uppercase tracking-wider text-muted-foreground">
-                  {locale === 'ta' ? 'தீர்க்கரேகை (Lng)' : 'Longitude'}
-                </Label>
-                <Input
-                  type="number"
-                  step="any"
-                  value={villageForm.centerLng ?? ''}
-                  onChange={(e) =>
-                    setVillageForm({
-                      ...villageForm,
-                      centerLng: e.target.value ? parseFloat(e.target.value) : undefined,
-                    })
-                  }
-                  placeholder="79.682"
-                  className="h-11 rounded-xl text-sm sm:text-base font-mono"
-                />
+
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold text-muted-foreground">
+                    {locale === 'ta' ? 'அட்சரேகை (Latitude)' : 'Latitude'}
+                  </Label>
+                  <Input
+                    type="number"
+                    step="any"
+                    value={villageForm.centerLat ?? ''}
+                    onChange={(e) =>
+                      setVillageForm({
+                        ...villageForm,
+                        centerLat: e.target.value ? parseFloat(e.target.value) : undefined,
+                      })
+                    }
+                    placeholder="11.564"
+                    className="h-9.5 rounded-lg text-xs sm:text-sm font-mono bg-white dark:bg-zinc-800"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-semibold text-muted-foreground">
+                    {locale === 'ta' ? 'தீர்க்கரேகை (Longitude)' : 'Longitude'}
+                  </Label>
+                  <Input
+                    type="number"
+                    step="any"
+                    value={villageForm.centerLng ?? ''}
+                    onChange={(e) =>
+                      setVillageForm({
+                        ...villageForm,
+                        centerLng: e.target.value ? parseFloat(e.target.value) : undefined,
+                      })
+                    }
+                    placeholder="79.682"
+                    className="h-9.5 rounded-lg text-xs sm:text-sm font-mono bg-white dark:bg-zinc-800"
+                  />
+                </div>
               </div>
             </div>
 
@@ -2902,6 +3195,19 @@ export function MasterDataTab() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Map Coordinate Picker Modal */}
+      <MapCoordinatePickerModal
+        isOpen={mapPickerState.isOpen}
+        onClose={() => setMapPickerState((prev) => ({ ...prev, isOpen: false }))}
+        onConfirm={handleConfirmMapPicker}
+        initialLat={mapPickerState.lat}
+        initialLng={mapPickerState.lng}
+        title={mapPickerState.title}
+        subtitle={mapPickerState.subtitle}
+        locale={locale}
+        entityType={mapPickerState.entityType}
+      />
 
     </div>
   );

@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { useVillage } from '@/hooks/use-villages';
+import { useVillage, useUpdateVillage } from '@/hooks/use-villages';
 import { useLocale } from 'next-intl';
 import { Link, useRouter } from '@/i18n/routing';
 import {
@@ -25,6 +25,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import PanchayatMapDynamic from '@/components/maps/panchayat-map-dynamic';
+import MapCoordinatePickerModal from '@/components/maps/map-coordinate-picker-modal';
 import { getUnionSlug } from '@/lib/org-unit-translations';
 import { getAreaGeoData, generateDynamicAreaBoundary } from '@/lib/area-translations';
 import { KilaisSection } from '../../components/kilais-section';
@@ -41,6 +42,20 @@ export default function VillageDetailsPage() {
   const villageId = params?.villageId as string;
 
   const { data: village, isLoading, error } = useVillage(villageId);
+  const updateVillage = useUpdateVillage();
+  const [isPickerOpen, setIsPickerOpen] = useState(false);
+
+  const handleConfirmLocation = async (lat: number, lng: number) => {
+    if (!village?.id) return;
+    try {
+      await updateVillage.mutateAsync({
+        id: village.id,
+        data: { centerLat: lat, centerLng: lng },
+      });
+    } catch (err) {
+      console.error('Failed to update village coordinates:', err);
+    }
+  };
 
   // Canonicalize URL: redirect UUIDs or nested union paths to clean /panchayats/[panchayatSlug]/villages/[villageSlug]
   React.useEffect(() => {
@@ -385,9 +400,20 @@ export default function VillageDetailsPage() {
                 </p>
               </div>
             </div>
-            <span className="text-xs font-mono text-muted-foreground">
-              {geoData.center[0].toFixed(4)}° N, {geoData.center[1].toFixed(4)}° E
-            </span>
+            <div className="flex items-center gap-2.5">
+              <span className="text-xs font-mono text-muted-foreground hidden sm:inline-block">
+                {geoData.center[0].toFixed(4)}° N, {geoData.center[1].toFixed(4)}° E
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setIsPickerOpen(true)}
+                className="h-8 text-xs font-bold border-[#8F0A1B]/30 text-[#8F0A1B] dark:text-[#FFC72C] hover:bg-[#8F0A1B]/10 rounded-xl cursor-pointer"
+              >
+                <MapPin className="w-3.5 h-3.5 mr-1 text-[#8F0A1B]" />
+                {locale === 'ta' ? 'வரைபடத்தில் அமைவிடம் அமை' : 'Pick on Map'}
+              </Button>
+            </div>
           </div>
 
           <div className="rounded-xl overflow-hidden border border-gray-200 dark:border-zinc-800">
@@ -409,6 +435,19 @@ export default function VillageDetailsPage() {
           </div>
         </div>
       )}
+
+      {/* Map Coordinate Picker Modal */}
+      <MapCoordinatePickerModal
+        isOpen={isPickerOpen}
+        onClose={() => setIsPickerOpen(false)}
+        onConfirm={handleConfirmLocation}
+        initialLat={village?.centerLat || geoData?.center[0]}
+        initialLng={village?.centerLng || geoData?.center[1]}
+        title={locale === 'ta' && village?.nameTa ? `${village.nameTa} (${village.name})` : village?.name || 'Village'}
+        subtitle={panchayatName ? `${panchayatName} • ${unionName}` : undefined}
+        locale={locale}
+        entityType="village"
+      />
 
     </div>
   );

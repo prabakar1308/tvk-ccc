@@ -95,6 +95,11 @@ export default function PanchayatMap({
   const [inputRadiusKm, setInputRadiusKm] = useState<number>(1.2);
   const [coordsText, setCoordsText] = useState<string>('');
   const [isPickingLocation, setIsPickingLocation] = useState<boolean>(false);
+  const isPickingLocationRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    isPickingLocationRef.current = isPickingLocation;
+  }, [isPickingLocation]);
 
   // Load custom local center & boundary if saved previously
   useEffect(() => {
@@ -209,7 +214,7 @@ export default function PanchayatMap({
 
       // Map Click Handler (for "Pick on Map" mode)
       map.on('click', (e: any) => {
-        if (isPickingLocation) {
+        if (isPickingLocationRef.current) {
           const lat = Number(e.latlng.lat.toFixed(6));
           const lng = Number(e.latlng.lng.toFixed(6));
           setInputLat(String(lat));
