@@ -39,6 +39,7 @@ export interface CadreRosterTableProps {
   unionName?: string;
   unitName?: string;
   unitType?: string;
+  divisionName?: string;
   districtName?: string;
   panchayatName?: string;
   kilaiName?: string;
@@ -85,6 +86,7 @@ export function CadreRosterTable({
   unitName = '',
   unitType = '',
   districtName = '',
+  divisionName = '',
   panchayatName = '',
   kilaiName = '',
   boothDetails = '',
@@ -121,6 +123,7 @@ export function CadreRosterTable({
 
   // Resolved Org Unit & Union Name: Union Name in bracket [ Org Unit Type ]
   const effectiveUnionName = unionName || unitName || (locale === 'ta' ? 'ஒன்றியம்' : 'Union');
+  const formmatedDivisionName = divisionName;
   const formattedOrgUnit = unitType ? `${effectiveUnionName} [ ${unitType} ]` : effectiveUnionName;
 
   // Filter cadres based on search query
@@ -384,7 +387,7 @@ export function CadreRosterTable({
           </div>
           <div class="doc-badge">
             <h2>${fullDocTitle}</h2>
-            <p>${formattedOrgUnit} ${kilaiName ? `• ${kilaiName}` : ''} • ${formattedDate}</p>
+            <p>${formmatedDivisionName} ${kilaiName ? `• ${kilaiName}` : ''} • ${formattedDate}</p>
           </div>
         </div>
 
@@ -432,11 +435,11 @@ export function CadreRosterTable({
           <thead>
             <tr>
               <th style="width: 34px; text-align: center;">#</th>
-              <th>${locale === 'ta' ? 'பெயர் / Name' : 'Name'}</th>
-              <th>${locale === 'ta' ? 'பொறுப்பு / Role' : 'Role'}</th>
-              ${isUnion ? `<th>${locale === 'ta' ? 'சாவடி எண் / Booth No' : 'Booth No'}</th>` : ''}
-              <th>${locale === 'ta' ? 'கைபேசி எண் / Phone' : 'Phone No'}</th>
-              <th>${locale === 'ta' ? 'ஆதார் எண் / Aadhaar' : 'Aadhaar No'}</th>
+              <th>${locale === 'ta' ? 'பெயர்' : 'Name'}</th>
+              <th>${locale === 'ta' ? 'பொறுப்பு' : 'Role'}</th>
+              ${isUnion ? `<th>${locale === 'ta' ? 'சாவடி எண்' : 'Booth No'}</th>` : ''}
+              <th>${locale === 'ta' ? 'கைபேசி எண்' : 'Phone No'}</th>
+              <th>${locale === 'ta' ? 'ஆதார் எண்' : 'Aadhaar No'}</th>
               <th>${locale === 'ta' ? 'வாக்காளர் எண்' : 'Voter ID'}</th>
             </tr>
           </thead>

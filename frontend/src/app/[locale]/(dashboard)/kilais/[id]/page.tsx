@@ -162,11 +162,12 @@ export default function KilaiDetailsPage() {
       {/* Kilai Cadres Table / Roster with PDF Generator */}
       <CadreRosterTable
         cadres={kilaiData.kilaiCadres || []}
-        title={locale === 'ta' ? 'கிளை நிர்வாகிகள் (பொறுப்பாளர்கள்)' : 'Kilai Cadres (Office Bearers)'}
+        title={locale === 'ta' ? 'கிளை நிர்வாகிகள்' : 'Kilai Administrators'}
         unionName={getOrgUnitName(kilaiData.union, locale) || kilaiData.union?.name || (locale === 'ta' ? 'ஒன்றியம்' : 'Union')}
         unitName={getOrgUnitName(kilaiData.union, locale) || kilaiData.union?.name || (locale === 'ta' ? 'ஒன்றியம்' : 'Union')}
         unitType={getUnitTypeLabel(kilaiData.union?.unitType, locale) || (locale === 'ta' ? 'ஒன்றியம்' : 'Union')}
         districtName={kilaiData.union?.district?.name || kilaiData.district?.name || 'Kurinjipadi'}
+        divisionName={kilaiData.union?.division?.name || kilaiData?.division?.name || 'Kurinjipadi'}
         panchayatName={
           kilaiData.panchayatRel
             ? (locale === 'ta' && kilaiData.panchayatRel.nameTa ? kilaiData.panchayatRel.nameTa : kilaiData.panchayatRel.name)

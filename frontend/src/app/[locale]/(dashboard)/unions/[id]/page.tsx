@@ -605,11 +605,12 @@ export default function UnionDetailsPage() {
       {/* Org Unit Administrators Table / Roster with PDF Generator */}
       <CadreRosterTable
         cadres={union.unionCadres || []}
-        title={locale === 'ta' ? 'அமைப்பு அலகு நிர்வாகிகள்' : 'Org Unit Administrators'}
+        title={locale === 'ta' ? 'நிர்வாகிகள்' : 'Administrators'}
         unionName={getOrgUnitName(union, locale)}
         unitName={getOrgUnitName(union, locale)}
         unitType={getUnitTypeLabel(union.unitType, locale)}
         districtName={union.district?.name}
+        divisionName={`${union.group} ${locale === 'ta' ? 'பிரிவு' : 'Division'}`}
         panchayatName={
           hasDbPanchayats
             ? dbPanchayats.length <= 5
