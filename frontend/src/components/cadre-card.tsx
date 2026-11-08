@@ -44,7 +44,7 @@ export interface CadreCardProps {
  * Format raw role strings like 'DISTRICT_SECRETARY' or 'EXECUTIVE_COMMITTEE_MEMBER'
  * into clean, readable designations.
  */
-function formatDesignation(rawRole?: string, locale: string = 'en'): string {
+export function formatDesignation(rawRole?: string, locale: string = 'en'): string {
   if (!rawRole) return locale === 'ta' ? 'நிர்வாகி' : 'Administrator';
 
   // If already Tamil script

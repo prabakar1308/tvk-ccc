@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import { useUnion } from '@/hooks/use-unions';
-import { ArrowLeft, Store, Building2, Users, Phone, Edit2, Trash2, Landmark, MapPin, ArrowUpRight, Search, LayoutGrid, ListFilter } from 'lucide-react';
+import { ArrowLeft, Store, Building2, Users, Phone, Edit2, Trash2, Landmark, MapPin, ArrowUpRight, Search, LayoutGrid, ListFilter, Plus, ChevronRight } from 'lucide-react';
 import { Link, useRouter } from '@/i18n/routing';
 import { useLocale } from 'next-intl';
 import { useDeleteCadre } from '@/hooks/use-cadres';
@@ -11,8 +11,8 @@ import { CadreFormDialog } from '@/components/cadre-form-dialog';
 import { CadreViewDialog } from '@/components/cadre-view-dialog';
 import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
 import { CadreCard } from '@/components/cadre-card';
+import { CadreRosterTable } from '@/components/cadres/cadre-roster-table';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { useQueryClient } from '@tanstack/react-query';
 import { getOrgUnitName, getUnitTypeLabel, getAreasCoveredLabel, getUnionSlug } from '@/lib/org-unit-translations';
@@ -156,67 +156,72 @@ export default function UnionDetailsPage() {
       </div>
 
       {/* Panchayats / Wards Included */}
-      {union.areasCovered && union.areasCovered.length > 0 && (
-        <div className="bg-white dark:bg-zinc-900 rounded-xl sm:rounded-2xl p-5 sm:p-7 shadow-sm border border-gray-100 dark:border-zinc-800 space-y-5">
+      {(hasDbPanchayats || (union.areasCovered && union.areasCovered.length > 0)) && (
+        <div className="bg-white dark:bg-zinc-900 rounded-xl sm:rounded-2xl p-5 sm:p-7 shadow-sm border border-zinc-200/80 dark:border-zinc-800 space-y-5">
           {/* Section Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-2 border-b border-gray-100 dark:border-zinc-800">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-3 border-b border-zinc-100 dark:border-zinc-800">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-primary/15 via-primary/10 to-amber-500/10 border border-primary/20 flex items-center justify-center text-primary shadow-2xs shrink-0">
                 <Landmark className="w-5 h-5" />
               </div>
               <div>
                 <div className="flex items-center gap-2.5">
-                  <h2 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white tracking-wide">
+                  <h2 className="text-lg sm:text-xl font-heading font-extrabold text-zinc-900 dark:text-zinc-50 tracking-tight">
                     {getAreasCoveredLabel(union.unitType, locale)}
                   </h2>
-                  <span className="bg-primary/10 text-primary px-2.5 py-0.5 rounded-full text-xs font-bold border border-primary/20">
-                    {union.areasCovered.length}
+                  <span className="bg-primary/10 text-primary dark:bg-primary/20 dark:text-red-300 px-2.5 py-0.5 rounded-full text-xs font-bold border border-primary/20 shadow-2xs">
+                    {hasDbPanchayats ? filteredPanchayats.length : filteredAreas.length}
+                    {(areaSearch.trim() && (hasDbPanchayats ? filteredPanchayats.length !== dbPanchayats.length : filteredAreas.length !== (union.areasCovered?.length || 0))) && (
+                      <span className="opacity-60 ml-1">
+                        / {hasDbPanchayats ? dbPanchayats.length : (union.areasCovered?.length || 0)}
+                      </span>
+                    )}
                   </span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   {locale === 'ta'
-                    ? 'ஊராட்சியை கிளிக் செய்து அதன் கிளைகள், சாவடிகள், நிர்வாகிகள் மற்றும் கள வரைபடத்தைக் காண்க'
-                    : 'Click on each panchayat or ward to explore kilai network, booths, cadre strength, and field map'}
+                    ? 'ஊராட்சியை தேர்ந்தெடுத்து அதன் கிளைகள், சாவடிகள், கிராமங்கள் மற்றும் கள வரைபடத்தைக் காண்க'
+                    : 'Select a panchayat or ward to explore kilai network, booths, villages, and field map'}
                 </p>
               </div>
             </div>
 
             {/* Search Filter & View Mode Toggle */}
             <div className="flex items-center gap-2.5 w-full sm:w-auto">
-              <div className="relative flex-1 sm:w-48 md:w-56">
-                <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <div className="relative flex-1 sm:w-52 md:w-60">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={areaSearch}
                   onChange={(e) => setAreaSearch(e.target.value)}
-                  placeholder={locale === 'ta' ? 'தேடுக...' : 'Search...'}
-                  className="h-8 text-xs pl-8 pr-2.5 rounded-lg border-gray-200 dark:border-zinc-700 bg-gray-50/50 dark:bg-zinc-800/50"
+                  placeholder={locale === 'ta' ? 'ஊராட்சியைத் தேடுக...' : 'Search panchayat...'}
+                  className="h-9 text-xs pl-9 pr-3 rounded-xl border-zinc-200 dark:border-zinc-700 bg-zinc-50/70 dark:bg-zinc-800/60 focus-visible:ring-primary/20"
                 />
               </div>
 
-              <div className="flex items-center bg-gray-100 dark:bg-zinc-800 rounded-lg p-0.5 border border-gray-200 dark:border-zinc-700">
+              <div className="flex items-center bg-zinc-100 dark:bg-zinc-800 rounded-xl p-1 border border-zinc-200 dark:border-zinc-700 shrink-0">
                 <button
                   type="button"
                   onClick={() => setAreaViewMode('cards')}
-                  className={`p-1.5 rounded-md text-xs font-semibold transition-all ${
+                  className={`p-1.5 rounded-lg text-xs font-semibold transition-all ${
                     areaViewMode === 'cards'
                       ? 'bg-white dark:bg-zinc-700 text-primary shadow-xs'
-                      : 'text-gray-500 hover:text-gray-800 dark:hover:text-zinc-200'
+                      : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
                   }`}
                   title={locale === 'ta' ? 'கார்டுகள் பார்வை' : 'Cards View'}
                 >
-                  <LayoutGrid className="w-3.5 h-3.5" />
+                  <LayoutGrid className="w-4 h-4" />
                 </button>
                 <button
                   type="button"
                   onClick={() => setAreaViewMode('chips')}
-                  className={`p-1.5 rounded-md text-xs font-semibold transition-all ${
+                  className={`p-1.5 rounded-lg text-xs font-semibold transition-all ${
                     areaViewMode === 'chips'
                       ? 'bg-white dark:bg-zinc-700 text-primary shadow-xs'
-                      : 'text-gray-500 hover:text-gray-800 dark:hover:text-zinc-200'
+                      : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'
                   }`}
                   title={locale === 'ta' ? 'சிறிய பட்டியல்' : 'Compact Chips'}
                 >
-                  <ListFilter className="w-3.5 h-3.5" />
+                  <ListFilter className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -224,7 +229,7 @@ export default function UnionDetailsPage() {
 
           {/* Cards View Mode */}
           {areaViewMode === 'cards' ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {hasDbPanchayats
                 ? filteredPanchayats.map((p: any) => {
                     const primaryName = locale === 'ta' ? p.nameTa : p.name;
@@ -245,81 +250,130 @@ export default function UnionDetailsPage() {
                       <Link
                         key={p.id}
                         href={`/panchayats/${p.code || p.id}`}
-                        className="group relative bg-[#efeeea] dark:bg-zinc-800/80 rounded-2xl p-4 sm:p-5 border-2 border-gray-100 dark:border-zinc-700/80 hover:border-primary/50 dark:hover:border-primary/50 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden"
+                        className="group relative flex flex-col justify-between rounded-2xl border border-zinc-200/90 dark:border-zinc-800 bg-gradient-to-b from-white via-white to-zinc-50/60 dark:from-zinc-900 dark:via-zinc-900/95 dark:to-zinc-950 p-5 shadow-xs hover:shadow-xl hover:shadow-primary/5 dark:hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)] hover:border-primary/50 dark:hover:border-primary/50 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
                       >
-                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-amber-500 to-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+                        {/* Ambient Glow & Accent Bar */}
+                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-amber-500 to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        <div className="absolute -top-12 -right-12 w-28 h-28 bg-primary/5 rounded-full blur-2xl group-hover:scale-150 group-hover:opacity-100 opacity-20 transition-all duration-500 pointer-events-none" />
 
                         <div>
+                          {/* Top Row: Icon, Code & Status */}
                           <div className="flex items-center justify-between gap-2 mb-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/10 to-amber-500/10 flex items-center justify-center text-primary border border-primary/20 group-hover:scale-105 transition-transform">
-                              <MapPin className="w-5 h-5 text-primary" />
+                            <div className="flex items-center gap-2">
+                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/10 via-amber-500/10 to-primary/5 flex items-center justify-center text-primary border border-primary/20 shadow-2xs group-hover:scale-105 group-hover:bg-primary/15 transition-all">
+                                {isRural ? <Landmark className="w-5 h-5 text-primary" /> : <Building2 className="w-5 h-5 text-primary" />}
+                              </div>
+                              {p.code && (
+                                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200/70 dark:border-zinc-700/70">
+                                  {p.code}
+                                </span>
+                              )}
                             </div>
 
                             <div className="flex items-center gap-1.5">
                               {kilaisCount > 0 ? (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-300 border border-green-200 dark:border-green-800">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 shadow-2xs">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                   {locale === 'ta' ? 'செயலில்' : 'Active'}
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                                  {locale === 'ta' ? 'கிளை தயார்' : 'Coverage'}
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/60 shadow-2xs">
+                                  {locale === 'ta' ? 'கள எல்லை' : 'Coverage'}
                                 </span>
                               )}
 
-                              <span className="p-1 rounded-full text-gray-400 group-hover:text-primary group-hover:bg-primary/10 transition-colors">
-                                <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                              <span className="w-7 h-7 rounded-full bg-zinc-100/80 dark:bg-zinc-800 flex items-center justify-center text-zinc-400 group-hover:text-primary group-hover:bg-primary/10 transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5 shadow-2xs">
+                                <ArrowUpRight className="w-3.5 h-3.5" />
                               </span>
                             </div>
                           </div>
 
+                          {/* Titles */}
                           <div className="mb-3.5">
-                            <h3 className="font-heading font-bold text-gray-900 dark:text-white text-lg group-hover:text-primary transition-colors leading-snug">
+                            <h3 className="font-heading font-extrabold text-[17px] sm:text-[18px] text-zinc-900 dark:text-zinc-50 group-hover:text-primary dark:group-hover:text-primary transition-colors leading-snug line-clamp-1">
                               {primaryName}
                             </h3>
-                            {secondaryName && secondaryName !== primaryName && (
-                              <p className="text-xs text-muted-foreground font-medium mt-0.5">
-                                {secondaryName} • <span className="text-gray-500">{unitTag}</span>
-                              </p>
-                            )}
+                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                              {secondaryName && secondaryName !== primaryName && (
+                                <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                                  {secondaryName}
+                                </span>
+                              )}
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60 uppercase tracking-wider">
+                                {unitTag}
+                              </span>
+                            </div>
                           </div>
 
-                          <div className="grid grid-cols-3 gap-2 p-2.5 rounded-xl bg-gray-50/80 dark:bg-zinc-800/50 border border-gray-100 dark:border-zinc-700/50 text-center">
-                            <div>
-                              <div className="flex items-center justify-center gap-1 text-gray-900 dark:text-white font-bold text-sm">
-                                <MapPin className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                                {villagesCount}
+                          {/* 3-Column Micro-Metrics Grid */}
+                          <div className="grid grid-cols-3 gap-2">
+                            {/* Villages */}
+                            <div className="p-2 sm:p-2.5 rounded-xl bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100/80 dark:border-blue-900/40 text-center transition-colors group-hover:bg-blue-50/90 dark:group-hover:bg-blue-950/40">
+                              <div className="flex items-center justify-center gap-1.5 text-blue-700 dark:text-blue-300 font-extrabold text-sm sm:text-base leading-none">
+                                <MapPin className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                                <span>{villagesCount}</span>
                               </div>
-                              <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
+                              <p className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 mt-1 uppercase tracking-wider">
                                 {locale === 'ta' ? 'கிராமங்கள்' : 'Villages'}
                               </p>
                             </div>
 
-                            <div>
-                              <div className="flex items-center justify-center gap-1 text-gray-900 dark:text-white font-bold text-sm">
-                                <Store className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
-                                {kilaisCount}
+                            {/* Kilais */}
+                            <div className="p-2 sm:p-2.5 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100/80 dark:border-emerald-900/40 text-center transition-colors group-hover:bg-emerald-50/90 dark:group-hover:bg-emerald-950/40">
+                              <div className="flex items-center justify-center gap-1.5 text-emerald-700 dark:text-emerald-300 font-extrabold text-sm sm:text-base leading-none">
+                                <Store className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                <span>{kilaisCount}</span>
                               </div>
-                              <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
+                              <p className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 mt-1 uppercase tracking-wider">
                                 {locale === 'ta' ? 'கிளைகள்' : 'Kilais'}
                               </p>
                             </div>
 
-                            <div>
-                              <div className="flex items-center justify-center gap-1 text-gray-900 dark:text-white font-bold text-sm">
-                                <Building2 className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />
-                                {boothsCount}
+                            {/* Booths */}
+                            <div className="p-2 sm:p-2.5 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-100/80 dark:border-amber-900/40 text-center transition-colors group-hover:bg-amber-50/90 dark:group-hover:bg-amber-950/40">
+                              <div className="flex items-center justify-center gap-1.5 text-amber-700 dark:text-amber-300 font-extrabold text-sm sm:text-base leading-none">
+                                <Building2 className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                                <span>{boothsCount}</span>
                               </div>
-                              <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
+                              <p className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 mt-1 uppercase tracking-wider">
                                 {locale === 'ta' ? 'சாவடிகள்' : 'Booths'}
                               </p>
                             </div>
                           </div>
+
+                          {/* Contextual Village Previews */}
+                          {p.villages && p.villages.length > 0 && (
+                            <div className="mt-3 pt-2.5 border-t border-dashed border-zinc-200/80 dark:border-zinc-800 flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
+                                {locale === 'ta' ? 'கிராமங்கள்:' : 'Villages:'}
+                              </span>
+                              {p.villages.slice(0, 2).map((v: any, vIdx: number) => {
+                                const vName = locale === 'ta' ? (v.nameTa || v.name) : (v.name || v.nameTa);
+                                return (
+                                  <span
+                                    key={v.id || vIdx}
+                                    className="inline-flex items-center text-[10px] font-medium text-zinc-700 dark:text-zinc-300 bg-zinc-100 dark:bg-zinc-800/80 px-2 py-0.5 rounded-md border border-zinc-200/60 dark:border-zinc-700/60 max-w-[110px] truncate"
+                                    title={vName}
+                                  >
+                                    {vName}
+                                  </span>
+                                );
+                              })}
+                              {p.villages.length > 2 && (
+                                <span className="text-[10px] font-bold text-primary dark:text-red-400 bg-primary/10 dark:bg-primary/20 px-1.5 py-0.5 rounded-md border border-primary/20">
+                                  +{p.villages.length - 2}
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
 
-                        <div className="pt-3 mt-3 border-t border-gray-100 dark:border-zinc-700/50 flex items-center justify-between text-xs font-semibold text-primary">
-                          <span>{locale === 'ta' ? 'கிராமங்கள் & கிளைகள்' : 'Explore Villages & Kilais'}</span>
-                          <span className="group-hover:translate-x-1 transition-transform">→</span>
+                        {/* Footer Action */}
+                        <div className="pt-3 mt-4 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between text-xs font-bold text-zinc-600 dark:text-zinc-300 group-hover:text-primary dark:group-hover:text-primary transition-colors">
+                          <span>{locale === 'ta' ? 'கள விவரங்கள் & வரைபடம்' : 'Explore Details & Field Map'}</span>
+                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-zinc-100 dark:bg-zinc-800 group-hover:bg-primary group-hover:text-white transition-all text-zinc-500 group-hover:translate-x-1 shadow-2xs">
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </span>
                         </div>
                       </Link>
                     );
@@ -360,81 +414,120 @@ export default function UnionDetailsPage() {
                       <Link
                         key={idx}
                         href={`/panchayats/${encodeURIComponent(slug)}`}
-                        className="group relative bg-white dark:bg-zinc-800/80 rounded-2xl p-4 sm:p-5 border-2 border-gray-100 dark:border-zinc-700/80 hover:border-primary/50 dark:hover:border-primary/50 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden"
+                        className="group relative flex flex-col justify-between rounded-2xl border border-zinc-200/90 dark:border-zinc-800 bg-gradient-to-b from-white via-white to-zinc-50/60 dark:from-zinc-900 dark:via-zinc-900/95 dark:to-zinc-950 p-5 shadow-xs hover:shadow-xl hover:shadow-primary/5 dark:hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)] hover:border-primary/50 dark:hover:border-primary/50 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
                       >
-                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-amber-500 to-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+                        {/* Ambient Glow & Accent Bar */}
+                        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary via-amber-500 to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        <div className="absolute -top-12 -right-12 w-28 h-28 bg-primary/5 rounded-full blur-2xl group-hover:scale-150 group-hover:opacity-100 opacity-20 transition-all duration-500 pointer-events-none" />
 
                         <div>
+                          {/* Top Row */}
                           <div className="flex items-center justify-between gap-2 mb-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/10 to-amber-500/10 flex items-center justify-center text-primary border border-primary/20 group-hover:scale-105 transition-transform">
-                              <MapPin className="w-5 h-5 text-primary" />
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary/10 via-amber-500/10 to-primary/5 flex items-center justify-center text-primary border border-primary/20 shadow-2xs group-hover:scale-105 group-hover:bg-primary/15 transition-all">
+                              <Landmark className="w-5 h-5 text-primary" />
                             </div>
 
                             <div className="flex items-center gap-1.5">
                               {matchingKilais.length > 0 ? (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-300 border border-green-200 dark:border-green-800">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60 shadow-2xs">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                   {locale === 'ta' ? 'செயலில்' : 'Active'}
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                                  {locale === 'ta' ? 'கிளை தயார்' : 'Coverage'}
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/80 dark:border-amber-800/60 shadow-2xs">
+                                  {locale === 'ta' ? 'கள எல்லை' : 'Coverage'}
                                 </span>
                               )}
 
-                              <span className="p-1 rounded-full text-gray-400 group-hover:text-primary group-hover:bg-primary/10 transition-colors">
-                                <ArrowUpRight className="w-4 h-4 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+                              <span className="w-7 h-7 rounded-full bg-zinc-100/80 dark:bg-zinc-800 flex items-center justify-center text-zinc-400 group-hover:text-primary group-hover:bg-primary/10 transition-all group-hover:translate-x-0.5 group-hover:-translate-y-0.5 shadow-2xs">
+                                <ArrowUpRight className="w-3.5 h-3.5" />
                               </span>
                             </div>
                           </div>
 
+                          {/* Titles */}
                           <div className="mb-3.5">
-                            <h3 className="font-heading font-bold text-gray-900 dark:text-white text-lg group-hover:text-primary transition-colors leading-snug">
+                            <h3 className="font-heading font-extrabold text-[17px] sm:text-[18px] text-zinc-900 dark:text-zinc-50 group-hover:text-primary dark:group-hover:text-primary transition-colors leading-snug line-clamp-1">
                               {primaryName}
                             </h3>
-                            {secondaryName && secondaryName !== primaryName && (
-                              <p className="text-xs text-muted-foreground font-medium mt-0.5">
-                                {secondaryName} • <span className="text-gray-500">{unitTag}</span>
-                              </p>
-                            )}
+                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                              {secondaryName && secondaryName !== primaryName && (
+                                <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                                  {secondaryName}
+                                </span>
+                              )}
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300 border border-zinc-200/60 dark:border-zinc-700/60 uppercase tracking-wider">
+                                {unitTag}
+                              </span>
+                            </div>
                           </div>
 
-                          <div className="grid grid-cols-3 gap-2 p-2.5 rounded-xl bg-gray-50/80 dark:bg-zinc-800/50 border border-gray-100 dark:border-zinc-700/50 text-center">
-                            <div>
-                              <div className="flex items-center justify-center gap-1 text-gray-900 dark:text-white font-bold text-sm">
-                                <Store className="w-3.5 h-3.5 text-green-600 dark:text-green-400" />
-                                {matchingKilais.length}
+                          {/* 3-Column Micro-Metrics Grid */}
+                          <div className="grid grid-cols-3 gap-2">
+                            {/* Kilais */}
+                            <div className="p-2 sm:p-2.5 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100/80 dark:border-emerald-900/40 text-center transition-colors group-hover:bg-emerald-50/90 dark:group-hover:bg-emerald-950/40">
+                              <div className="flex items-center justify-center gap-1.5 text-emerald-700 dark:text-emerald-300 font-extrabold text-sm sm:text-base leading-none">
+                                <Store className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                                <span>{matchingKilais.length}</span>
                               </div>
-                              <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
+                              <p className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 mt-1 uppercase tracking-wider">
                                 {locale === 'ta' ? 'கிளைகள்' : 'Kilais'}
                               </p>
                             </div>
 
-                            <div>
-                              <div className="flex items-center justify-center gap-1 text-gray-900 dark:text-white font-bold text-sm">
-                                <Building2 className="w-3.5 h-3.5 text-orange-600 dark:text-orange-400" />
-                                {uniqueBooths.size}
+                            {/* Booths */}
+                            <div className="p-2 sm:p-2.5 rounded-xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-100/80 dark:border-amber-900/40 text-center transition-colors group-hover:bg-amber-50/90 dark:group-hover:bg-amber-950/40">
+                              <div className="flex items-center justify-center gap-1.5 text-amber-700 dark:text-amber-300 font-extrabold text-sm sm:text-base leading-none">
+                                <Building2 className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                                <span>{uniqueBooths.size}</span>
                               </div>
-                              <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
+                              <p className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 mt-1 uppercase tracking-wider">
                                 {locale === 'ta' ? 'சாவடிகள்' : 'Booths'}
                               </p>
                             </div>
 
-                            <div>
-                              <div className="flex items-center justify-center gap-1 text-gray-900 dark:text-white font-bold text-sm">
-                                <Users className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                                {cadresCount}
+                            {/* Cadres */}
+                            <div className="p-2 sm:p-2.5 rounded-xl bg-purple-50/50 dark:bg-purple-950/20 border border-purple-100/80 dark:border-purple-900/40 text-center transition-colors group-hover:bg-purple-50/90 dark:group-hover:bg-purple-950/40">
+                              <div className="flex items-center justify-center gap-1.5 text-purple-700 dark:text-purple-300 font-extrabold text-sm sm:text-base leading-none">
+                                <Users className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400 shrink-0" />
+                                <span>{cadresCount}</span>
                               </div>
-                              <p className="text-[10px] font-semibold text-muted-foreground mt-0.5">
+                              <p className="text-[10px] font-semibold text-zinc-500 dark:text-zinc-400 mt-1 uppercase tracking-wider">
                                 {locale === 'ta' ? 'நிர்வாகிகள்' : 'Cadres'}
                               </p>
                             </div>
                           </div>
+
+                          {/* Contextual Kilais Preview */}
+                          {matchingKilais.length > 0 && (
+                            <div className="mt-3 pt-2.5 border-t border-dashed border-zinc-200/80 dark:border-zinc-800 flex items-center gap-1.5 flex-wrap">
+                              <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-wider">
+                                {locale === 'ta' ? 'கிளைகள்:' : 'Kilais:'}
+                              </span>
+                              {matchingKilais.slice(0, 2).map((k: any, kIdx: number) => (
+                                <span
+                                  key={k.id || kIdx}
+                                  className="inline-flex items-center text-[10px] font-medium text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-md border border-emerald-200/60 dark:border-emerald-800/60 max-w-[110px] truncate"
+                                  title={k.name}
+                                >
+                                  {k.name}
+                                </span>
+                              ))}
+                              {matchingKilais.length > 2 && (
+                                <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-900/50 px-1.5 py-0.5 rounded-md">
+                                  +{matchingKilais.length - 2}
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
 
-                        <div className="pt-3 mt-3 border-t border-gray-100 dark:border-zinc-700/50 flex items-center justify-between text-xs font-semibold text-primary">
-                          <span>{locale === 'ta' ? 'கள விவரங்கள் & வரைபடம்' : 'View Details & Field Map'}</span>
-                          <span className="group-hover:translate-x-1 transition-transform">→</span>
+                        {/* Footer Action */}
+                        <div className="pt-3 mt-4 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between text-xs font-bold text-zinc-600 dark:text-zinc-300 group-hover:text-primary dark:group-hover:text-primary transition-colors">
+                          <span>{locale === 'ta' ? 'கள விவரங்கள் & வரைபடம்' : 'Explore Details & Field Map'}</span>
+                          <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-zinc-100 dark:bg-zinc-800 group-hover:bg-primary group-hover:text-white transition-all text-zinc-500 group-hover:translate-x-1 shadow-2xs">
+                            <ChevronRight className="w-3.5 h-3.5" />
+                          </span>
                         </div>
                       </Link>
                     );
@@ -444,17 +537,34 @@ export default function UnionDetailsPage() {
             /* Compact Chips View Mode */
             <div className="flex flex-wrap gap-2.5">
               {hasDbPanchayats
-                ? filteredPanchayats.map((p: any) => (
-                    <Link
-                      key={p.id}
-                      href={`/panchayats/${p.code || p.id}`}
-                      className="inline-flex items-center gap-2 text-xs font-bold tracking-wide uppercase bg-gray-50 dark:bg-zinc-800/80 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-700 rounded-lg px-3.5 py-2 shadow-xs hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all group"
-                    >
-                      <MapPin className="w-3.5 h-3.5 text-primary group-hover:scale-110 transition-transform" />
-                      <span>{locale === 'ta' ? p.nameTa : p.name}</span>
-                      <ArrowUpRight className="w-3 h-3 text-gray-400 group-hover:text-primary transition-colors" />
-                    </Link>
-                  ))
+                ? filteredPanchayats.map((p: any) => {
+                    const isRural = p.type === 'VILLAGE_PANCHAYAT';
+                    const primaryName = locale === 'ta' ? p.nameTa : p.name;
+                    const kilaisCount = p._count?.kilais || 0;
+                    return (
+                      <Link
+                        key={p.id}
+                        href={`/panchayats/${p.code || p.id}`}
+                        className="group inline-flex items-center gap-2.5 text-xs font-bold bg-white dark:bg-zinc-800/90 text-zinc-800 dark:text-zinc-200 border border-zinc-200/90 dark:border-zinc-700/80 rounded-xl px-3.5 py-2.5 shadow-2xs hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+                      >
+                        <div className="w-5 h-5 rounded-md bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors shrink-0">
+                          {isRural ? <Landmark className="w-3 h-3" /> : <Building2 className="w-3 h-3" />}
+                        </div>
+                        <span>{primaryName}</span>
+                        {p.code && (
+                          <span className="text-[10px] font-mono text-zinc-400 group-hover:text-primary/70">
+                            ({p.code})
+                          </span>
+                        )}
+                        {kilaisCount > 0 ? (
+                          <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                            {kilaisCount} {locale === 'ta' ? 'கிளை' : 'K'}
+                          </span>
+                        ) : null}
+                        <ChevronRight className="w-3.5 h-3.5 text-zinc-400 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+                      </Link>
+                    );
+                  })
                 : filteredAreas.map((area: string, idx: number) => {
                     const { en: areaEn, ta: areaTa } = getAreaBilingualNames(area);
                     const slug = createAreaSlug(area);
@@ -462,11 +572,13 @@ export default function UnionDetailsPage() {
                       <Link
                         key={idx}
                         href={`/panchayats/${encodeURIComponent(slug)}`}
-                        className="inline-flex items-center gap-2 text-xs font-bold tracking-wide uppercase bg-gray-50 dark:bg-zinc-800/80 text-gray-700 dark:text-zinc-300 border border-gray-200 dark:border-zinc-700 rounded-lg px-3.5 py-2 shadow-xs hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all group"
+                        className="group inline-flex items-center gap-2.5 text-xs font-bold bg-white dark:bg-zinc-800/90 text-zinc-800 dark:text-zinc-200 border border-zinc-200/90 dark:border-zinc-700/80 rounded-xl px-3.5 py-2.5 shadow-2xs hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
                       >
-                        <MapPin className="w-3.5 h-3.5 text-primary group-hover:scale-110 transition-transform" />
+                        <div className="w-5 h-5 rounded-md bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors shrink-0">
+                          <MapPin className="w-3 h-3" />
+                        </div>
                         <span>{locale === 'ta' ? areaTa : areaEn}</span>
-                        <ArrowUpRight className="w-3 h-3 text-gray-400 group-hover:text-primary transition-colors" />
+                        <ChevronRight className="w-3.5 h-3.5 text-zinc-400 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
                       </Link>
                     );
                   })}
@@ -475,50 +587,51 @@ export default function UnionDetailsPage() {
 
           {((hasDbPanchayats && filteredPanchayats.length === 0) ||
             (!hasDbPanchayats && filteredAreas.length === 0)) && (
-            <div className="text-center py-8 text-muted-foreground text-xs font-medium">
-              {locale === 'ta' ? 'பொருத்தமான ஊராட்சிகள் எதுவும் கிடைக்கவில்லை.' : 'No matching panchayats found.'}
+            <div className="text-center py-12 px-4 rounded-xl bg-zinc-50 dark:bg-zinc-800/40 border border-dashed border-zinc-200 dark:border-zinc-800">
+              <div className="w-12 h-12 rounded-full bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center text-zinc-400 mx-auto mb-3">
+                <Search className="w-5 h-5" />
+              </div>
+              <p className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+                {locale === 'ta' ? 'பொருத்தமான ஊராட்சிகள் எதுவும் கிடைக்கவில்லை' : 'No matching panchayats found'}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {locale === 'ta' ? 'வேறு தேடல் சொல்லை முயற்சிக்கவும்' : 'Try searching with a different name or keyword'}
+              </p>
             </div>
           )}
         </div>
       )}
 
-      {/* Cadres Grid */}
-      <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-8 shadow-sm border border-gray-100">
-        <div className="flex items-center gap-3 mb-6">
-          <h2 className="text-lg font-bold text-gray-900 tracking-wide">{locale === 'ta' ? 'அமைப்பு அலகு நிர்வாகிகள்' : 'Org Unit Administrators'}</h2>
-          <span className="bg-primary/10 text-primary px-2.5 py-0.5 rounded-full text-sm font-bold border border-primary/20">
-            {union.unionCadres?.length || 0}
-          </span>
-        </div>
-        
-        {!union.unionCadres || union.unionCadres.length === 0 ? (
-          <div className="text-center py-12 text-zinc-500 font-medium bg-zinc-50 dark:bg-zinc-800/40 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800">
-            {locale === 'ta' ? 'இந்த அமைப்பு அலகிற்கு இதுவரை நிர்வாகிகள் பதிவு செய்யப்படவில்லை.' : 'No administrators registered for this org unit yet.'}
-          </div>
-        ) : (
-          <div className="grid gap-5 sm:gap-6 [grid-template-columns:repeat(auto-fill,minmax(240px,1fr))]">
-            {(union.unionCadres || []).map((cadre, index) => {
-              const rawRole = cadre.officeBearerRoles?.[0]?.role || cadre.role || 'Member';
-              const isSecretary = rawRole.toUpperCase().includes('SECRETARY') || rawRole.toUpperCase().includes('PRESIDENT');
-              const highlight = index === 0 && isSecretary;
-
-              return (
-                <CadreCard
-                  key={cadre.id || index}
-                  cadre={cadre}
-                  highlight={highlight}
-                  minWidth="240px"
-                  showLocation={true}
-                  onView={(c) => setViewingCadre(c)}
-                  onEdit={(e, c) => handleOpenEdit(e, c)}
-                  onDelete={(e, id) => handleDelete(e, id)}
-                  onCall={(person) => setCallConfirmation(person)}
-                />
-              );
-            })}
-          </div>
-        )}
-      </div>
+      {/* Org Unit Administrators Table / Roster with PDF Generator */}
+      <CadreRosterTable
+        cadres={union.unionCadres || []}
+        title={locale === 'ta' ? 'அமைப்பு அலகு நிர்வாகிகள்' : 'Org Unit Administrators'}
+        unionName={getOrgUnitName(union, locale)}
+        unitName={getOrgUnitName(union, locale)}
+        unitType={getUnitTypeLabel(union.unitType, locale)}
+        districtName={union.district?.name}
+        panchayatName={
+          hasDbPanchayats
+            ? dbPanchayats.length <= 5
+              ? dbPanchayats.map((p: any) => (locale === 'ta' && p.nameTa ? p.nameTa : p.name)).join(', ')
+              : `${dbPanchayats.length} ${locale === 'ta' ? 'ஊராட்சிகள்' : 'Panchayats'}`
+            : union.areasCovered && union.areasCovered.length > 0
+            ? union.areasCovered.length <= 5
+              ? union.areasCovered.join(', ')
+              : `${union.areasCovered.length} ${locale === 'ta' ? 'பகுதிகள்' : 'Areas'}`
+            : '-'
+        }
+        boothDetails={
+          union.totalBooths
+            ? `${union.totalBooths} ${locale === 'ta' ? 'சாவடிகள்' : 'Booths'}`
+            : '-'
+        }
+        defaultView="table"
+        onView={(c) => setViewingCadre(c)}
+        onEdit={(e, c) => handleOpenEdit(e, c)}
+        onDelete={(e, id) => handleDelete(e, id)}
+        onCall={(person) => setCallConfirmation(person)}
+      />
 
       
       <CadreFormDialog 

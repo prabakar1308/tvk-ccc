@@ -3,7 +3,7 @@
 import { useParams } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import { useKilai } from '@/hooks/use-kilais';
-import { getOrgUnitName } from '@/lib/org-unit-translations';
+import { getOrgUnitName, getUnitTypeLabel } from '@/lib/org-unit-translations';
 import { ArrowLeft, MapPin, Building2, Users, Tent, Phone } from 'lucide-react';
 import { Link } from '@/i18n/routing';
 import { useState } from 'react';
@@ -14,6 +14,7 @@ import { Plus } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
 import { CadreCard } from '@/components/cadre-card';
+import { CadreRosterTable } from '@/components/cadres/cadre-roster-table';
 import { useDeleteCadre } from '@/hooks/use-cadres';
 import {
   Dialog,
@@ -158,40 +159,35 @@ export default function KilaiDetailsPage() {
         </div>
       </div>
 
-      {/* Cadres Grid */}
-      <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-8 shadow-sm border border-gray-100">
-        <h2 className="text-lg font-bold text-gray-900 tracking-wide mb-6">
-          {locale === 'ta' ? 'கிளை நிர்வாகிகள் (பொறுப்பாளர்கள்)' : 'Kilai Cadres (Office Bearers)'}
-        </h2>
-        
-        {!kilaiData.kilaiCadres || kilaiData.kilaiCadres.length === 0 ? (
-          <div className="text-center py-12 text-zinc-500 font-medium bg-zinc-50 dark:bg-zinc-800/40 rounded-2xl border border-dashed border-zinc-200 dark:border-zinc-800">
-            {locale === 'ta' ? 'இந்த கிளைக்கு இதுவரை நிர்வாகிகள் பதிவு செய்யப்படவில்லை.' : 'No administrators registered for this Kilai yet.'}
-          </div>
-        ) : (
-          <div className="grid gap-5 sm:gap-6 [grid-template-columns:repeat(auto-fill,minmax(240px,1fr))]">
-            {kilaiData.kilaiCadres.map((cadre: any, index: number) => {
-              const rawRole = cadre.officeBearerRoles?.[0]?.role || cadre.role || 'Member';
-              const isSecretary = rawRole.toUpperCase().includes('SECRETARY') || rawRole.toUpperCase().includes('PRESIDENT');
-              const highlight = index === 0 && isSecretary;
-
-              return (
-                <CadreCard
-                  key={cadre.id || index}
-                  cadre={cadre}
-                  highlight={highlight}
-                  minWidth="240px"
-                  showLocation={true}
-                  onView={(c) => setViewingCadre(c)}
-                  onEdit={(e, c) => handleOpenEdit(e, c)}
-                  onDelete={(e, cadreId) => handleDelete(e, cadreId)}
-                  onCall={(person) => setCallConfirmation(person)}
-                />
-              );
-            })}
-          </div>
-        )}
-      </div>
+      {/* Kilai Cadres Table / Roster with PDF Generator */}
+      <CadreRosterTable
+        cadres={kilaiData.kilaiCadres || []}
+        title={locale === 'ta' ? 'கிளை நிர்வாகிகள் (பொறுப்பாளர்கள்)' : 'Kilai Cadres (Office Bearers)'}
+        unionName={getOrgUnitName(kilaiData.union, locale) || kilaiData.union?.name || (locale === 'ta' ? 'ஒன்றியம்' : 'Union')}
+        unitName={getOrgUnitName(kilaiData.union, locale) || kilaiData.union?.name || (locale === 'ta' ? 'ஒன்றியம்' : 'Union')}
+        unitType={getUnitTypeLabel(kilaiData.union?.unitType, locale) || (locale === 'ta' ? 'ஒன்றியம்' : 'Union')}
+        districtName={kilaiData.union?.district?.name || kilaiData.district?.name || 'Kurinjipadi'}
+        panchayatName={
+          kilaiData.panchayatRel
+            ? (locale === 'ta' && kilaiData.panchayatRel.nameTa ? kilaiData.panchayatRel.nameTa : kilaiData.panchayatRel.name)
+            : (kilaiData.panchayat || '-')
+        }
+        kilaiName={
+          locale === 'ta' && kilaiData.tamilName
+            ? `${kilaiData.name} (${kilaiData.tamilName})`
+            : kilaiData.name
+        }
+        boothDetails={
+          kilaiData.booths && kilaiData.booths.length > 0
+            ? kilaiData.booths.map((b: any) => `#${b.boothNo}${b.name ? ` (${b.name})` : ''}`).join(', ')
+            : (kilaiData.boothNo ? `#${kilaiData.boothNo}` : '-')
+        }
+        defaultView="table"
+        onView={(c) => setViewingCadre(c)}
+        onEdit={(e, c) => handleOpenEdit(e, c)}
+        onDelete={(e, cadreId) => handleDelete(e, cadreId)}
+        onCall={(person) => setCallConfirmation(person)}
+      />
 
       <CadreFormDialog 
         isOpen={isModalOpen}
