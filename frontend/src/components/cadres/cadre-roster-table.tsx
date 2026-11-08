@@ -24,6 +24,7 @@ import { UserAvatar } from '@/components/ui/user-avatar';
 import { CadreCard } from '@/components/cadre-card';
 import { formatDesignation } from '@/components/cadre-card';
 import { translatePersonNameToTamil } from '@/lib/name-translations';
+import { printCadreRosterPdf, formatAadhaar, formatPhone } from '@/lib/cadre-print';
 import {
   Table,
   TableBody,
@@ -53,32 +54,6 @@ export interface CadreRosterTableProps {
   onCall?: (person: { name: string; phone: string }, e: React.MouseEvent) => void;
 }
 
-/**
- * Format 12-digit Aadhaar into `XXXX XXXX 1234` or `1234 5678 9012`
- */
-function formatAadhaar(raw?: string, masked: boolean = false): string {
-  if (!raw) return '-';
-  const clean = String(raw).replace(/\D/g, '');
-  if (clean.length !== 12) return raw;
-
-  if (masked) {
-    return `•••• •••• ${clean.slice(8)}`;
-  }
-  return `${clean.slice(0, 4)} ${clean.slice(4, 8)} ${clean.slice(8)}`;
-}
-
-/**
- * Format phone number into clean readable format
- */
-function formatPhone(raw?: string): string {
-  if (!raw) return '-';
-  const clean = String(raw).replace(/\D/g, '');
-  if (clean.length === 10) {
-    return `${clean.slice(0, 5)} ${clean.slice(5)}`;
-  }
-  return raw;
-}
-
 export function CadreRosterTable({
   cadres = [],
   title,
@@ -103,7 +78,6 @@ export function CadreRosterTable({
   const [isDesktop, setIsDesktop] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [maskAadhaar, setMaskAadhaar] = useState(false);
-  const printFrameRef = useRef<HTMLIFrameElement>(null);
 
   // Responsive check: Table view only for desktop (>= 1024px); Tile view for others
   useEffect(() => {
@@ -162,343 +136,20 @@ export function CadreRosterTable({
    */
   const handlePrintPdf = () => {
     const listToPrint = filteredCadres.length > 0 ? filteredCadres : cadres;
-    const now = new Date();
-    const formattedDate = now.toLocaleDateString(locale === 'ta' ? 'ta-IN' : 'en-IN', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
+    printCadreRosterPdf({
+      cadres: listToPrint,
+      locale,
+      level: isUnion ? 'UNION' : 'KILAI',
+      districtName,
+      unionName,
+      unitName,
+      unitType,
+      divisionName,
+      panchayatName,
+      kilaiName,
+      boothDetails,
+      maskAadhaar,
     });
-    const formattedTime = now.toLocaleTimeString(locale === 'ta' ? 'ta-IN' : 'en-IN', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-
-    // District Name included in doc title
-    const baseTitle = locale === 'ta' 
-      ? 'நிர்வாகிகள் பட்டியல்' 
-      : 'Administrators Roster';
-    const districtSuffix = districtName 
-      ? ` - ${districtName} ${locale === 'ta' ? 'மாவட்டம்' : 'District'}` 
-      : '';
-    const fullDocTitle = `${baseTitle}${districtSuffix}`;
-
-    const partyNameTa = 'தமிழக வெற்றிக் கழகம்';
-    const partyNameEn = 'TAMIZHAGA VETRI KAZHAGAM';
-
-    // Build Table Rows HTML
-    // If Union: includes Booth No column; if Kilai: no Booth No column
-    const tableRowsHtml = listToPrint.map((c, idx) => {
-      const primaryName = locale === 'ta' ? (c.nameTa || translatePersonNameToTamil(c.name)) : c.name;
-      const secondaryName = locale === 'ta' ? c.name : (c.nameTa || translatePersonNameToTamil(c.name));
-      const rawRole = c.officeBearerRoles?.[0]?.role || c.role || 'Member';
-      const role = formatDesignation(rawRole, locale);
-      const phone = formatPhone(c.phone);
-      const aadhaar = formatAadhaar(c.aadhaarNumber, maskAadhaar);
-      const voterId = c.voterId ? String(c.voterId).toUpperCase() : '';
-      const memberId = c.memberId ? String(c.memberId) : '';
-
-      return `
-        <tr>
-          <td style="text-align: center; font-weight: bold; width: 34px;">${idx + 1}</td>
-          <td>
-            <div style="font-weight: 700; font-size: 12.5px; color: #111827;">${primaryName}</div>
-            ${secondaryName && secondaryName !== primaryName ? `<div style="font-size: 10.5px; color: #6B7280; margin-top: 1px;">${secondaryName}</div>` : ''}
-          </td>
-          <td>
-            <span style="display: inline-block; padding: 2px 7px; border-radius: 4px; font-size: 10.5px; font-weight: 700; background: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5;">
-              ${role}
-            </span>
-          </td>
-          ${isUnion ? `
-          <td style="font-family: monospace; font-size: 11.5px; font-weight: 700; color: #1F2937;">
-            ${c.boothNo ? `#${c.boothNo}` : '-'}
-          </td>
-          ` : ''}
-          <td style="font-family: monospace; font-size: 11.5px; font-weight: 600; color: #1F2937;">${phone}</td>
-          <td style="font-family: monospace; font-size: 11.5px; font-weight: 600; color: #1F2937;">${aadhaar}</td>
-          <td>
-            ${(voterId || memberId) ? `<div style="font-family: monospace; font-size: 11.5px; font-weight: 700; color: #1F2937;">${voterId || memberId}</div>` : ''}
-            ${!voterId && !memberId ? '-' : ''}
-          </td>
-        </tr>
-      `;
-    }).join('');
-
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <meta charset="utf-8" />
-        <title>${fullDocTitle} - ${effectiveUnionName}</title>
-        <style>
-          @page {
-            size: A4 portrait;
-            margin: 8mm 8mm 12mm 8mm;
-          }
-          * {
-            box-sizing: border-box;
-            -webkit-print-color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-          body {
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Mukta Malar', 'Noto Sans Tamil', sans-serif;
-            color: #111827;
-            background: #fff;
-            margin: 0;
-            padding: 10px;
-            font-size: 11.5px;
-            line-height: 1.35;
-          }
-          .header-stripe {
-            height: 6px;
-            background: linear-gradient(90deg, #8F0A1B 0%, #D97706 50%, #FFC72C 100%);
-            border-radius: 4px;
-            margin-bottom: 10px;
-          }
-          .header-box {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid #8F0A1B;
-            padding-bottom: 8px;
-            margin-bottom: 12px;
-          }
-          .party-title-ta {
-            font-size: 18px;
-            font-weight: 900;
-            color: #8F0A1B;
-            letter-spacing: 0.5px;
-          }
-          .party-title-en {
-            font-size: 10.5px;
-            font-weight: 800;
-            color: #4B5563;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-            margin-top: 1px;
-          }
-          .doc-badge {
-            text-align: right;
-          }
-          .doc-badge h2 {
-            margin: 0;
-            font-size: 14.5px;
-            font-weight: 900;
-            color: #1F2937;
-          }
-          .doc-badge p {
-            margin: 2px 0 0 0;
-            font-size: 9.5px;
-            color: #6B7280;
-            font-weight: 600;
-          }
-          .meta-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px 14px;
-            background: #F9FAFB;
-            border: 1px solid #E5E7EB;
-            border-radius: 6px;
-            padding: 10px 14px;
-            margin-bottom: 12px;
-            font-size: 11px;
-            align-items: start;
-          }
-          .meta-item {
-            display: flex;
-            flex-direction: column;
-            gap: 2px;
-            min-width: 0;
-          }
-          .meta-item strong {
-            color: #6B7280;
-            font-size: 10px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-          }
-          .meta-item span {
-            color: #111827;
-            font-weight: 700;
-            font-size: 11.5px;
-            word-break: break-word;
-            line-height: 1.35;
-          }
-          .meta-item.col-span-2 {
-            grid-column: span 2;
-          }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 4px;
-          }
-          th {
-            background-color: #8F0A1B !important;
-            color: #ffffff !important;
-            font-weight: 700;
-            font-size: 10.5px;
-            text-align: left;
-            padding: 6px 8px;
-            border: 1px solid #750816;
-            text-transform: uppercase;
-            letter-spacing: 0.2px;
-          }
-          td {
-            padding: 6px 8px;
-            border: 1px solid #E5E7EB;
-            vertical-align: middle;
-            font-size: 11px;
-          }
-          tr:nth-child(even) td {
-            background-color: #F9FAFB !important;
-          }
-          .sign-section {
-            margin-top: 32px;
-            display: flex;
-            justify-content: space-between;
-            padding: 0 30px;
-            page-break-inside: avoid;
-          }
-          .sign-box {
-            text-align: center;
-            border-top: 1px dashed #6B7280;
-            width: 180px;
-            padding-top: 6px;
-            font-size: 10.5px;
-            font-weight: 700;
-            color: #374151;
-          }
-          .footer-note {
-            margin-top: 20px;
-            text-align: center;
-            font-size: 9px;
-            color: #9CA3AF;
-            border-top: 1px solid #E5E7EB;
-            padding-top: 6px;
-          }
-        </style>
-      </head>
-      <body>
-        <div class="header-stripe"></div>
-        <div class="header-box">
-          <div>
-            <div class="party-title-ta">${partyNameTa}</div>
-            <div class="party-title-en">${partyNameEn}</div>
-          </div>
-          <div class="doc-badge">
-            <h2>${fullDocTitle}</h2>
-            <p>${formmatedDivisionName} ${kilaiName ? `• ${kilaiName}` : ''} • ${formattedDate}</p>
-          </div>
-        </div>
-
-        <div class="meta-grid">
-          <!-- Org Unit: Union name in bracket [ Org Unit Type ] -->
-          <div class="meta-item">
-            <strong>${locale === 'ta' ? 'அமைப்பு அலகு:' : 'Org Unit:'}</strong>
-            <span>${formattedOrgUnit}</span>
-          </div>
-
-          <!-- Panchayat (District removed and replaced with Panchayat) -->
-          <div class="meta-item">
-            <strong>${locale === 'ta' ? 'ஊராட்சி:' : 'Panchayat:'}</strong>
-            <span>${panchayatName || '-'}</span>
-          </div>
-
-          ${kilaiName ? `
-          <!-- If Kilai: Kilai Name on Row 1 (Col 3) -->
-          <div class="meta-item">
-            <strong>${locale === 'ta' ? 'கிளை:' : 'Kilai:'}</strong>
-            <span>${kilaiName}</span>
-          </div>
-
-          <!-- If Kilai: Booth Details spans 2 cols on Row 2 -->
-          <div class="meta-item col-span-2">
-            <strong>${locale === 'ta' ? 'சாவடி விவரம்:' : 'Booth Details:'}</strong>
-            <span>${boothDetails || '-'}</span>
-          </div>
-
-          <!-- If Kilai: Total Administrators occupies Col 3 on Row 2 -->
-          <div class="meta-item">
-            <strong>${locale === 'ta' ? 'மொத்த நிர்வாகிகள்:' : 'Total Administrators:'}</strong>
-            <span>${listToPrint.length}</span>
-          </div>
-          ` : `
-          <!-- If Union: Total Administrators on Row 1 (Col 3). NO Booth Details in header! -->
-          <div class="meta-item">
-            <strong>${locale === 'ta' ? 'மொத்த நிர்வாகிகள்:' : 'Total Administrators:'}</strong>
-            <span>${listToPrint.length}</span>
-          </div>
-          `}
-        </div>
-
-        <table>
-          <thead>
-            <tr>
-              <th style="width: 34px; text-align: center;">#</th>
-              <th>${locale === 'ta' ? 'பெயர்' : 'Name'}</th>
-              <th>${locale === 'ta' ? 'பொறுப்பு' : 'Role'}</th>
-              ${isUnion ? `<th>${locale === 'ta' ? 'சாவடி எண்' : 'Booth No'}</th>` : ''}
-              <th>${locale === 'ta' ? 'கைபேசி எண்' : 'Phone No'}</th>
-              <th>${locale === 'ta' ? 'ஆதார் எண்' : 'Aadhaar No'}</th>
-              <th>${locale === 'ta' ? 'வாக்காளர் எண்' : 'Voter ID'}</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${tableRowsHtml}
-          </tbody>
-        </table>
-
-        <div class="sign-section">
-          <div class="sign-box">
-            ${locale === 'ta' ? 'செயலாளர் கையொப்பம்' : 'Secretary Signature'}
-          </div>
-          <div class="sign-box">
-            ${locale === 'ta' ? 'தலைவர் கையொப்பம்' : 'Chief Secretary Signature'}
-          </div>
-        </div>
-
-        <div class="footer-note">
-          ${locale === 'ta' ? 'தமிழக வெற்றிக் கழகம் தலைமை கட்டளை மையம் மூலம் அச்சிடப்பட்டது' : 'Generated by TVK Command Centre Official Platform'} • ${formattedDate} ${formattedTime}
-        </div>
-      </body>
-      </html>
-    `;
-
-    // Use hidden iframe to print cleanly without popup blockers
-    let printFrame = printFrameRef.current;
-    if (!printFrame) {
-      printFrame = document.createElement('iframe');
-      printFrame.style.position = 'fixed';
-      printFrame.style.right = '0';
-      printFrame.style.bottom = '0';
-      printFrame.style.width = '0';
-      printFrame.style.height = '0';
-      printFrame.style.border = '0';
-      document.body.appendChild(printFrame);
-    }
-
-    const frameDoc = printFrame.contentDocument || printFrame.contentWindow?.document;
-    if (frameDoc) {
-      frameDoc.open();
-      frameDoc.write(htmlContent);
-      frameDoc.close();
-
-      setTimeout(() => {
-        printFrame?.contentWindow?.focus();
-        printFrame?.contentWindow?.print();
-      }, 350);
-    } else {
-      // Fallback to popup window
-      const win = window.open('', '_blank');
-      if (win) {
-        win.document.write(htmlContent);
-        win.document.close();
-        setTimeout(() => {
-          win.focus();
-          win.print();
-        }, 350);
-      }
-    }
   };
 
   const defaultTitle = locale === 'ta' ? 'நிர்வாகிகள் பட்டியல்' : 'Administrators Roster';
@@ -506,9 +157,6 @@ export function CadreRosterTable({
 
   return (
     <div className="bg-white dark:bg-zinc-900 rounded-xl sm:rounded-2xl p-4 sm:p-7 shadow-sm border border-zinc-200/80 dark:border-zinc-800 space-y-5">
-      {/* Hidden iframe for reliable PDF print trigger */}
-      <iframe ref={printFrameRef} className="hidden" title="print-frame" />
-
       {/* Header with Title, Search, View Switcher & PDF Button */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 pb-4 border-b border-zinc-100 dark:border-zinc-800">
         <div className="flex items-center gap-3">

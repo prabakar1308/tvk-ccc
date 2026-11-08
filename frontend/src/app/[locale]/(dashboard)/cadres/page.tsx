@@ -33,11 +33,13 @@ import {
   X,
   Filter,
   Check,
-  Award
+  Award,
+  Printer
 } from "lucide-react";
 import { Link } from '@/i18n/routing';
 import { useTranslations, useLocale } from 'next-intl';
 import { translatePersonNameToTamil } from '@/lib/name-translations';
+import { printCadreRosterPdf } from '@/lib/cadre-print';
 import { useCadres, useDeleteCadre } from '@/hooks/use-cadres';
 import { useUnions } from '@/hooks/use-unions';
 import { useKilais } from '@/hooks/use-kilais';
@@ -375,6 +377,26 @@ function matchesRoleFilter(rawRole: string | undefined | null, filterId: string)
       return <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-[#FFC72C] text-black border border-amber-400/40 shadow-sm">{displayRole}</span>;
     }
     return <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-primary/10 text-primary border border-primary/20">{displayRole}</span>;
+  };
+
+  const handlePrintPdf = () => {
+    if (filteredCadres.length === 0) return;
+    const isDistrictTier = levelFilter === 'DISTRICT' || filterLevel === 'DISTRICT';
+    const isUnionTier = levelFilter === 'UNION' || filterLevel === 'UNION';
+    const isKilaiTier = levelFilter === 'KILAI' || filterLevel === 'KILAI';
+
+    const selectedUnionObj = filterUnionId ? unions.find((u: any) => String(u.id || u._id) === filterUnionId) : undefined;
+    const selectedKilaiObj = filterKilaiId ? kilais.find((k: any) => String(k.id || k._id) === filterKilaiId) : undefined;
+
+    printCadreRosterPdf({
+      cadres: filteredCadres,
+      locale,
+      level: isDistrictTier ? 'DISTRICT' : isUnionTier ? 'UNION' : isKilaiTier ? 'KILAI' : 'ALL',
+      districtName: locale === 'ta' ? 'கடலூர் கிழக்கு' : 'Cuddalore East',
+      unionName: selectedUnionObj?.name,
+      kilaiName: selectedKilaiObj?.name,
+      panchayatName: selectedKilaiObj?.panchayat,
+    });
   };
 
   return (
@@ -728,11 +750,24 @@ function matchesRoleFilter(rawRole: string | undefined | null, filterId: string)
             )}
           </div>
 
-          {/* View Mode Switcher (Tile / Table) & Counter */}
-          <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0">
+          {/* View Mode Switcher (Tile / Table) & Counter & Print PDF */}
+          <div className="flex items-center justify-between sm:justify-end gap-2.5 sm:gap-3 shrink-0">
             <div className="text-xs font-semibold text-muted-foreground whitespace-nowrap">
               Showing <span className="font-bold text-foreground">{filteredCadres.length}</span> of {tierCounts[levelFilter as keyof typeof tierCounts] ?? tierCounts.ALL}
             </div>
+
+            {/* Print PDF Button */}
+            <Button
+              onClick={handlePrintPdf}
+              disabled={filteredCadres.length === 0}
+              variant="outline"
+              size="sm"
+              className="h-10 px-3.5 rounded-xl border-zinc-200 dark:border-zinc-700 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 font-bold text-xs shadow-2xs gap-1.5 cursor-pointer disabled:opacity-50"
+              title="Print Current Cadre Roster (PDF)"
+            >
+              <Printer className="w-4 h-4 text-primary" />
+              <span className="hidden sm:inline">{locale === 'ta' ? 'அச்சிடு (PDF)' : 'Print PDF'}</span>
+            </Button>
 
             <div className="inline-flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl h-10 border border-zinc-200/60 dark:border-zinc-700/60">
               <button

@@ -9,7 +9,8 @@ import dbImageDesktopLarge from '../../../../public/db_image_desktop_large.png';
 import { 
   Users, Store, Building2, Building, MapPin, ArrowRight, 
   Network, Megaphone, BarChart2, Phone, 
-  ShieldCheck, UserCheck, Layers, Sparkles, ChevronRight
+  ShieldCheck, UserCheck, Layers, Sparkles, ChevronRight,
+  Printer
 } from "lucide-react";
 import {
   Carousel,
@@ -30,6 +31,7 @@ import { Button } from '@/components/ui/button';
 import { CadreViewDialog } from '@/components/cadre-view-dialog';
 import { translatePersonNameToTamil, translateRoleToTamil, isSecretaryRole } from '@/lib/name-translations';
 import { WingsCoordinatorsSection } from '@/components/dashboard/wings-coordinators-section';
+import { printCadreRosterPdf } from '@/lib/cadre-print';
 
 export default function DashboardPage() {
   const t = useTranslations('Dashboard');
@@ -52,6 +54,16 @@ export default function DashboardPage() {
     e.preventDefault();
     e.stopPropagation();
     setCallPerson({ phone, name });
+  };
+
+  const handlePrintDistrictPdf = () => {
+    if (!districtCadres || districtCadres.length === 0) return;
+    printCadreRosterPdf({
+      cadres: districtCadres,
+      locale,
+      level: 'DISTRICT',
+      districtName: locale === 'ta' ? 'கடலூர் கிழக்கு' : 'Cuddalore East',
+    });
   };
   
   const secretary = districtCadres?.find(c => isSecretaryRole(c.rawRole || c.canonicalRole || c.role)) || districtCadres?.[0];
@@ -414,12 +426,25 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <Link href="/cadres?level=DISTRICT">
-            <Button variant="outline" size="sm" className="h-9 px-4 rounded-xl border-primary/20 text-primary hover:bg-primary/5 font-semibold text-xs shadow-2xs">
-              {t('viewAllCadres')}
-              <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+          <div className="flex items-center gap-2.5 w-full sm:w-auto justify-end">
+            <Button
+              onClick={handlePrintDistrictPdf}
+              disabled={!districtCadres || districtCadres.length === 0}
+              variant="outline"
+              size="sm"
+              className="h-9 px-3.5 rounded-xl border-zinc-200 dark:border-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 font-bold text-xs shadow-2xs gap-1.5 cursor-pointer disabled:opacity-50"
+              title="Print District Cadres (PDF)"
+            >
+              <Printer className="w-3.5 h-3.5 text-primary" />
+              <span>{locale === 'ta' ? 'அச்சிடு (PDF)' : 'Print PDF'}</span>
             </Button>
-          </Link>
+            <Link href="/cadres?level=DISTRICT">
+              <Button variant="outline" size="sm" className="h-9 px-4 rounded-xl border-primary/20 text-primary hover:bg-primary/5 font-semibold text-xs shadow-2xs">
+                {t('viewAllCadres')}
+                <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
+              </Button>
+            </Link>
+          </div>
         </div>
 
         <div className="flex flex-col lg:flex-row gap-5 items-stretch">
