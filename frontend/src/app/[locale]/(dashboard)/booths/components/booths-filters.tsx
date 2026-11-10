@@ -4,6 +4,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import {
   Select,
   SelectContent,
@@ -20,8 +21,13 @@ import {
   LayoutGrid,
   List,
   Download,
+  Building2,
+  Store,
+  MapPin,
+  Users,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
+import { getOrgUnitName } from '@/lib/org-unit-translations';
 
 export interface BoothsFiltersProps {
   search: string;
@@ -30,8 +36,10 @@ export interface BoothsFiltersProps {
   onToggleAdvanced: () => void;
   filterUnionId: string;
   onUnionChange: (val: string) => void;
-  filterKilaiId: string;
-  onKilaiChange: (val: string) => void;
+  filterPanchayatId: string;
+  onPanchayatChange: (val: string) => void;
+  filterVillageId: string;
+  onVillageChange: (val: string) => void;
   filterAgentId: string;
   onAgentStatusChange: (val: string) => void;
   onClearFilters: () => void;
@@ -42,7 +50,8 @@ export interface BoothsFiltersProps {
   allExpanded: boolean;
   onToggleAllExpanded: () => void;
   unions: any[] | undefined;
-  kilais: any[] | undefined;
+  panchayats: any[] | undefined;
+  villages: any[] | undefined;
   dataSectionRef?: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -53,8 +62,10 @@ export function BoothsFiltersComponent({
   onToggleAdvanced,
   filterUnionId,
   onUnionChange,
-  filterKilaiId,
-  onKilaiChange,
+  filterPanchayatId,
+  onPanchayatChange,
+  filterVillageId,
+  onVillageChange,
   filterAgentId,
   onAgentStatusChange,
   onClearFilters,
@@ -65,7 +76,8 @@ export function BoothsFiltersComponent({
   allExpanded,
   onToggleAllExpanded,
   unions,
-  kilais,
+  panchayats,
+  villages,
   dataSectionRef,
 }: BoothsFiltersProps) {
   const locale = useLocale();
@@ -91,6 +103,36 @@ export function BoothsFiltersComponent({
     setLocalSearch('');
     onSearchChange('');
   };
+
+  const activeUnionObj = React.useMemo(() => {
+    if (!filterUnionId || filterUnionId === 'all') return null;
+    return unions?.find(
+      (u: any) => String(u.id || u._id) === String(filterUnionId)
+    );
+  }, [unions, filterUnionId]);
+
+  const activePanchayatObj = React.useMemo(() => {
+    if (!filterPanchayatId || filterPanchayatId === 'all') return null;
+    return panchayats?.find(
+      (p: any) => String(p.id) === String(filterPanchayatId)
+    );
+  }, [panchayats, filterPanchayatId]);
+
+  const activeVillageObj = React.useMemo(() => {
+    if (!filterVillageId || filterVillageId === 'all') return null;
+    return villages?.find(
+      (v: any) => String(v.id) === String(filterVillageId)
+    );
+  }, [villages, filterVillageId]);
+
+  const activeFiltersCount = [
+    filterUnionId && filterUnionId !== 'all',
+    filterPanchayatId && filterPanchayatId !== 'all',
+    filterVillageId && filterVillageId !== 'all',
+    filterAgentId,
+  ].filter(Boolean).length;
+
+  const hasAnyFilter = activeFiltersCount > 0 || Boolean(search);
 
   return (
     <div
@@ -121,22 +163,22 @@ export function BoothsFiltersComponent({
           </div>
           <Button
             variant={
-              isAdvancedOpen || filterUnionId || filterKilaiId || filterAgentId
+              isAdvancedOpen || activeFiltersCount > 0
                 ? 'default'
                 : 'outline'
             }
             className={`h-10 sm:h-11 px-3.5 sm:px-4 rounded-xl gap-2 border-primary/20 transition-all font-semibold text-xs sm:text-sm shrink-0 justify-center w-full sm:w-auto cursor-pointer ${
-              isAdvancedOpen || filterUnionId || filterKilaiId || filterAgentId
+              isAdvancedOpen || activeFiltersCount > 0
                 ? 'bg-primary/10 text-primary hover:bg-primary/20 border-primary/30'
                 : 'text-muted-foreground hover:text-primary'
             }`}
             onClick={onToggleAdvanced}
           >
             <Filter className="w-4 h-4" />
-            <span>Advanced Search</span>
-            {(filterUnionId || filterKilaiId || filterAgentId) && (
+            <span>{locale === 'ta' ? 'மேம்பட்ட தேடல்' : 'Advanced Search'}</span>
+            {activeFiltersCount > 0 && (
               <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground font-bold">
-                {[filterUnionId, filterKilaiId, filterAgentId].filter(Boolean).length}
+                {activeFiltersCount}
               </span>
             )}
             <ChevronDown
@@ -221,96 +263,148 @@ export function BoothsFiltersComponent({
 
       {/* Advanced Search Panel */}
       {isAdvancedOpen && (
-        <div className="mt-2 bg-white dark:bg-zinc-900/60 p-4 sm:p-5 rounded-xl border border-primary/10 shadow-xs animate-in slide-in-from-top-2 fade-in duration-200">
-          <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <div className="mt-2 bg-white dark:bg-zinc-900/60 p-4 sm:p-5 rounded-xl border border-primary/10 shadow-xs animate-in slide-in-from-top-2 fade-in duration-200 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-primary/10 pb-3">
             <div className="flex items-center gap-2 text-primary font-bold text-xs sm:text-sm">
               <Filter className="w-4 h-4" />
-              <span>Advanced Filters</span>
+              <span>{locale === 'ta' ? 'மேம்பட்ட வடிப்பான்கள்' : 'Advanced Filters'}</span>
+              {activeFiltersCount > 0 && (
+                <Badge variant="outline" className="text-[10px] bg-primary/10 text-primary border-primary/30">
+                  {activeFiltersCount} {locale === 'ta' ? 'செயலில்' : 'Active'}
+                </Badge>
+              )}
             </div>
 
-            {(filterUnionId || filterKilaiId || filterAgentId) && (
+            {hasAnyFilter && (
               <Button
                 variant="ghost"
                 size="sm"
                 className="h-7 sm:h-8 text-xs font-semibold text-destructive hover:text-destructive bg-destructive/10 hover:bg-destructive/20 px-3 rounded-lg cursor-pointer transition-colors"
                 onClick={onClearFilters}
               >
-                <X className="w-3.5 h-3.5 mr-1" /> Clear Filters
+                <X className="w-3.5 h-3.5 mr-1" />
+                {locale === 'ta' ? 'வடிப்பான்களை நீக்கு' : 'Clear Filters'}
               </Button>
             )}
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            {/* 1. Org Unit */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                Org Unit
+              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Building2 className="w-3.5 h-3.5 text-primary" />
+                <span>{locale === 'ta' ? 'அமைப்பு அலகு' : 'Org Unit'}</span>
               </Label>
               <Select
-                value={filterUnionId}
+                value={filterUnionId || 'all'}
                 onValueChange={(v) => onUnionChange(v === 'all' ? '' : v || '')}
               >
                 <SelectTrigger className="w-full !h-10 sm:!h-11 bg-background border-primary/20 hover:border-primary/40 transition-colors rounded-xl shadow-xs text-xs sm:text-sm">
-                  <SelectValue placeholder="All Org Units">
-                    {filterUnionId && filterUnionId !== 'all'
-                      ? unions?.find((u: any) => String(u.id || u._id) === filterUnionId)?.name
-                      : 'All Org Units'}
+                  <SelectValue placeholder={locale === 'ta' ? 'அனைத்து அமைப்பு அலகுகள்' : 'All Org Units'}>
+                    {activeUnionObj ? getOrgUnitName(activeUnionObj, locale) : (locale === 'ta' ? 'அனைத்து அமைப்பு அலகுகள்' : 'All Org Units')}
                   </SelectValue>
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all" label="All Org Units">
-                    All Org Units
+                <SelectContent className="max-h-72">
+                  <SelectItem value="all">
+                    {locale === 'ta' ? 'அனைத்து அமைப்பு அலகுகள்' : 'All Org Units'}
                   </SelectItem>
                   {unions?.map((u: any) => (
                     <SelectItem
                       key={String(u.id || u._id)}
                       value={String(u.id || u._id)}
-                      label={u.name}
                     >
-                      {u.name}
+                      {getOrgUnitName(u, locale)}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
+            {/* 2. Panchayat / Ward */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                Kilai
+              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Store className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                <span>{locale === 'ta' ? 'ஊராட்சி / வார்டு' : 'Panchayat / Ward'}</span>
               </Label>
               <Select
-                value={filterKilaiId}
-                onValueChange={(v) => onKilaiChange(v === 'all' ? '' : v || '')}
-                disabled={!filterUnionId}
+                value={filterPanchayatId || 'all'}
+                onValueChange={(v) => onPanchayatChange(v === 'all' ? '' : v || '')}
               >
-                <SelectTrigger className="w-full !h-10 sm:!h-11 bg-background border-primary/20 hover:border-primary/40 transition-colors rounded-xl shadow-xs text-xs sm:text-sm disabled:opacity-50">
-                  <SelectValue placeholder="All Kilais">
-                    {filterKilaiId && filterKilaiId !== 'all'
-                      ? kilais?.find((k: any) => String(k.id || k._id) === filterKilaiId)?.name
-                      : 'All Kilais'}
+                <SelectTrigger className="w-full !h-10 sm:!h-11 bg-background border-primary/20 hover:border-primary/40 transition-colors rounded-xl shadow-xs text-xs sm:text-sm">
+                  <SelectValue placeholder={locale === 'ta' ? 'அனைத்து ஊராட்சிகள்' : 'All Panchayats'}>
+                    {activePanchayatObj
+                      ? locale === 'ta' && activePanchayatObj.nameTa
+                        ? `${activePanchayatObj.nameTa} (${activePanchayatObj.name})`
+                        : activePanchayatObj.name
+                      : locale === 'ta'
+                      ? 'அனைத்து ஊராட்சிகள்'
+                      : 'All Panchayats'}
                   </SelectValue>
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all" label="All Kilais">
-                    All Kilais
+                <SelectContent className="max-h-72">
+                  <SelectItem value="all">
+                    {locale === 'ta' ? 'அனைத்து ஊராட்சிகள்' : 'All Panchayats'}
                   </SelectItem>
-                  {kilais
-                    ?.filter((k: any) => String(k.unionId) === filterUnionId)
-                    .map((k: any) => (
-                      <SelectItem
-                        key={String(k.id || k._id)}
-                        value={String(k.id || k._id)}
-                        label={k.name}
-                      >
-                        {k.name}
+                  {panchayats?.map((p: any) => {
+                    const label =
+                      locale === 'ta' && p.nameTa
+                        ? `${p.nameTa} (${p.name})`
+                        : p.name;
+                    return (
+                      <SelectItem key={String(p.id)} value={String(p.id)}>
+                        {label}
                       </SelectItem>
-                    ))}
+                    );
+                  })}
                 </SelectContent>
               </Select>
             </div>
 
-            <div className="space-y-1.5 sm:col-span-2 lg:col-span-1">
-              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                Agent Status
+            {/* 3. Village / Locality */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <MapPin className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                <span>{locale === 'ta' ? 'கிராமம் / குடியிருப்பு' : 'Village / Locality'}</span>
+              </Label>
+              <Select
+                value={filterVillageId || 'all'}
+                onValueChange={(v) => onVillageChange(v === 'all' ? '' : v || '')}
+              >
+                <SelectTrigger className="w-full !h-10 sm:!h-11 bg-background border-primary/20 hover:border-primary/40 transition-colors rounded-xl shadow-xs text-xs sm:text-sm">
+                  <SelectValue placeholder={locale === 'ta' ? 'அனைத்து கிராமங்கள்' : 'All Villages'}>
+                    {activeVillageObj
+                      ? locale === 'ta' && activeVillageObj.nameTa
+                        ? `${activeVillageObj.nameTa} (${activeVillageObj.name})`
+                        : activeVillageObj.name
+                      : locale === 'ta'
+                      ? 'அனைத்து கிராமங்கள்'
+                      : 'All Villages'}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent className="max-h-72">
+                  <SelectItem value="all">
+                    {locale === 'ta' ? 'அனைத்து கிராமங்கள்' : 'All Villages'}
+                  </SelectItem>
+                  {villages?.map((v: any) => {
+                    const label =
+                      locale === 'ta' && v.nameTa
+                        ? `${v.nameTa} (${v.name})`
+                        : v.name;
+                    return (
+                      <SelectItem key={String(v.id)} value={String(v.id)}>
+                        {label}
+                      </SelectItem>
+                    );
+                  })}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* 4. Agent Status */}
+            <div className="space-y-1.5">
+              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
+                <span>Agent Status</span>
               </Label>
               <div className="flex p-1 bg-muted/40 dark:bg-muted/20 rounded-xl border border-primary/10 shadow-inner h-10 sm:h-11 items-center">
                 <button
@@ -349,6 +443,85 @@ export function BoothsFiltersComponent({
               </div>
             </div>
           </div>
+
+          {/* Active Filter Pills (Dismissable) */}
+          {activeFiltersCount > 0 && (
+            <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-primary/10">
+              <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                {locale === 'ta' ? 'செயலில் உள்ளவை:' : 'Active:'}
+              </span>
+
+              {activeUnionObj && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-primary/10 text-primary border border-primary/20">
+                  <Building2 className="w-3 h-3" />
+                  <span>{getOrgUnitName(activeUnionObj, locale)}</span>
+                  <button
+                    type="button"
+                    onClick={() => onUnionChange('')}
+                    className="hover:bg-primary/20 rounded-full p-0.5 transition-colors cursor-pointer"
+                    title={locale === 'ta' ? 'நீக்கு' : 'Remove'}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+
+              {activePanchayatObj && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border border-emerald-500/20">
+                  <Store className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                  <span>
+                    {locale === 'ta' && activePanchayatObj.nameTa
+                      ? activePanchayatObj.nameTa
+                      : activePanchayatObj.name}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => onPanchayatChange('')}
+                    className="hover:bg-emerald-500/20 rounded-full p-0.5 transition-colors cursor-pointer"
+                    title={locale === 'ta' ? 'நீக்கு' : 'Remove'}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+
+              {activeVillageObj && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-blue-500/10 text-blue-700 dark:text-blue-300 border border-blue-500/20">
+                  <MapPin className="w-3 h-3 text-blue-600 dark:text-blue-400" />
+                  <span>
+                    {locale === 'ta' && activeVillageObj.nameTa
+                      ? activeVillageObj.nameTa
+                      : activeVillageObj.name}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => onVillageChange('')}
+                    className="hover:bg-blue-500/20 rounded-full p-0.5 transition-colors cursor-pointer"
+                    title={locale === 'ta' ? 'நீக்கு' : 'Remove'}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+
+              {filterAgentId && (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-purple-500/10 text-purple-700 dark:text-purple-300 border border-purple-500/20">
+                  <Users className="w-3 h-3" />
+                  <span>
+                    {filterAgentId === 'ASSIGNED' ? 'Agent Assigned' : 'Agent Unassigned'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => onAgentStatusChange('')}
+                    className="hover:bg-purple-500/20 rounded-full p-0.5 transition-colors cursor-pointer"
+                    title={locale === 'ta' ? 'நீக்கு' : 'Remove'}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -356,4 +529,3 @@ export function BoothsFiltersComponent({
 }
 
 export const BoothsFilters = React.memo(BoothsFiltersComponent);
-

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
@@ -79,7 +80,7 @@ const initialElectionFormState: CreateBoothElectionResultDto = {
   notes: '',
 };
 
-export default function BoothsPage() {
+function BoothsPageContent() {
   const t = useTranslations('Booths');
   const locale = useLocale();
 
@@ -100,17 +101,126 @@ export default function BoothsPage() {
   const { data: dbElections = [] } = useElections();
   const { data: currentElection } = useCurrentElection();
   const { data: unions } = useUnions();
+  const { data: allPanchayats } = usePanchayats();
+  const { data: allVillages } = useVillages();
   const { data: kilais } = useKilais();
+
+  // Search Params (Deep linking from Unions / Panchayats / Villages pages)
+  const searchParams = useSearchParams();
+  const queryUnion = searchParams.get('union') || '';
+  const queryPanchayat = searchParams.get('panchayat') || '';
+  const queryVillage = searchParams.get('village') || '';
+  const querySearch = searchParams.get('search') || '';
+  const queryAgent = searchParams.get('agent') || '';
 
   // Search, Filters & View Mode
   const [search, setSearch] = useState('');
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
   const [filterUnionId, setFilterUnionId] = useState('');
-  const [filterKilaiId, setFilterKilaiId] = useState('');
+  const [filterPanchayatId, setFilterPanchayatId] = useState('');
+  const [filterVillageId, setFilterVillageId] = useState('');
   const [filterAgentId, setFilterAgentId] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  // Cascading lists for advanced filters
+  const availablePanchayats = useMemo(() => {
+    if (!allPanchayats) return [];
+    if (!filterUnionId) return allPanchayats;
+    return allPanchayats.filter((p: any) => p.unionId === filterUnionId);
+  }, [allPanchayats, filterUnionId]);
+
+  const availableVillages = useMemo(() => {
+    if (!allVillages) return [];
+    return allVillages.filter((v: any) => {
+      if (filterPanchayatId && v.panchayatId !== filterPanchayatId) return false;
+      const vUnionId = v.unionId || v.panchayat?.unionId;
+      if (filterUnionId && vUnionId && vUnionId !== filterUnionId) return false;
+      return true;
+    });
+  }, [allVillages, filterPanchayatId, filterUnionId]);
+
+  // Deep linking resolution effect
+  useEffect(() => {
+    let hasApplied = false;
+
+    if (querySearch) {
+      setSearch(querySearch);
+      hasApplied = true;
+    }
+
+    if (queryAgent) {
+      setFilterAgentId(queryAgent);
+      hasApplied = true;
+    }
+
+    if (queryUnion && unions && unions.length > 0) {
+      const match = unions.find(
+        (u: any) =>
+          u.id === queryUnion ||
+          u._id === queryUnion ||
+          u.slug === queryUnion ||
+          u.name?.toLowerCase() === queryUnion.toLowerCase()
+      );
+      if (match) {
+        setFilterUnionId(String(match.id));
+        hasApplied = true;
+      } else {
+        setFilterUnionId(queryUnion);
+        hasApplied = true;
+      }
+    }
+
+    if (queryPanchayat && allPanchayats && allPanchayats.length > 0) {
+      const match = allPanchayats.find(
+        (p: any) =>
+          p.id === queryPanchayat ||
+          p._id === queryPanchayat ||
+          p.slug === queryPanchayat ||
+          p.name?.toLowerCase() === queryPanchayat.toLowerCase()
+      );
+      if (match) {
+        setFilterPanchayatId(String(match.id));
+        if (match.unionId && !filterUnionId && !queryUnion) {
+          setFilterUnionId(String(match.unionId));
+        }
+        hasApplied = true;
+      } else {
+        setFilterPanchayatId(queryPanchayat);
+        hasApplied = true;
+      }
+    }
+
+    if (queryVillage && allVillages && allVillages.length > 0) {
+      const match = allVillages.find(
+        (v: any) =>
+          v.id === queryVillage ||
+          v._id === queryVillage ||
+          v.slug === queryVillage ||
+          v.name?.toLowerCase() === queryVillage.toLowerCase() ||
+          v.code === queryVillage
+      );
+      if (match) {
+        setFilterVillageId(String(match.id));
+        if (match.panchayatId && !filterPanchayatId && !queryPanchayat) {
+          setFilterPanchayatId(String(match.panchayatId));
+        }
+        const vUnionId = (match as any).unionId || match.panchayat?.unionId;
+        if (vUnionId && !filterUnionId && !queryUnion) {
+          setFilterUnionId(String(vUnionId));
+        }
+        hasApplied = true;
+      } else {
+        setFilterVillageId(queryVillage);
+        hasApplied = true;
+      }
+    }
+
+    if (hasApplied || queryUnion || queryPanchayat || queryVillage) {
+      setIsAdvancedOpen(true);
+    }
+  }, [queryUnion, queryPanchayat, queryVillage, querySearch, queryAgent, unions, allPanchayats, allVillages]);
 
   // Expansion & Selection State
   const [expandedBoothIds, setExpandedBoothIds] = useState<Record<string, boolean>>({});
@@ -190,20 +300,55 @@ export default function BoothsPage() {
       const b = booths[i];
 
       // 1. Union filter
-      if (
-        filterUnionId &&
-        b.unionId !== filterUnionId &&
-        !b.kilais?.some((k: any) => k.unionId === filterUnionId)
-      ) {
-        continue;
+      if (filterUnionId) {
+        const matchesUnion =
+          b.unionId === filterUnionId ||
+          b.union?.id === filterUnionId ||
+          b.panchayatRel?.unionId === filterUnionId ||
+          b.villages?.some((v: any) => v.unionId === filterUnionId || v.panchayat?.unionId === filterUnionId) ||
+          b.kilais?.some((k: any) => k.unionId === filterUnionId);
+        if (!matchesUnion) continue;
       }
 
-      // 2. Kilai filter
-      if (filterKilaiId && !b.kilais?.some((k: any) => k.id === filterKilaiId)) {
-        continue;
+      // 2. Panchayat filter
+      if (filterPanchayatId) {
+        const selectedPanchayatObj = allPanchayats?.find((p: any) => p.id === filterPanchayatId);
+        const pName = selectedPanchayatObj?.name?.trim().toLowerCase();
+        const pNameTa = selectedPanchayatObj?.nameTa?.trim().toLowerCase();
+
+        const bPanchayatId = b.panchayatId || b.panchayatRel?.id;
+        const bArea = (b.area || '').trim().toLowerCase();
+        const bPanchayatRelName = (b.panchayatRel?.name || '').trim().toLowerCase();
+
+        const matchesPanchayat =
+          (bPanchayatId && bPanchayatId === filterPanchayatId) ||
+          (pName && (bArea === pName || bPanchayatRelName === pName)) ||
+          (pNameTa && (bArea === pNameTa || bPanchayatRelName === pNameTa)) ||
+          b.villages?.some((v: any) => v.panchayatId === filterPanchayatId || (pName && v.panchayat?.name?.trim().toLowerCase() === pName));
+
+        if (!matchesPanchayat) continue;
       }
 
-      // 3. Agent filter
+      // 3. Village filter
+      if (filterVillageId) {
+        const selectedVillageObj = allVillages?.find((v: any) => v.id === filterVillageId);
+        const vName = selectedVillageObj?.name?.trim().toLowerCase();
+        const vNameTa = selectedVillageObj?.nameTa?.trim().toLowerCase();
+        const vCode = selectedVillageObj?.code;
+
+        const matchesVillage =
+          b.villages?.some((v: any) =>
+            v.id === filterVillageId ||
+            (vCode && v.code === vCode) ||
+            (vName && v.name?.trim().toLowerCase() === vName) ||
+            (vNameTa && v.nameTa?.trim().toLowerCase() === vNameTa)
+          ) ||
+          (vName && (b.area?.trim().toLowerCase() === vName || b.name?.toLowerCase().includes(vName)));
+
+        if (!matchesVillage) continue;
+      }
+
+      // 4. Agent filter
       if (filterAgentId === 'UNASSIGNED') {
         if (b.agents && b.agents.length > 0) continue;
       } else if (filterAgentId === 'ASSIGNED') {
@@ -343,7 +488,7 @@ export default function BoothsPage() {
     }
 
     return scoredBooths.map((item) => item.booth);
-  }, [booths, search, filterUnionId, filterKilaiId, filterAgentId]);
+  }, [booths, search, filterUnionId, filterPanchayatId, filterVillageId, filterAgentId, allPanchayats, allVillages]);
 
   // Pagination Slice
   const totalPages = Math.ceil(filteredBooths.length / itemsPerPage);
@@ -746,13 +891,47 @@ export default function BoothsPage() {
 
   const handleUnionChange = useCallback((val: string) => {
     setFilterUnionId(val);
+    if (val && filterPanchayatId) {
+      const p = allPanchayats?.find((item) => item.id === filterPanchayatId);
+      if (p && p.unionId !== val) {
+        setFilterPanchayatId('');
+        setFilterVillageId('');
+      }
+    }
     setCurrentPage(1);
-  }, []);
+  }, [allPanchayats, filterPanchayatId]);
 
-  const handleKilaiChange = useCallback((val: string) => {
-    setFilterKilaiId(val);
+  const handlePanchayatChange = useCallback((val: string) => {
+    setFilterPanchayatId(val);
+    if (val) {
+      const p = allPanchayats?.find((item) => item.id === val);
+      if (p?.unionId && !filterUnionId) {
+        setFilterUnionId(p.unionId);
+      }
+      if (filterVillageId) {
+        const v = allVillages?.find((item) => item.id === filterVillageId);
+        if (v && v.panchayatId !== val) {
+          setFilterVillageId('');
+        }
+      }
+    }
     setCurrentPage(1);
-  }, []);
+  }, [allPanchayats, allVillages, filterUnionId, filterVillageId]);
+
+  const handleVillageChange = useCallback((val: string) => {
+    setFilterVillageId(val);
+    if (val) {
+      const v = allVillages?.find((item) => item.id === val);
+      if (v?.panchayatId && !filterPanchayatId) {
+        setFilterPanchayatId(v.panchayatId);
+      }
+      const vUnionId = (v as any)?.unionId || v?.panchayat?.unionId;
+      if (vUnionId && !filterUnionId) {
+        setFilterUnionId(vUnionId);
+      }
+    }
+    setCurrentPage(1);
+  }, [allVillages, filterPanchayatId, filterUnionId]);
 
   const handleAgentStatusChange = useCallback((val: string) => {
     setFilterAgentId(val);
@@ -762,7 +941,8 @@ export default function BoothsPage() {
   const handleClearFilters = useCallback(() => {
     setSearch('');
     setFilterUnionId('');
-    setFilterKilaiId('');
+    setFilterPanchayatId('');
+    setFilterVillageId('');
     setFilterAgentId('');
     setCurrentPage(1);
   }, []);
@@ -804,8 +984,10 @@ export default function BoothsPage() {
         onToggleAdvanced={handleToggleAdvanced}
         filterUnionId={filterUnionId}
         onUnionChange={handleUnionChange}
-        filterKilaiId={filterKilaiId}
-        onKilaiChange={handleKilaiChange}
+        filterPanchayatId={filterPanchayatId}
+        onPanchayatChange={handlePanchayatChange}
+        filterVillageId={filterVillageId}
+        onVillageChange={handleVillageChange}
         filterAgentId={filterAgentId}
         onAgentStatusChange={handleAgentStatusChange}
         onClearFilters={handleClearFilters}
@@ -816,7 +998,8 @@ export default function BoothsPage() {
         allExpanded={allExpanded}
         onToggleAllExpanded={toggleAllExpanded}
         unions={unions}
-        kilais={kilais}
+        panchayats={availablePanchayats}
+        villages={availableVillages}
         dataSectionRef={dataSectionRef}
       />
 
@@ -934,5 +1117,13 @@ export default function BoothsPage() {
         onOpenChange={(open) => !open && setCallingCadre(null)}
       />
     </div>
+  );
+}
+
+export default function BoothsPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-muted-foreground animate-pulse">Loading booths...</div>}>
+      <BoothsPageContent />
+    </Suspense>
   );
 }

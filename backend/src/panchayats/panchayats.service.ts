@@ -94,6 +94,9 @@ export class PanchayatsService {
               include: {
                 kilais: true,
                 agents: true,
+                electionResults: {
+                  orderBy: { electionYear: 'desc' },
+                },
                 _count: {
                   select: {
                     agents: true,
@@ -133,6 +136,9 @@ export class PanchayatsService {
             kilais: true,
             villages: true,
             agents: true,
+            electionResults: {
+              orderBy: { electionYear: 'desc' },
+            },
             _count: {
               select: {
                 agents: true,

@@ -276,34 +276,50 @@ export default function VillageDetailsPage() {
       {/* 2. Top Metric KPI Summary Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* KPI 1: Kilais */}
-        <div className="bg-white dark:bg-zinc-900 p-4 rounded-xl border border-gray-200/80 dark:border-zinc-800 shadow-xs flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-950/50 text-green-600 flex items-center justify-center shrink-0">
+        <Link
+          href={`/kilais?${new URLSearchParams({
+            ...(effectiveUnion?.id || unionId ? { union: effectiveUnion?.id || unionId } : {}),
+            ...(village.panchayatId ? { panchayat: village.panchayatId } : {}),
+            village: village.id,
+          }).toString()}`}
+          className="bg-white dark:bg-zinc-900 p-4 rounded-xl border border-gray-200/80 dark:border-zinc-800 shadow-xs flex items-center gap-3 hover:border-green-500/50 hover:shadow-md transition-all cursor-pointer group"
+          title={locale === 'ta' ? 'கிளைகள் பக்கத்தில் காண்க' : 'View in Kilais page'}
+        >
+          <div className="w-10 h-10 rounded-xl bg-green-50 dark:bg-green-950/50 text-green-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
             <Store className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-xs font-semibold text-muted-foreground">
+            <p className="text-xs font-semibold text-muted-foreground group-hover:text-primary transition-colors">
               {locale === 'ta' ? 'இணைக்கப்பட்ட கிளைகள்' : 'Assigned Kilais'}
             </p>
             <p className="text-xl font-bold text-gray-900 dark:text-white mt-0.5">
               {village.kilais?.length || 0}
             </p>
           </div>
-        </div>
+        </Link>
 
         {/* KPI 2: Booths */}
-        <div className="bg-white dark:bg-zinc-900 p-4 rounded-xl border border-gray-200/80 dark:border-zinc-800 shadow-xs flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-950/50 text-orange-600 flex items-center justify-center shrink-0">
+        <Link
+          href={`/booths?${new URLSearchParams({
+            ...(effectiveUnion?.id || unionId ? { union: effectiveUnion?.id || unionId } : {}),
+            ...(village.panchayatId ? { panchayat: village.panchayatId } : {}),
+            village: village.id,
+          }).toString()}`}
+          className="bg-white dark:bg-zinc-900 p-4 rounded-xl border border-gray-200/80 dark:border-zinc-800 shadow-xs flex items-center gap-3 hover:border-orange-500/50 hover:shadow-md transition-all cursor-pointer group"
+          title={locale === 'ta' ? 'சாவடிகள் பக்கத்தில் காண்க' : 'View in Booths page'}
+        >
+          <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-950/50 text-orange-600 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
             <Building2 className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-xs font-semibold text-muted-foreground">
+            <p className="text-xs font-semibold text-muted-foreground group-hover:text-primary transition-colors">
               {locale === 'ta' ? 'வாக்குச்சாவடிகள்' : 'Polling Booths'}
             </p>
             <p className="text-xl font-bold text-gray-900 dark:text-white mt-0.5">
               {village.booths?.length || 0}
             </p>
           </div>
-        </div>
+        </Link>
 
         {/* KPI 3: Registered Voters */}
         <div className="bg-white dark:bg-zinc-900 p-4 rounded-xl border border-gray-200/80 dark:border-zinc-800 shadow-xs flex items-center gap-3">
@@ -358,7 +374,9 @@ export default function VillageDetailsPage() {
         }
         areaNameEn={village.name}
         areaNameTa={village.nameTa}
-        unionId={effectiveUnionSlug}
+        unionId={effectiveUnion?.id || unionId}
+        panchayatId={village.panchayatId}
+        villageId={village.id}
         locale={locale}
       />
 
@@ -378,6 +396,9 @@ export default function VillageDetailsPage() {
         showAssignedKilai={false}
         areaNameEn={village.name}
         areaNameTa={village.nameTa}
+        unionId={effectiveUnion?.id || unionId}
+        panchayatId={village.panchayatId}
+        villageId={village.id}
         locale={locale}
       />
 

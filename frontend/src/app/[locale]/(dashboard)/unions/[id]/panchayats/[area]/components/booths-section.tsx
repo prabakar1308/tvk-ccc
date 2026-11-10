@@ -14,6 +14,7 @@ import {
   ExternalLink,
   ShieldCheck,
   Phone,
+  Trophy,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +28,7 @@ import {
 } from '@/components/ui/table';
 import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
 import { translatePersonNameToTamil } from '@/lib/name-translations';
+import { cn } from '@/lib/utils';
 
 export interface BoothsSectionProps {
   booths?: any[];
@@ -36,6 +38,9 @@ export interface BoothsSectionProps {
   showAssignedKilai?: boolean; // Defaults to true on panchayat, false on village
   areaNameEn?: string;
   areaNameTa?: string;
+  unionId?: string;
+  panchayatId?: string;
+  villageId?: string;
   locale: string;
 }
 
@@ -47,12 +52,24 @@ export function BoothsSection({
   showAssignedKilai = true,
   areaNameEn,
   areaNameTa,
+  unionId,
+  panchayatId,
+  villageId,
   locale,
 }: BoothsSectionProps) {
   const router = useRouter();
   const [viewMode, setViewMode] = useState<'table' | 'tile'>('table');
   const [expandedBoothIds, setExpandedBoothIds] = useState<Record<string, boolean>>({});
   const [callConfirmation, setCallConfirmation] = useState<{ name: string; phone: string } | null>(null);
+
+  const handleGoToBooths = () => {
+    const params = new URLSearchParams();
+    if (unionId) params.append('union', unionId);
+    if (panchayatId) params.append('panchayat', panchayatId);
+    if (villageId) params.append('village', villageId);
+    const qs = params.toString();
+    router.push(qs ? `/booths?${qs}` : '/booths');
+  };
 
   // Default to Tile view on mobile (< 768px), Table view on desktop
   useEffect(() => {
@@ -111,8 +128,8 @@ export function BoothsSection({
       ? 'ஊராட்சி வரம்பிற்குள் வரும் அதிகாரப்பூர்வ தேர்தல் வாக்குச்சாவடிகள் மற்றும் வாக்காளர் விவரங்கள்'
       : 'Official polling stations and voter demographics mapped under this jurisdiction');
 
-  // Total column span for the nested drawer row
-  const tableColSpan = showAssignedKilai ? 7 : 6;
+  // Total column span for the nested drawer row (includes Recent Result column)
+  const tableColSpan = showAssignedKilai ? 8 : 7;
 
   return (
     <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 sm:p-6 shadow-sm border border-gray-100 dark:border-zinc-800 space-y-4">
@@ -205,7 +222,7 @@ export function BoothsSection({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => router.push('/booths')}
+            onClick={handleGoToBooths}
             className="h-8 text-xs text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-800/60 font-semibold hover:bg-orange-50 dark:hover:bg-orange-950/30"
           >
             {locale === 'ta' ? 'சாவடிகள் பட்டியல்' : 'All Booths'} →
@@ -229,7 +246,7 @@ export function BoothsSection({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => router.push('/booths')}
+            onClick={handleGoToBooths}
             className="mt-2 text-xs font-semibold"
           >
             {locale === 'ta' ? 'சாவடிகள் பட்டியலுக்குச் செல்லவும்' : 'Go to Booth Directory'}
@@ -258,11 +275,14 @@ export function BoothsSection({
                     </TableHead>
                   )}
 
-                  <TableHead className="w-[20%] min-w-[150px] text-xs font-bold text-gray-700 dark:text-zinc-200 py-3.5">
+                  <TableHead className="w-[18%] min-w-[130px] text-xs font-bold text-gray-700 dark:text-zinc-200 py-3.5">
                     {locale === 'ta' ? 'சாவடி முகவர்கள்' : 'Booth Agents'}
                   </TableHead>
-                  <TableHead className="w-28 text-center text-xs font-bold text-gray-700 dark:text-zinc-200 py-3.5">
+                  <TableHead className="w-24 text-center text-xs font-bold text-gray-700 dark:text-zinc-200 py-3.5">
                     {locale === 'ta' ? 'வாக்காளர்கள்' : 'Voters'}
+                  </TableHead>
+                  <TableHead className="w-32 text-center text-xs font-bold text-gray-700 dark:text-zinc-200 py-3.5">
+                    {locale === 'ta' ? 'சமீபத்திய முடிவு' : 'Recent Result'}
                   </TableHead>
                   <TableHead className="w-20 text-right text-xs font-bold text-gray-700 dark:text-zinc-200 py-3.5 pr-4">
                     {locale === 'ta' ? 'செயல்' : 'Action'}
@@ -296,6 +316,10 @@ export function BoothsSection({
 
                   const agentsList = booth.agents || [];
                   const agentsCount = agentsList.length > 0 ? agentsList.length : (booth._count?.agents || 0);
+                  const recentElection =
+                    booth.electionResults && booth.electionResults.length > 0
+                      ? booth.electionResults[0]
+                      : null;
 
                   return (
                     <React.Fragment key={boothKey}>
@@ -424,6 +448,47 @@ export function BoothsSection({
                             <Users className="w-3 h-3 text-muted-foreground" />
                             {totalCount.toLocaleString()}
                           </span>
+                        </TableCell>
+
+                        {/* Recent Result Column */}
+                        <TableCell className="py-3 text-center">
+                          {(() => {
+                            if (!recentElection) {
+                              return (
+                                <span className="text-xs text-muted-foreground italic font-mono">—</span>
+                              );
+                            }
+
+                            const isTVKLead =
+                              recentElection.winnerPartyName === 'TVK' ||
+                              recentElection.tvkVotes > (recentElection.topParty1Votes || 0);
+
+                            return (
+                              <div className="inline-flex flex-col items-center justify-center">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-black text-xs sm:text-sm text-[#8F0A1B] dark:text-red-400">
+                                    {recentElection.tvkVotes?.toLocaleString()}
+                                  </span>
+                                  <span
+                                    className={cn(
+                                      'inline-flex items-center px-1.5 py-0.5 rounded text-[10px] sm:text-[11px] font-extrabold shadow-2xs border',
+                                      isTVKLead
+                                        ? 'bg-[#FFC72C]/25 text-[#8F0A1B] border-amber-400/50'
+                                        : 'bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300 border-red-200'
+                                    )}
+                                  >
+                                    {recentElection.tvkPercentage}%
+                                  </span>
+                                </div>
+                                <span className="text-[10px] font-medium text-muted-foreground truncate max-w-[120px] block mt-0.5">
+                                  {recentElection.electionYear ? `${recentElection.electionYear}` : ''}{' '}
+                                  {recentElection.electionName
+                                    ? `• ${recentElection.electionName.replace(/\d{4}\s*/, '')}`
+                                    : ''}
+                                </span>
+                              </div>
+                            );
+                          })()}
                         </TableCell>
 
                         {/* Action Column */}
@@ -686,6 +751,159 @@ export function BoothsSection({
                                   </div>
                                 )}
                               </div>
+
+                              {/* Past Election Results Section in Drawer */}
+                              <div className="pt-3 border-t border-orange-100 dark:border-zinc-800 space-y-3">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <Trophy className="w-4 h-4 text-amber-500" />
+                                    <h4 className="text-xs font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
+                                      <span>
+                                        {locale === 'ta'
+                                          ? 'கடந்த தேர்தல் முடிவுகள்'
+                                          : 'Past Election Results'}
+                                      </span>
+                                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-300 border border-amber-500/20">
+                                        {booth.electionResults?.length || 0}
+                                      </span>
+                                    </h4>
+                                  </div>
+                                </div>
+
+                                {booth.electionResults && booth.electionResults.length > 0 ? (
+                                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                    {booth.electionResults.map((result: any) => {
+                                      const isTVKWinner =
+                                        result.winnerPartyName === 'TVK' ||
+                                        result.tvkVotes > (result.topParty1Votes || 0);
+                                      return (
+                                        <div
+                                          key={result.id || result.electionYear}
+                                          className="p-3.5 rounded-xl bg-white dark:bg-zinc-800 border border-gray-200/90 dark:border-zinc-750 shadow-2xs space-y-3"
+                                        >
+                                          {/* Header: Election Name & Year */}
+                                          <div>
+                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                              <span className="font-mono text-xs font-bold px-2 py-0.5 rounded bg-gray-100 dark:bg-zinc-700 text-gray-800 dark:text-zinc-200">
+                                                {result.electionYear}
+                                              </span>
+                                              <span className="text-xs font-bold text-gray-900 dark:text-white">
+                                                {result.electionName}
+                                              </span>
+                                            </div>
+                                            {result.totalVotesPolled && (
+                                              <p className="text-[11px] text-muted-foreground mt-0.5">
+                                                {locale === 'ta' ? 'பதிவான வாக்குகள்' : 'Total Votes Polled'}:{' '}
+                                                <span className="font-semibold text-foreground">
+                                                  {result.totalVotesPolled.toLocaleString()}
+                                                </span>
+                                              </p>
+                                            )}
+                                          </div>
+
+                                          {/* TVK Vote Share Banner */}
+                                          <div
+                                            className={cn(
+                                              'p-2.5 rounded-lg border flex items-center justify-between gap-2',
+                                              isTVKWinner
+                                                ? 'bg-amber-50/70 border-amber-300 dark:bg-amber-950/20 dark:border-amber-800/40'
+                                                : 'bg-red-50/50 border-red-200/80 dark:bg-red-950/20 dark:border-red-900/40'
+                                            )}
+                                          >
+                                            <div>
+                                              <p className="text-[10px] font-bold text-[#8F0A1B] dark:text-red-400 uppercase tracking-wide">
+                                                TVK {locale === 'ta' ? 'வாக்குகள்' : 'Votes'}
+                                              </p>
+                                              <p className="text-base font-extrabold text-[#8F0A1B] dark:text-red-300 font-mono">
+                                                {result.tvkVotes?.toLocaleString() || 0}
+                                              </p>
+                                            </div>
+                                            <div className="text-right">
+                                              <span
+                                                className={cn(
+                                                  'inline-block px-2 py-0.5 rounded text-xs font-extrabold font-mono',
+                                                  isTVKWinner
+                                                    ? 'bg-[#FFC72C] text-[#8F0A1B] shadow-2xs'
+                                                    : 'bg-[#8F0A1B] text-white'
+                                                )}
+                                              >
+                                                {result.tvkPercentage}%
+                                              </span>
+                                              <p className="text-[10px] text-muted-foreground mt-0.5">
+                                                {locale === 'ta' ? 'வாக்கு சதவீதம்' : 'Vote Share'}
+                                              </p>
+                                            </div>
+                                          </div>
+
+                                          {/* Competitors Breakdown */}
+                                          {(result.topParty1Name || result.topParty2Name) && (
+                                            <div className="grid grid-cols-2 gap-2 text-xs pt-1 border-t border-dashed border-gray-200 dark:border-zinc-700">
+                                              {result.topParty1Name && (
+                                                <div className="p-1.5 rounded bg-gray-50 dark:bg-zinc-850 border border-gray-100 dark:border-zinc-750">
+                                                  <p className="text-[10px] text-muted-foreground truncate font-medium">
+                                                    {result.topParty1Name}
+                                                  </p>
+                                                  <p className="font-bold font-mono text-gray-800 dark:text-zinc-200">
+                                                    {result.topParty1Votes ? result.topParty1Votes.toLocaleString() : '—'}
+                                                  </p>
+                                                </div>
+                                              )}
+                                              {result.topParty2Name && (
+                                                <div className="p-1.5 rounded bg-gray-50 dark:bg-zinc-850 border border-gray-100 dark:border-zinc-750">
+                                                  <p className="text-[10px] text-muted-foreground truncate font-medium">
+                                                    {result.topParty2Name}
+                                                  </p>
+                                                  <p className="font-bold font-mono text-gray-800 dark:text-zinc-200">
+                                                    {result.topParty2Votes ? result.topParty2Votes.toLocaleString() : '—'}
+                                                  </p>
+                                                </div>
+                                              )}
+                                            </div>
+                                          )}
+
+                                          {/* Winner & Margin */}
+                                          {(result.winnerPartyName || result.margin) && (
+                                            <div className="flex items-center justify-between text-[11px] pt-1 text-muted-foreground">
+                                              {result.winnerPartyName && (
+                                                <span className="truncate">
+                                                  {locale === 'ta' ? 'வெற்றி' : 'Winner'}:{' '}
+                                                  <span className="font-bold text-foreground">
+                                                    {result.winnerPartyName}
+                                                  </span>
+                                                </span>
+                                              )}
+                                              {result.margin && (
+                                                <span className="font-mono shrink-0">
+                                                  {locale === 'ta' ? 'வித்தியாசம்' : 'Margin'}:{' '}
+                                                  <span className="font-semibold text-foreground">
+                                                    +{result.margin.toLocaleString()}
+                                                  </span>
+                                                </span>
+                                              )}
+                                            </div>
+                                          )}
+
+                                          {/* Notes if any */}
+                                          {result.notes && (
+                                            <p className="text-[11px] italic text-muted-foreground bg-gray-50 dark:bg-zinc-800 p-1.5 rounded border border-gray-100 dark:border-zinc-700">
+                                              {result.notes}
+                                            </p>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                ) : (
+                                  <div className="p-4 rounded-xl bg-white/60 dark:bg-zinc-800/40 border border-dashed border-gray-200 dark:border-zinc-700 text-center flex flex-col items-center justify-center gap-1.5">
+                                    <Trophy className="w-5 h-5 text-muted-foreground/40" />
+                                    <p className="text-xs text-muted-foreground">
+                                      {locale === 'ta'
+                                        ? 'தேர்தல் முடிவுகள் எதுவும் பதிவு செய்யப்படவில்லை.'
+                                        : 'No past election results recorded for this booth.'}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -717,6 +935,10 @@ export function BoothsSection({
             const thirdCount = booth.thirdGenderCount || 0;
             const agentsList = booth.agents || [];
             const agentsCount = agentsList.length > 0 ? agentsList.length : (booth._count?.agents || 0);
+            const recentElection =
+              booth.electionResults && booth.electionResults.length > 0
+                ? booth.electionResults[0]
+                : null;
 
             return (
               <div
@@ -822,6 +1044,26 @@ export function BoothsSection({
                       </div>
                     </div>
                   )}
+
+                  {/* Recent Result Row in Tile */}
+                  {recentElection && (
+                    <div className="bg-amber-50/70 dark:bg-zinc-900/60 rounded-xl p-2.5 border border-amber-200/70 dark:border-zinc-800 flex items-center justify-between gap-2 text-xs">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <Trophy className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-[10px] font-bold text-muted-foreground uppercase truncate">
+                            {recentElection.electionYear} {recentElection.electionName?.replace(/\d{4}\s*/, '')}
+                          </p>
+                          <p className="text-xs font-black text-[#8F0A1B] dark:text-red-400 font-mono">
+                            {recentElection.tvkVotes?.toLocaleString()} {locale === 'ta' ? 'வாக்குகள்' : 'votes'}
+                          </p>
+                        </div>
+                      </div>
+                      <span className="px-2 py-0.5 rounded text-xs font-black bg-[#FFC72C] text-[#8F0A1B] border border-amber-400/50 shadow-2xs shrink-0">
+                        {recentElection.tvkPercentage}%
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Card Bottom Action Bar */}
@@ -832,7 +1074,12 @@ export function BoothsSection({
                   </span>
 
                   <Link
-                    href={`/booths?search=${boothNumber}`}
+                    href={`/booths?${new URLSearchParams({
+                      ...(unionId ? { union: unionId } : {}),
+                      ...(panchayatId ? { panchayat: panchayatId } : {}),
+                      ...(villageId ? { village: villageId } : {}),
+                      search: String(boothNumber),
+                    }).toString()}`}
                     className="inline-flex items-center gap-1 text-orange-600 dark:text-orange-400 hover:underline font-semibold text-xs group-hover:translate-x-0.5 transition-transform"
                   >
                     <span>{locale === 'ta' ? 'சாவடி விவரம்' : 'Booth Details'}</span>

@@ -73,6 +73,9 @@ export class VillagesService {
               include: {
                 kilais: true,
                 agents: true,
+                electionResults: {
+                  orderBy: { electionYear: 'desc' },
+                },
                 _count: {
                   select: {
                     agents: true,
@@ -120,6 +123,9 @@ export class VillagesService {
           include: {
             kilais: true,
             agents: true,
+            electionResults: {
+              orderBy: { electionYear: 'desc' },
+            },
             _count: {
               select: {
                 agents: true,

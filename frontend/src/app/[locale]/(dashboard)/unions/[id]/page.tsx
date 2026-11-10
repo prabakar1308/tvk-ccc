@@ -131,16 +131,16 @@ export default function UnionDetailsPage() {
         </Link>
 
         {/* Total Booths */}
-        <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 border-2 border-primary/20 dark:border-primary/30 shadow-md flex items-center gap-3 sm:gap-4">
+        <Link href={`/booths?union=${union.id}`} className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 border-2 border-primary/20 dark:border-primary/30 shadow-md flex items-center gap-3 sm:gap-4 hover:shadow-lg transition-all hover:-translate-y-1 hover:border-primary/50 cursor-pointer">
           <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl bg-orange-50 flex items-center justify-center shrink-0">
             <Building2 className="w-6 h-6 sm:w-8 sm:h-8 text-orange-500" />
           </div>
           <div className="flex-1">
             <p className="text-[12px] sm:text-[13px] font-semibold text-gray-800">{locale === 'ta' ? 'மொத்த சாவடிகள்' : 'Total Booths'}</p>
             <h3 className="text-[22px] sm:text-[28px] font-bold text-gray-900 leading-tight">{union.totalBooths || 0}</h3>
-            <p className="text-[10px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1">{locale === 'ta' ? 'இந்த அமைப்பு அலகில்' : 'In this org unit'}</p>
+            <p className="text-[10px] sm:text-[11px] font-medium text-gray-500 mt-0.5 sm:mt-1">{locale === 'ta' ? 'இந்த அமைப்பு அலகில்' : 'In this org unit'} →</p>
           </div>
-        </div>
+        </Link>
 
         {/* Total Administrators */}
         <Link href={`/cadres?filterLevel=UNION&unionId=${union.id}&includeKilai=true`} className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 border-2 border-primary/20 dark:border-primary/30 shadow-md flex items-center gap-3 sm:gap-4 hover:shadow-lg transition-all hover:-translate-y-1 hover:border-primary/50 cursor-pointer">
@@ -319,7 +319,15 @@ export default function UnionDetailsPage() {
                             </div>
 
                             {/* Kilais */}
-                            <div className="p-2 sm:p-2.5 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100/80 dark:border-emerald-900/40 text-center transition-colors group-hover:bg-emerald-50/90 dark:group-hover:bg-emerald-950/40">
+                            <div
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                router.push(`/kilais?union=${union.id}&panchayat=${p.id}`);
+                              }}
+                              className="p-2 sm:p-2.5 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100/80 dark:border-emerald-900/40 text-center transition-colors group-hover:bg-emerald-100/90 dark:group-hover:bg-emerald-900/40 cursor-pointer"
+                              title={locale === 'ta' ? 'கிளைகள் பக்கத்தில் காண்க' : 'View in Kilais page'}
+                            >
                               <div className="flex items-center justify-center gap-1.5 text-emerald-700 dark:text-emerald-300 font-extrabold text-sm sm:text-base leading-none">
                                 <Store className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                                 <span>{kilaisCount}</span>
@@ -465,7 +473,15 @@ export default function UnionDetailsPage() {
                           {/* 3-Column Micro-Metrics Grid */}
                           <div className="grid grid-cols-3 gap-2">
                             {/* Kilais */}
-                            <div className="p-2 sm:p-2.5 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100/80 dark:border-emerald-900/40 text-center transition-colors group-hover:bg-emerald-50/90 dark:group-hover:bg-emerald-950/40">
+                            <div
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                router.push(`/kilais?union=${union.id}&panchayat=${encodeURIComponent(area)}`);
+                              }}
+                              className="p-2 sm:p-2.5 rounded-xl bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100/80 dark:border-emerald-900/40 text-center transition-colors group-hover:bg-emerald-100/90 dark:group-hover:bg-emerald-900/40 cursor-pointer"
+                              title={locale === 'ta' ? 'கிளைகள் பக்கத்தில் காண்க' : 'View in Kilais page'}
+                            >
                               <div className="flex items-center justify-center gap-1.5 text-emerald-700 dark:text-emerald-300 font-extrabold text-sm sm:text-base leading-none">
                                 <Store className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                                 <span>{matchingKilais.length}</span>
@@ -557,7 +573,15 @@ export default function UnionDetailsPage() {
                           </span>
                         )}
                         {kilaisCount > 0 ? (
-                          <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                          <span
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              router.push(`/kilais?union=${union.id}&panchayat=${p.id}`);
+                            }}
+                            className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 cursor-pointer"
+                            title={locale === 'ta' ? 'கிளைகள் பக்கத்தில் காண்க' : 'View in Kilais page'}
+                          >
                             {kilaisCount} {locale === 'ta' ? 'கிளை' : 'K'}
                           </span>
                         ) : null}

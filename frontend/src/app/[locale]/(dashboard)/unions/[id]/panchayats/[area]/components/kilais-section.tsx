@@ -36,6 +36,8 @@ export interface KilaisSectionProps {
   areaNameEn?: string;
   areaNameTa?: string;
   unionId?: string;
+  panchayatId?: string;
+  villageId?: string;
   locale: string;
 }
 
@@ -76,6 +78,8 @@ export function KilaisSection({
   areaNameEn = '',
   areaNameTa = '',
   unionId,
+  panchayatId,
+  villageId,
   locale,
 }: KilaisSectionProps) {
   const router = useRouter();
@@ -254,8 +258,15 @@ export function KilaisSection({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => router.push(`/kilais?union=${unionId || ''}`)}
-            className="text-xs text-primary font-semibold hover:bg-primary/5"
+            onClick={() => {
+              const params = new URLSearchParams();
+              if (unionId) params.append('union', unionId);
+              if (panchayatId) params.append('panchayat', panchayatId);
+              if (villageId) params.append('village', villageId);
+              const qs = params.toString() ? `?${params.toString()}` : '';
+              router.push(`/kilais${qs}`);
+            }}
+            className="text-xs text-primary font-semibold hover:bg-primary/5 cursor-pointer"
           >
             {locale === 'ta' ? 'அனைத்து கிளைகள்' : 'All Kilais'} →
           </Button>

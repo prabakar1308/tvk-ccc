@@ -547,13 +547,16 @@ export default function UnionsPage() {
 
                         {/* Quick Stats Bar (Kilais & Cadres) */}
                         <div className="flex items-center gap-2 pt-2 text-xs">
-                          <div 
-                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#548777] text-white font-medium shadow-xs"
+                          <Link 
+                            href={`/kilais?union=${union.id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#548777] text-white font-medium shadow-xs hover:bg-[#436c5f] transition-colors cursor-pointer"
                             style={{ backgroundColor: '#548777', color: 'white' }}
+                            title={locale === 'ta' ? 'கிளைகள் பக்கத்தில் காண்க' : 'View in Kilais page'}
                           >
                             <Layers className="w-3.5 h-3.5 text-white" />
                             <span className="text-white"><strong className="text-white font-bold">{union._count?.kilais || 0}</strong> {locale === 'ta' ? 'கிளைகள்' : 'Kilais'}</span>
-                          </div>
+                          </Link>
                           <div 
                             className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#548777] text-white font-medium shadow-xs"
                             style={{ backgroundColor: '#548777', color: 'white' }}

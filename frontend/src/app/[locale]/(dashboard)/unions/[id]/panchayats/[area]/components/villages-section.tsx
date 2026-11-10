@@ -73,7 +73,7 @@ export function VillagesSection({
   if (!sortedVillages || sortedVillages.length === 0) return null;
 
   return (
-    <div className="bg-white dark:bg-zinc-900 rounded-2xl p-4 sm:p-6 shadow-sm border border-gray-100 dark:border-zinc-800 space-y-4">
+    <div id="villages-section" className="bg-white dark:bg-zinc-900 rounded-2xl p-4 sm:p-6 shadow-sm border border-gray-100 dark:border-zinc-800 space-y-4 scroll-mt-20">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100 dark:border-zinc-800">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/40 text-blue-600 flex items-center justify-center shrink-0">
@@ -174,7 +174,12 @@ export function VillagesSection({
                         {village.vKilais.map((vk: any) => (
                           <span
                             key={vk.id}
-                            className="text-[11px] bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 px-2 py-0.5 rounded-md font-medium"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              router.push(`/kilais?village=${village.id}`);
+                            }}
+                            className="text-[11px] bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 px-2 py-0.5 rounded-md font-medium hover:bg-green-100 hover:underline cursor-pointer"
+                            title={locale === 'ta' ? 'கிளைகள் பக்கத்தில் காண்க' : 'View in Kilais page'}
                           >
                             {locale === 'ta' && vk.tamilName ? vk.tamilName : vk.name}
                           </span>
@@ -241,7 +246,12 @@ export function VillagesSection({
                       village.vKilais.map((vk: any) => (
                         <span
                           key={vk.id}
-                          className="text-[11px] bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 px-2 py-0.5 rounded-md font-medium"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            router.push(`/kilais?village=${village.id}`);
+                          }}
+                          className="text-[11px] bg-green-50 dark:bg-green-950/40 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800 px-2 py-0.5 rounded-md font-medium hover:bg-green-100 hover:underline cursor-pointer"
+                          title={locale === 'ta' ? 'கிளைகள் பக்கத்தில் காண்க' : 'View in Kilais page'}
                         >
                           {locale === 'ta' && vk.tamilName ? vk.tamilName : vk.name}
                         </span>
@@ -257,7 +267,14 @@ export function VillagesSection({
 
               <div className="pt-2.5 mt-3 border-t border-gray-100 dark:border-zinc-700/50 flex items-center justify-between text-xs text-muted-foreground">
                 <div className="flex items-center gap-3">
-                  <span className="inline-flex items-center gap-1 font-semibold text-gray-700 dark:text-zinc-300">
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/kilais?village=${village.id}`);
+                    }}
+                    className="inline-flex items-center gap-1 font-semibold text-gray-700 dark:text-zinc-300 hover:text-green-700 dark:hover:text-green-400 cursor-pointer"
+                    title={locale === 'ta' ? 'கிளைகள் பக்கத்தில் காண்க' : 'View in Kilais page'}
+                  >
                     <Store className="w-3.5 h-3.5 text-green-600" />
                     {village.vKilais?.length || 0} {locale === 'ta' ? 'கிளைகள்' : 'Kilais'}
                   </span>

@@ -44,8 +44,9 @@ import { useVillages } from '@/hooks/use-villages';
 import { CreateKilaiDto } from '@/services/api/kilais';
 import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
 import { VillageMultiSelect } from '@/components/shared/village-multi-select';
-import { getOrgUnitName } from '@/lib/org-unit-translations';
+import { getOrgUnitName, getUnionSlug } from '@/lib/org-unit-translations';
 import { translatePersonNameToTamil } from '@/lib/name-translations';
+import { KilaisFilters } from './components/kilais-filters';
 
 export default function KilaisPage() {
   const locale = useLocale();
@@ -54,6 +55,8 @@ export default function KilaisPage() {
   const tForms = useTranslations('Forms');
   const { data: kilais, isLoading } = useKilais();
   const { data: unions } = useUnions();
+  const { data: allPanchayats } = usePanchayats();
+  const { data: allVillages } = useVillages();
   const { data: booths } = useBooths();
   const { data: areas } = useBoothAreas();
 
@@ -64,9 +67,15 @@ export default function KilaisPage() {
   const { user, activeUnionId } = useUser();
   const [searchQuery, setSearchQuery] = useState('');
   const searchParams = useSearchParams();
-  const queryUnion = searchParams.get('union');
+  const queryUnion = searchParams.get('union') || searchParams.get('unionId');
+  const queryPanchayat = searchParams.get('panchayat') || searchParams.get('panchayatId');
+  const queryVillage = searchParams.get('village') || searchParams.get('villageId');
+
   const [selectedUnion, setSelectedUnion] = useState<string>(queryUnion || '');
-  const [isUserInteracted, setIsUserInteracted] = useState(false);
+  const [selectedPanchayat, setSelectedPanchayat] = useState<string>(queryPanchayat || 'all');
+  const [selectedVillage, setSelectedVillage] = useState<string>(queryVillage || 'all');
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState<boolean>(Boolean(queryPanchayat || queryVillage));
+  const [isUserInteracted, setIsUserInteracted] = useState(Boolean(queryUnion || queryPanchayat || queryVillage));
 
   const userRole = (user?.role || '').toUpperCase();
   const userLevel = (user?.level || user?.cadre?.level || '').toUpperCase();
@@ -101,10 +110,7 @@ export default function KilaisPage() {
   useEffect(() => {
     if (isUserInteracted) return;
 
-    if (queryUnion) {
-      setSelectedUnion(queryUnion);
-      return;
-    }
+    if (queryUnion || queryPanchayat || queryVillage) return;
 
     if (!unions || unions.length === 0) return;
 
@@ -123,7 +129,148 @@ export default function KilaisPage() {
     if (unions.length > 0) {
       setSelectedUnion(String(unions[0].id));
     }
-  }, [unions, queryUnion, isUserInteracted, isKilaiOrUnion, personUnionId]);
+  }, [unions, queryUnion, queryPanchayat, queryVillage, isUserInteracted, isKilaiOrUnion, personUnionId]);
+
+  // Resolve URL query parameters once master lists are loaded
+  useEffect(() => {
+    if (queryUnion && unions && unions.length > 0) {
+      const match = unions.find(
+        (u: any) =>
+          String(u.id || (u as any)._id) === queryUnion ||
+          getUnionSlug(u.name) === queryUnion ||
+          u.name?.toLowerCase() === queryUnion.toLowerCase()
+      );
+      if (match) {
+        setSelectedUnion(String(match.id || (match as any)._id));
+      }
+    }
+  }, [queryUnion, unions]);
+
+  useEffect(() => {
+    if (queryPanchayat && allPanchayats && allPanchayats.length > 0) {
+      const match = allPanchayats.find(
+        (p: any) =>
+          String(p.id) === queryPanchayat ||
+          p.code?.toLowerCase() === queryPanchayat.toLowerCase() ||
+          p.name?.toLowerCase() === queryPanchayat.toLowerCase() ||
+          p.nameTa?.toLowerCase() === queryPanchayat.toLowerCase()
+      );
+      if (match) {
+        setSelectedPanchayat(String(match.id));
+        setIsAdvancedOpen(true);
+        if (!queryUnion && match.unionId) {
+          setSelectedUnion(String(match.unionId));
+        }
+      }
+    }
+  }, [queryPanchayat, allPanchayats, queryUnion]);
+
+  useEffect(() => {
+    if (queryVillage && allVillages && allVillages.length > 0) {
+      const match = allVillages.find(
+        (v: any) =>
+          String(v.id) === queryVillage ||
+          v.code?.toLowerCase() === queryVillage.toLowerCase() ||
+          v.name?.toLowerCase() === queryVillage.toLowerCase() ||
+          v.nameTa?.toLowerCase() === queryVillage.toLowerCase()
+      );
+      if (match) {
+        setSelectedVillage(String(match.id));
+        setIsAdvancedOpen(true);
+        if (!queryPanchayat && match.panchayatId) {
+          setSelectedPanchayat(String(match.panchayatId));
+          const parentP = allPanchayats?.find(
+            (p: any) => String(p.id) === String(match.panchayatId)
+          );
+          if (!queryUnion && parentP?.unionId) {
+            setSelectedUnion(String(parentP.unionId));
+          }
+        }
+      }
+    }
+  }, [queryVillage, allVillages, queryPanchayat, queryUnion, allPanchayats]);
+
+  const availablePanchayats = useMemo(() => {
+    if (!allPanchayats) return [];
+    if (!selectedUnion || selectedUnion === 'all') return allPanchayats;
+    return allPanchayats.filter(
+      (p: any) => String(p.unionId) === String(selectedUnion)
+    );
+  }, [allPanchayats, selectedUnion]);
+
+  const availableVillages = useMemo(() => {
+    if (!allVillages) return [];
+    if (selectedPanchayat && selectedPanchayat !== 'all') {
+      return allVillages.filter(
+        (v: any) => String(v.panchayatId) === String(selectedPanchayat)
+      );
+    }
+    if (selectedUnion && selectedUnion !== 'all') {
+      const unionPanchayatIds = new Set(
+        availablePanchayats.map((p: any) => String(p.id))
+      );
+      return allVillages.filter((v: any) =>
+        unionPanchayatIds.has(String(v.panchayatId))
+      );
+    }
+    return allVillages;
+  }, [allVillages, selectedPanchayat, selectedUnion, availablePanchayats]);
+
+  const handleUnionChange = (val: string) => {
+    setSelectedUnion(val);
+    setIsUserInteracted(true);
+    if (val !== 'all' && selectedPanchayat !== 'all') {
+      const isValid = allPanchayats?.some(
+        (p: any) => String(p.id) === selectedPanchayat && String(p.unionId) === val
+      );
+      if (!isValid) {
+        setSelectedPanchayat('all');
+        setSelectedVillage('all');
+      }
+    }
+  };
+
+  const handlePanchayatChange = (val: string) => {
+    setSelectedPanchayat(val);
+    setIsUserInteracted(true);
+    if (val !== 'all') {
+      const p = allPanchayats?.find((item: any) => String(item.id) === val);
+      if (p?.unionId && (!selectedUnion || selectedUnion === 'all')) {
+        setSelectedUnion(String(p.unionId));
+      }
+      if (selectedVillage !== 'all') {
+        const isValid = allVillages?.some(
+          (v: any) => String(v.id) === selectedVillage && String(v.panchayatId) === val
+        );
+        if (!isValid) setSelectedVillage('all');
+      }
+    }
+  };
+
+  const handleVillageChange = (val: string) => {
+    setSelectedVillage(val);
+    setIsUserInteracted(true);
+    if (val !== 'all') {
+      const v = allVillages?.find((item: any) => String(item.id) === val);
+      if (v?.panchayatId) {
+        setSelectedPanchayat(String(v.panchayatId));
+        const p = allPanchayats?.find(
+          (item: any) => String(item.id) === String(v.panchayatId)
+        );
+        if (p?.unionId && (!selectedUnion || selectedUnion === 'all')) {
+          setSelectedUnion(String(p.unionId));
+        }
+      }
+    }
+  };
+
+  const handleClearFilters = () => {
+    setSelectedUnion('all');
+    setSelectedPanchayat('all');
+    setSelectedVillage('all');
+    setSearchQuery('');
+    setIsUserInteracted(true);
+  };
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -210,26 +357,99 @@ export default function KilaisPage() {
 
   const filteredKilais = useMemo(() => {
     if (!kilais) return [];
-    
-    const filtered = kilais.filter((kilai) => {
-      const matchesSearch = kilai.name?.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesUnion = !selectedUnion || selectedUnion === 'all' || kilai.unionId === selectedUnion;
-      
-      return matchesSearch && matchesUnion;
+
+    const selectedPanchayatObj = allPanchayats?.find(
+      (p: any) => String(p.id) === selectedPanchayat
+    );
+    const selectedVillageObj = allVillages?.find(
+      (v: any) => String(v.id) === selectedVillage
+    );
+
+    const filtered = kilais.filter((kilai: any) => {
+      // 1. Search Query
+      const q = searchQuery.toLowerCase().trim();
+      const matchesSearch =
+        !q ||
+        (kilai.name && kilai.name.toLowerCase().includes(q)) ||
+        (kilai.tamilName && kilai.tamilName.toLowerCase().includes(q)) ||
+        (kilai.translations?.ta?.name &&
+          kilai.translations.ta.name.toLowerCase().includes(q)) ||
+        (kilai.secretaryName &&
+          kilai.secretaryName.toLowerCase().includes(q)) ||
+        (kilai.secretary?.name &&
+          kilai.secretary.name.toLowerCase().includes(q)) ||
+        (kilai.code && kilai.code.toLowerCase().includes(q)) ||
+        (kilai.phone && kilai.phone.includes(q));
+
+      // 2. Org Unit (Union) Filter
+      const matchesUnion =
+        !selectedUnion ||
+        selectedUnion === 'all' ||
+        String(kilai.unionId) === String(selectedUnion);
+
+      // 3. Panchayat Filter
+      const matchesPanchayat =
+        !selectedPanchayat ||
+        selectedPanchayat === 'all' ||
+        String(kilai.panchayatId) === String(selectedPanchayat) ||
+        String(kilai.panchayatRel?.id) === String(selectedPanchayat) ||
+        (selectedPanchayatObj &&
+          ((kilai.panchayat &&
+            kilai.panchayat.toLowerCase() ===
+              selectedPanchayatObj.name?.toLowerCase()) ||
+            (kilai.panchayatRel?.name &&
+              kilai.panchayatRel.name.toLowerCase() ===
+                selectedPanchayatObj.name?.toLowerCase())));
+
+      // 4. Village Filter
+      const matchesVillage =
+        !selectedVillage ||
+        selectedVillage === 'all' ||
+        (kilai.villageIds &&
+          kilai.villageIds.some(
+            (vid: string) => String(vid) === String(selectedVillage)
+          )) ||
+        (kilai.villagesRel &&
+          kilai.villagesRel.some(
+            (v: any) =>
+              String(v.id) === String(selectedVillage) ||
+              (selectedVillageObj &&
+                (v.name?.toLowerCase() ===
+                  selectedVillageObj.name?.toLowerCase() ||
+                  v.code?.toLowerCase() ===
+                    selectedVillageObj.code?.toLowerCase()))
+          )) ||
+        (selectedVillageObj &&
+          kilai.villages &&
+          kilai.villages.some(
+            (vn: string) =>
+              vn?.toLowerCase() === selectedVillageObj.name?.toLowerCase() ||
+              vn?.toLowerCase() === selectedVillageObj.nameTa?.toLowerCase()
+          ));
+
+      return matchesSearch && matchesUnion && matchesPanchayat && matchesVillage;
     });
-    
+
     return filtered.sort((a, b) => {
-      const pA = (a.panchayat || '').toLowerCase();
-      const pB = (b.panchayat || '').toLowerCase();
+      const pA = (a.panchayatRel?.name || a.panchayat || '').toLowerCase();
+      const pB = (b.panchayatRel?.name || b.panchayat || '').toLowerCase();
       const panchayatCompare = pA.localeCompare(pB, 'ta');
-      
+
       if (panchayatCompare !== 0) return panchayatCompare;
-      
+
       const nA = (a.name || '').toLowerCase();
       const nB = (b.name || '').toLowerCase();
       return nA.localeCompare(nB, 'ta');
     });
-  }, [kilais, searchQuery, selectedUnion]);
+  }, [
+    kilais,
+    searchQuery,
+    selectedUnion,
+    selectedPanchayat,
+    selectedVillage,
+    allPanchayats,
+    allVillages,
+  ]);
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both">
@@ -495,63 +715,26 @@ export default function KilaisPage() {
         </div>
       </div>
       
-      {/* Action Bar */}
-      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between bg-card p-4 rounded-lg shadow-sm border border-primary/10">
-        <div className="relative w-full sm:w-96">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-          <Input 
-            placeholder={t('searchPlaceholder')} 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 h-11 bg-zinc-50 dark:bg-zinc-900 border-primary/20 focus-visible:ring-primary/30 rounded-md transition-all"
-          />
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-center w-full sm:w-auto gap-4">
-          <div className="w-full sm:w-64">
-            <Select 
-              value={selectedUnion || 'all'} 
-              onValueChange={(value) => {
-                setSelectedUnion(value || 'all');
-                setIsUserInteracted(true);
-              }}
-            >
-              <SelectTrigger className="!h-11 border-primary/20 bg-zinc-50 dark:bg-zinc-900 focus:ring-primary/30 rounded-md w-full">
-                <SelectValue placeholder={t('filterUnion')}>
-                  {selectedUnion === 'all' 
-                    ? t('allUnions') 
-                    : getOrgUnitName(unions?.find((u: any) => String(u.id || u._id) === selectedUnion), locale) || t('filterUnion')}
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent align="end">
-                <SelectItem value="all">{t('allUnions')}</SelectItem>
-                {unions?.map((union: any) => (
-                  <SelectItem key={union.id || union._id} value={String(union.id || union._id)}>
-                    {getOrgUnitName(union, locale)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="flex w-full sm:w-auto justify-center items-center bg-zinc-100 dark:bg-zinc-900 rounded-md p-1 border border-primary/10">
-            <button
-              onClick={() => setViewMode('table')}
-              className={`p-2 rounded-sm transition-all flex items-center justify-center ${viewMode === 'table' ? 'bg-white dark:bg-zinc-800 shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-              title={locale === 'ta' ? 'பட்டியல் காட்சி' : 'Table View'}
-            >
-              <List className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setViewMode('tile')}
-              className={`p-2 rounded-sm transition-all flex items-center justify-center ${viewMode === 'tile' ? 'bg-white dark:bg-zinc-800 shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
-              title={locale === 'ta' ? 'கட்டக் காட்சி' : 'Tile View'}
-            >
-              <LayoutGrid className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* Filters & Action Bar */}
+      <KilaisFilters
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        isAdvancedOpen={isAdvancedOpen}
+        onToggleAdvanced={() => setIsAdvancedOpen((prev) => !prev)}
+        selectedUnion={selectedUnion}
+        onUnionChange={handleUnionChange}
+        unions={unions}
+        selectedPanchayat={selectedPanchayat}
+        onPanchayatChange={handlePanchayatChange}
+        panchayats={availablePanchayats}
+        selectedVillage={selectedVillage}
+        onVillageChange={handleVillageChange}
+        villages={availableVillages}
+        onClearFilters={handleClearFilters}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        totalResults={filteredKilais.length}
+      />
 
       {/* Data Table */}
       <div className="space-y-8">

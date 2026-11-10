@@ -353,7 +353,10 @@ export default function PanchayatDetailsPage() {
         kilaisCount={panchayatKilais.length}
         boothsCount={panchayatBooths.length}
         cadresCount={totalCadresCount}
+        villagesCount={enrichedVillages.length || villages.length}
         geoData={geoData}
+        unionId={union?.id}
+        panchayatId={dbPanchayat?.id}
         locale={locale}
       />
 
@@ -371,6 +374,7 @@ export default function PanchayatDetailsPage() {
         areaNameEn={areaNameEn}
         areaNameTa={areaNameTa}
         unionId={union?.id}
+        panchayatId={dbPanchayat?.id}
         locale={locale}
       />
 
@@ -380,6 +384,8 @@ export default function PanchayatDetailsPage() {
         showAssignedKilai={true}
         areaNameEn={areaNameEn}
         areaNameTa={areaNameTa}
+        unionId={union?.id}
+        panchayatId={dbPanchayat?.id}
         locale={locale}
       />
 
