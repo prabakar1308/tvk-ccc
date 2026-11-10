@@ -153,7 +153,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Hero Banner Image */}
-      <div className="w-full rounded-[20px] sm:rounded-[24px] overflow-hidden shadow-md relative bg-[#8F0A1B] border border-[#8F0A1B]/20 group h-[400px] sm:h-[350px] lg:h-[360px] xl:h-[400px] 2xl:h-[500px]">
+      <div className="w-full rounded-[20px] sm:rounded-[24px] overflow-hidden shadow-md relative bg-[#8F0A1B] border border-[#8F0A1B]/20 group h-[500px] sm:h-[240px] md:h-[260px] lg:h-[280px] xl:h-[320px] 2xl:h-[360px] max-h-[60vh] md:max-h-[48vh] max-h-[48dvh]">
         {/* Mobile View Image (< 640px) */}
         <div className="relative w-full h-full overflow-hidden block sm:hidden">
           <Image

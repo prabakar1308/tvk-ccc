@@ -254,6 +254,7 @@ model Cadre {
   officeBearerRoles OfficeBearer[]
 
   boothsAsAgent Booth[] @relation("BoothAgents")
+  boothAgentAssignments BoothAgentAssignment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -325,7 +326,87 @@ model Booth {
 
   kilais Kilai[]
   agents Cadre[] @relation("BoothAgents")
+  agentAssignments BoothAgentAssignment[]
+  electionResults BoothElectionResult[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Election {
+  id          String    @id @default(uuid())
+  name        String
+  nameTa      String?
+  year        String    // e.g. "2026", "2024"
+  type        String    @default("ASSEMBLY") // ASSEMBLY, PARLIAMENTARY, LOCAL_BODY, BY_ELECTION
+  date        DateTime?
+  isCurrent   Boolean   @default(false)
+  status      String    @default("UPCOMING") // UPCOMING, ACTIVE, COMPLETED
+  description String?
+
+  electionResults   BoothElectionResult[]
+  agentAssignments BoothAgentAssignment[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([year, name])
+  @@index([isCurrent])
+}
+
+model BoothAgentAssignment {
+  id          String    @id @default(uuid())
+  boothId     String
+  booth       Booth     @relation(fields: [boothId], references: [id], onDelete: Cascade)
+
+  cadreId     String
+  cadre       Cadre     @relation(fields: [cadreId], references: [id], onDelete: Cascade)
+
+  electionId  String
+  election    Election  @relation(fields: [electionId], references: [id], onDelete: Cascade)
+
+  role        String?   // "Chief Agent", "Polling Agent", "Relief Agent"
+  blaFormUrl  String?   // Uploaded BLA Form / Appointment Letter image
+  notes       String?
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([boothId, cadreId, electionId])
+  @@index([boothId])
+  @@index([cadreId])
+  @@index([electionId])
+}
+
+model BoothElectionResult {
+  id               String    @id @default(uuid())
+  boothId          String
+  booth            Booth     @relation(fields: [boothId], references: [id], onDelete: Cascade)
+
+  electionId       String?
+  election         Election? @relation(fields: [electionId], references: [id], onDelete: SetNull)
+
+  electionYear     String   // e.g. "2024"
+  electionName     String   // e.g. "2024 Parliament", "2021 Assembly"
+
+  totalVotesPolled Int      @default(0)
+  tvkVotes         Int      @default(0)
+  tvkPercentage    Float    @default(0.0)
+
+  topParty1Name    String?  // e.g. "DMK"
+  topParty1Votes   Int      @default(0)
+
+  topParty2Name    String?  // e.g. "AIADMK"
+  topParty2Votes   Int      @default(0)
+
+  winnerPartyName  String?  // e.g. "DMK" or "TVK"
+  margin           Int?     // difference between #1 and #2
+  notes            String?
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@unique([boothId, electionYear, electionName])
+  @@index([boothId])
+  @@index([electionId])
 }

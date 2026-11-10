@@ -18,6 +18,7 @@ import { WingsModule } from './wings/wings.module';
 import { RolesModule } from './roles/roles.module';
 import { PanchayatsModule } from './panchayats/panchayats.module';
 import { VillagesModule } from './villages/villages.module';
+import { ElectionsModule } from './elections/elections.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { VillagesModule } from './villages/villages.module';
     RolesModule,
     PanchayatsModule,
     VillagesModule,
+    ElectionsModule,
   ],
   controllers: [AppController],
   providers: [

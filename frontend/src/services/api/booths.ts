@@ -1,5 +1,59 @@
 import { fetchWithAuth } from './client';
 
+export interface BoothElectionResult {
+  id: string;
+  boothId: string;
+  electionYear: string;
+  electionName: string;
+  totalVotesPolled: number;
+  tvkVotes: number;
+  tvkPercentage: number;
+  topParty1Name?: string | null;
+  topParty1Votes: number;
+  topParty2Name?: string | null;
+  topParty2Votes: number;
+  winnerPartyName?: string | null;
+  margin?: number | null;
+  notes?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface CreateBoothElectionResultDto {
+  electionYear: string;
+  electionName: string;
+  totalVotesPolled: number;
+  tvkVotes: number;
+  tvkPercentage?: number;
+  topParty1Name?: string;
+  topParty1Votes?: number;
+  topParty2Name?: string;
+  topParty2Votes?: number;
+  winnerPartyName?: string;
+  margin?: number;
+  notes?: string;
+}
+
+export interface BoothAgentAssignment {
+  id: string;
+  boothId: string;
+  cadreId: string;
+  electionId: string;
+  role?: string;
+  blaFormUrl?: string | null;
+  notes?: string;
+  cadre?: any;
+  election?: any;
+  createdAt?: string;
+}
+
+export interface AgentAssignmentPayload {
+  cadreId: string;
+  role?: string;
+  blaFormUrl?: string | null;
+  notes?: string;
+}
+
 export interface Booth {
   id: string;
   name: string;
@@ -16,6 +70,10 @@ export interface Booth {
   villages?: any[];
   kilais?: any[];
   agents?: any[];
+  agentAssignments?: BoothAgentAssignment[];
+  latestElection?: any;
+  latestAgents?: any[];
+  electionResults?: BoothElectionResult[];
   createdAt: string;
   updatedAt: string;
 }
@@ -74,6 +132,88 @@ export const boothApi = {
 
   delete: async (id: string): Promise<void> => {
     await fetchWithAuth(`/api/v1/booths/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  addElectionResult: async (boothId: string, data: CreateBoothElectionResultDto): Promise<BoothElectionResult> => {
+    const res = await fetchWithAuth(`/api/v1/booths/${boothId}/election-results`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+
+  updateElectionResult: async (boothId: string, resultId: string, data: Partial<CreateBoothElectionResultDto>): Promise<BoothElectionResult> => {
+    const res = await fetchWithAuth(`/api/v1/booths/${boothId}/election-results/${resultId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+    return res.json();
+  },
+
+  deleteElectionResult: async (boothId: string, resultId: string): Promise<void> => {
+    await fetchWithAuth(`/api/v1/booths/${boothId}/election-results/${resultId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  getElectionAgents: async (boothId: string, electionId: string): Promise<BoothAgentAssignment[]> => {
+    const res = await fetchWithAuth(`/api/v1/booths/${boothId}/elections/${electionId}/agents`);
+    return res.json();
+  },
+
+  assignElectionAgents: async (
+    boothId: string,
+    electionId: string,
+    agentsOrCadreIds: string[] | AgentAssignmentPayload[],
+    role?: string,
+  ): Promise<BoothAgentAssignment[]> => {
+    const payload =
+      agentsOrCadreIds.length > 0 && typeof agentsOrCadreIds[0] === 'object'
+        ? { agents: agentsOrCadreIds as AgentAssignmentPayload[], role }
+        : { cadreIds: agentsOrCadreIds as string[], role };
+    const res = await fetchWithAuth(
+      `/api/v1/booths/${boothId}/elections/${electionId}/agents`,
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      },
+    );
+    return res.json();
+  },
+
+  updateElectionAgent: async (
+    boothId: string,
+    electionId: string,
+    cadreId: string,
+    data: {
+      role?: string;
+      blaFormUrl?: string | null;
+      notes?: string;
+      newCadreId?: string;
+    },
+  ): Promise<BoothAgentAssignment> => {
+    const res = await fetchWithAuth(
+      `/api/v1/booths/${boothId}/elections/${electionId}/agents/${cadreId}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      },
+    );
+    return res.json();
+  },
+
+  addElectionAgent: async (boothId: string, electionId: string, cadreId: string, role?: string): Promise<BoothAgentAssignment> => {
+    const res = await fetchWithAuth(`/api/v1/booths/${boothId}/elections/${electionId}/agents/single`, {
+      method: 'POST',
+      body: JSON.stringify({ cadreId, role }),
+    });
+    return res.json();
+  },
+
+  removeElectionAgent: async (boothId: string, electionId: string, cadreId: string): Promise<void> => {
+    await fetchWithAuth(`/api/v1/booths/${boothId}/elections/${electionId}/agents/${cadreId}`, {
       method: 'DELETE',
     });
   },

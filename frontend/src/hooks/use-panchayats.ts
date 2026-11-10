@@ -5,10 +5,16 @@ import {
   CreatePanchayatDto,
 } from '@/services/api/panchayats';
 
-export function usePanchayats(unionId?: string, search?: string) {
+export function usePanchayats(
+  unionId?: string,
+  search?: string,
+  options?: { enabled?: boolean }
+) {
   return useQuery({
     queryKey: ['panchayats', { unionId, search }],
     queryFn: () => panchayatApi.getAll(unionId, search),
+    enabled: options?.enabled ?? true,
+    staleTime: 60 * 1000,
   });
 }
 

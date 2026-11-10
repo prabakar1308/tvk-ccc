@@ -1,197 +1,446 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { Search, Plus, Eye, Edit2, Building2, Users, CheckCircle2, ChevronDown, ChevronUp, Phone, Check, X, Trash2, ChevronLeft, ChevronRight, Filter, LayoutGrid, List, MapPin } from "lucide-react";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogTrigger 
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import { Button } from '@/components/ui/button';
+import { Plus } from 'lucide-react';
+import { useTranslations, useLocale } from 'next-intl';
 
-import { useBooths, useCreateBooth, useUpdateBooth, useDeleteBooth } from '@/hooks/use-booths';
-import { useKilais } from '@/hooks/use-kilais';
+import {
+  useBooths,
+  useCreateBooth,
+  useUpdateBooth,
+  useDeleteBooth,
+  useAddBoothElectionResult,
+  useUpdateBoothElectionResult,
+  useDeleteBoothElectionResult,
+  useAssignBoothElectionAgents,
+  useUpdateBoothElectionAgent,
+  useRemoveBoothElectionAgent,
+} from '@/hooks/use-booths';
+import { useElections, useCurrentElection } from '@/hooks/use-elections';
 import { useUnions } from '@/hooks/use-unions';
 import { usePanchayats } from '@/hooks/use-panchayats';
 import { useVillages } from '@/hooks/use-villages';
+import { useKilais } from '@/hooks/use-kilais';
 import { shortenBoothName } from '@/lib/booth-utils';
-import { getOrgUnitName } from '@/lib/org-unit-translations';
-import { useTranslations, useLocale } from 'next-intl';
-import { MultiAutocomplete } from '@/components/ui/autocomplete';
-import { cadreApi } from '@/services/api/cadres';
-import { cn } from '@/lib/utils';
+import {
+  BoothElectionResult,
+  CreateBoothElectionResultDto,
+} from '@/services/api/booths';
 import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
-import { translatePersonNameToTamil } from '@/lib/name-translations';
 
-// Custom MultiSelect Dropdown
-function MultiSelectDropdown({ 
-  options, 
-  selected, 
-  onChange, 
-  placeholder, 
-  labelKey = 'name', 
-  valueKey = 'id' 
-}: { 
-  options: any[], 
-  selected: string[], 
-  onChange: (val: string[]) => void, 
-  placeholder: string,
-  labelKey?: string,
-  valueKey?: string
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+// Feature Components
+import { BoothsMetrics } from './components/booths-metrics';
+import { BoothsFilters } from './components/booths-filters';
+import { BoothsTableView } from './components/booths-table-view';
+import { BoothsGridView } from './components/booths-grid-view';
+import { BoothsPagination } from './components/booths-pagination';
+import {
+  BoothDialog,
+  ViewBoothDialog,
+  BoothFormState,
+} from './components/booth-dialog';
+import { AssignAgentsDialog } from './components/assign-agents-dialog';
+import {
+  EditAgentDialog,
+  EditAgentModalData,
+} from './components/edit-agent-dialog';
+import { ElectionResultDialog } from './components/election-result-dialog';
+import { BlaPreviewDialog } from './components/bla-preview-dialog';
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+const initialBoothFormState: BoothFormState = {
+  name: '',
+  boothNo: '',
+  area: '',
+  unionId: '',
+  panchayatId: '',
+  villageIds: [],
+  maleCount: 0,
+  femaleCount: 0,
+  thirdGenderCount: 0,
+  totalCount: 0,
+  kilaiIds: [],
+  agentIds: [],
+  agents: [],
+};
 
-  const toggleOption = (val: string) => {
-    if (selected.includes(val)) {
-      onChange(selected.filter(item => item !== val));
-    } else {
-      onChange([...selected, val]);
-    }
-  };
-
-  const removeOption = (e: React.MouseEvent, val: string) => {
-    e.stopPropagation();
-    onChange(selected.filter(item => item !== val));
-  };
-
-  const selectedItems = options.filter(opt => selected.includes(opt[valueKey]));
-
-  return (
-    <div className="relative w-full" ref={containerRef}>
-      <div 
-        className="min-h-10 flex w-full flex-wrap items-center justify-between gap-1.5 rounded-lg border border-input bg-transparent py-1.5 pr-2 pl-2.5 text-sm transition-colors cursor-pointer focus-within:ring-2 focus-within:ring-primary/50"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <div className="flex flex-wrap gap-1 flex-1">
-          {selectedItems.length === 0 ? (
-            <span className="text-muted-foreground">{placeholder}</span>
-          ) : (
-            selectedItems.map(item => (
-              <span key={item[valueKey]} className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-primary/10 text-primary">
-                {item[labelKey]}
-                <button type="button" onClick={(e) => removeOption(e, item[valueKey])} className="hover:bg-primary/20 rounded-full p-0.5">
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
-            ))
-          )}
-        </div>
-        <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
-      </div>
-      
-      {isOpen && (
-        <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-md border bg-popover text-popover-foreground shadow-md outline-none animate-in fade-in-0 zoom-in-95">
-          {options.length === 0 ? (
-            <div className="p-2 text-sm text-muted-foreground text-center">No options available</div>
-          ) : (
-            options.map(option => {
-              const isSelected = selected.includes(option[valueKey]);
-              return (
-                <div 
-                  key={option[valueKey]}
-                  className="flex items-center px-3 py-2 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground"
-                  onClick={() => toggleOption(option[valueKey])}
-                >
-                  <div className={`mr-2 flex h-4 w-4 items-center justify-center rounded-sm border border-primary ${isSelected ? 'bg-primary text-primary-foreground' : 'opacity-50 [&_svg]:invisible'}`}>
-                    <Check className="h-3 w-3" />
-                  </div>
-                  {option[labelKey]}
-                </div>
-              );
-            })
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
+const initialElectionFormState: CreateBoothElectionResultDto = {
+  electionYear: '2024',
+  electionName: '2024 Parliamentary Election',
+  totalVotesPolled: 0,
+  tvkVotes: 0,
+  tvkPercentage: 0,
+  topParty1Name: 'DMK',
+  topParty1Votes: 0,
+  topParty2Name: 'AIADMK',
+  topParty2Votes: 0,
+  winnerPartyName: '',
+  margin: 0,
+  notes: '',
+};
 
 export default function BoothsPage() {
-  const locale = useLocale();
   const t = useTranslations('Booths');
-  const tCommon = useTranslations('Common');
-  const { data: booths, isLoading } = useBooths();
-  const { data: kilais } = useKilais();
-  const { data: unions } = useUnions();
+  const locale = useLocale();
 
+  // Queries & Mutations
+  const { data: booths, isLoading } = useBooths();
   const createBooth = useCreateBooth();
   const updateBooth = useUpdateBooth();
   const deleteBooth = useDeleteBooth();
 
-  const dataSectionRef = useRef<HTMLDivElement>(null);
+  const addElectionResult = useAddBoothElectionResult();
+  const updateElectionResult = useUpdateBoothElectionResult();
+  const deleteElectionResult = useDeleteBoothElectionResult();
 
+  const assignBoothElectionAgents = useAssignBoothElectionAgents();
+  const updateBoothElectionAgent = useUpdateBoothElectionAgent();
+  const removeBoothElectionAgent = useRemoveBoothElectionAgent();
+
+  const { data: dbElections = [] } = useElections();
+  const { data: currentElection } = useCurrentElection();
+  const { data: unions } = useUnions();
+  const { data: kilais } = useKilais();
+
+  // Search, Filters & View Mode
   const [search, setSearch] = useState('');
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false);
-  const [filterUnionId, setFilterUnionId] = useState<string>('');
-  const [filterKilaiId, setFilterKilaiId] = useState<string>('');
-  const [filterAgentId, setFilterAgentId] = useState<string>('');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [filterUnionId, setFilterUnionId] = useState('');
+  const [filterKilaiId, setFilterKilaiId] = useState('');
+  const [filterAgentId, setFilterAgentId] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
-  const [expandedBoothIds, setExpandedBoothIds] = useState<Record<string, boolean>>({});
-  const [callConfirmation, setCallConfirmation] = useState<{ name: string; phone: string } | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
 
-  // Default to Table view on desktop, Tile view on mobile 1024px)
+  // Expansion & Selection State
+  const [expandedBoothIds, setExpandedBoothIds] = useState<Record<string, boolean>>({});
+  const [selectedElectionId, setSelectedElectionId] = useState<string | undefined>(undefined);
+
+  // Dialog States
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingBooth, setEditingBooth] = useState<any | null>(null);
+  const [viewingBooth, setViewingBooth] = useState<any | null>(null);
+  const [formData, setFormData] = useState<BoothFormState>(initialBoothFormState);
+
+  const [isAssignAgentsDialogOpen, setIsAssignAgentsDialogOpen] = useState(false);
+  const [assignAgentsBooth, setAssignAgentsBooth] = useState<any | null>(null);
+  const [assignAgentsElection, setAssignAgentsElection] = useState<any | null>(null);
+  const [assignAgentsSelectedCadres, setAssignAgentsSelectedCadres] = useState<any[]>([]);
+
+  const [editingAgentData, setEditingAgentData] = useState<EditAgentModalData | null>(null);
+
+  const [isElectionDialogOpen, setIsElectionDialogOpen] = useState(false);
+  const [electionDialogBooth, setElectionDialogBooth] = useState<any | null>(null);
+  const [editingElectionResult, setEditingElectionResult] = useState<BoothElectionResult | null>(null);
+  const [electionFormData, setElectionFormData] = useState<CreateBoothElectionResultDto>(initialElectionFormState);
+
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const [callingCadre, setCallingCadre] = useState<{ name: string; phone: string } | null>(null);
+
+  const dataSectionRef = useRef<HTMLDivElement>(null);
+
+  // Administrative hierarchy cascading for Booth Form (only fetched when dialog is open)
+  const { data: unionPanchayats } = usePanchayats(
+    isDialogOpen && formData.unionId ? formData.unionId : undefined,
+    undefined,
+    { enabled: isDialogOpen && Boolean(formData.unionId) }
+  );
+  const { data: panchayatVillages } = useVillages(
+    isDialogOpen && formData.panchayatId ? formData.panchayatId : undefined,
+    undefined,
+    { enabled: isDialogOpen && Boolean(formData.panchayatId) }
+  );
+
+  // Default to Grid on mobile (<1024px)
   useEffect(() => {
     if (typeof window !== 'undefined' && window.innerWidth < 1024) {
       setViewMode('grid');
     }
   }, []);
-  const itemsPerPage = 10;
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingBooth, setEditingBooth] = useState<any>(null);
-  const [viewingBooth, setViewingBooth] = useState<any>(null);
 
-  const initialFormState = {
-    name: '',
-    boothNo: '',
-    area: '',
-    unionId: '',
-    panchayatId: '',
-    villageIds: [] as string[],
-    maleCount: 0,
-    femaleCount: 0,
-    thirdGenderCount: 0,
-    totalCount: 0,
-    kilaiIds: [] as string[],
-    agentIds: [] as string[],
-    agents: [] as any[],
-  };
-  const [formData, setFormData] = useState(initialFormState);
+  // Set default drawer election if current election becomes available
+  useEffect(() => {
+    if (!selectedElectionId && currentElection?.id) {
+      setSelectedElectionId(currentElection.id);
+    }
+  }, [currentElection, selectedElectionId]);
 
-  const { data: unionPanchayats } = usePanchayats(formData.unionId || undefined);
-  const { data: panchayatVillages } = useVillages(formData.panchayatId || undefined);
+  // Comprehensive Search Scoring & Filtering
+  const filteredBooths = useMemo(() => {
+    if (!booths) return [];
 
-  const handleOpenDialog = (booth?: any) => {
+    const rawQuery = (search || '').trim().toLowerCase();
+    const cleanNum = rawQuery.replace(/^(?:booth|b|சாவடி)[\s#:\-_]*/i, '').trim();
+    const isNumeric = /^\d+$/.test(rawQuery) || /^\d+$/.test(cleanNum);
+    const numericQuery = /^\d+$/.test(cleanNum)
+      ? cleanNum
+      : /^\d+$/.test(rawQuery)
+      ? rawQuery
+      : '';
+    const numericVal = numericQuery ? parseInt(numericQuery, 10) : null;
+    const tokens = rawQuery ? rawQuery.split(/\s+/).filter(Boolean) : [];
+
+    // Precompile word regex once outside the loop
+    const escaped = rawQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const wordRegex = rawQuery ? new RegExp('(?:^|[\\s,.-])' + escaped + '(?:$|[\\s,.-])', 'i') : null;
+
+    const scoredBooths: { booth: any; score: number }[] = [];
+
+    for (let i = 0; i < booths.length; i++) {
+      const b = booths[i];
+
+      // 1. Union filter
+      if (
+        filterUnionId &&
+        b.unionId !== filterUnionId &&
+        !b.kilais?.some((k: any) => k.unionId === filterUnionId)
+      ) {
+        continue;
+      }
+
+      // 2. Kilai filter
+      if (filterKilaiId && !b.kilais?.some((k: any) => k.id === filterKilaiId)) {
+        continue;
+      }
+
+      // 3. Agent filter
+      if (filterAgentId === 'UNASSIGNED') {
+        if (b.agents && b.agents.length > 0) continue;
+      } else if (filterAgentId === 'ASSIGNED') {
+        if (!b.agents || b.agents.length === 0) continue;
+      } else if (filterAgentId) {
+        if (!b.agents?.some((a: any) => a.id === filterAgentId)) continue;
+      }
+
+      // If no search query, all pass
+      if (!rawQuery) {
+        scoredBooths.push({ booth: b, score: 1 });
+        continue;
+      }
+
+      const bNo = String(b.boothNo || '').trim().toLowerCase();
+      const bNoNum = parseInt(bNo.replace(/\D/g, ''), 10);
+      const bName = String(b.name || '');
+      const nameWithoutPincode = bName.replace(/[\s\-,]*\b\d{6}\b/g, '').toLowerCase();
+      const shortenedName = shortenBoothName(bName).toLowerCase();
+      const areaStr = String(b.area || '').toLowerCase();
+      const panchayatEn = String(b.panchayatRel?.name || '').toLowerCase();
+      const panchayatTa = String(b.panchayatRel?.nameTa || '').toLowerCase();
+      const unionEn = String(b.union?.name || '').toLowerCase();
+      const unionTa = String(b.union?.nameTa || '').toLowerCase();
+      const villagesStr = (b.villages || [])
+        .map((v: any) => `${v.name || ''} ${v.nameTa || ''}`)
+        .join(' ')
+        .toLowerCase();
+      const kilaisStr = (b.kilais || [])
+        .map((k: any) => k.name || '')
+        .join(' ')
+        .toLowerCase();
+      const agentsStr = (b.agents || [])
+        .map((a: any) => `${a.name || ''} ${isNumeric && numericQuery.length < 4 ? '' : a.phone || ''}`)
+        .join(' ')
+        .toLowerCase();
+
+      let score = 0;
+
+      // 1. Exact booth number match (e.g. searching "70" matches booth "70")
+      if (
+        bNo === rawQuery ||
+        (cleanNum && bNo === cleanNum) ||
+        (numericVal !== null && !isNaN(bNoNum) && bNoNum === numericVal && bNo === String(numericVal))
+      ) {
+        score = 1000;
+      }
+      // 2. Booth number starts with query (e.g. searching "70" matches "70A", "70M", "70W")
+      else if (bNo.startsWith(rawQuery) || (cleanNum && bNo.startsWith(cleanNum))) {
+        score = 800;
+      }
+      // 3. Booth number contains query as substring (e.g. searching "70" matches "170", "270")
+      else if (bNo.includes(rawQuery) || (cleanNum && bNo.includes(cleanNum))) {
+        score = 500;
+      }
+      // 4. Name or Area starts with query
+      else if (
+        nameWithoutPincode.startsWith(rawQuery) ||
+        shortenedName.startsWith(rawQuery) ||
+        areaStr.startsWith(rawQuery) ||
+        panchayatEn.startsWith(rawQuery)
+      ) {
+        score = 300;
+      }
+      // 5. Whole word match
+      else if (
+        wordRegex && (
+          wordRegex.test(nameWithoutPincode) ||
+          wordRegex.test(shortenedName) ||
+          wordRegex.test(areaStr) ||
+          wordRegex.test(panchayatEn)
+        )
+      ) {
+        score = 200;
+      } else if (
+        nameWithoutPincode.includes(rawQuery) ||
+        shortenedName.includes(rawQuery) ||
+        areaStr.includes(rawQuery) ||
+        panchayatEn.includes(rawQuery) ||
+        panchayatTa.includes(rawQuery) ||
+        unionEn.includes(rawQuery) ||
+        unionTa.includes(rawQuery) ||
+        villagesStr.includes(rawQuery) ||
+        kilaisStr.includes(rawQuery) ||
+        agentsStr.includes(rawQuery)
+      ) {
+        score = 100;
+      } else if (isNumeric && numericQuery.length >= 5 && bName.includes(numericQuery)) {
+        score = 90;
+      } else if (tokens.length > 1) {
+        const allTokensMatch = tokens.every((tok) => {
+          const tokClean = tok.replace(/^(?:booth|b|சாவடி)[\s#:\-_]*/i, '').trim();
+          const tokNum = /^\d+$/.test(tokClean) ? tokClean : /^\d+$/.test(tok) ? tok : '';
+          if (tokNum && (bNo === tokNum || bNo.includes(tokNum))) return true;
+          return (
+            bNo.includes(tok) ||
+            nameWithoutPincode.includes(tok) ||
+            shortenedName.includes(tok) ||
+            areaStr.includes(tok) ||
+            panchayatEn.includes(tok) ||
+            panchayatTa.includes(tok) ||
+            unionEn.includes(tok) ||
+            unionTa.includes(tok) ||
+            villagesStr.includes(tok) ||
+            kilaisStr.includes(tok) ||
+            agentsStr.includes(tok)
+          );
+        });
+        if (allTokensMatch) {
+          score = 150;
+        }
+      }
+
+      if (score > 0) {
+        scoredBooths.push({ booth: b, score });
+      }
+    }
+
+    const parseBoothNum = (s: string) => {
+      const n = parseInt(String(s).replace(/\D/g, ''), 10);
+      return isNaN(n) ? 0 : n;
+    };
+
+    if (rawQuery) {
+      scoredBooths.sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        const diff = parseBoothNum(a.booth.boothNo) - parseBoothNum(b.booth.boothNo);
+        if (diff !== 0) return diff;
+        return a.booth.boothNo.localeCompare(b.booth.boothNo);
+      });
+    } else {
+      scoredBooths.sort((a, b) => {
+        const diff = parseBoothNum(a.booth.boothNo) - parseBoothNum(b.booth.boothNo);
+        if (diff !== 0) return diff;
+        return a.booth.boothNo.localeCompare(b.booth.boothNo);
+      });
+    }
+
+    return scoredBooths.map((item) => item.booth);
+  }, [booths, search, filterUnionId, filterKilaiId, filterAgentId]);
+
+  // Pagination Slice
+  const totalPages = Math.ceil(filteredBooths.length / itemsPerPage);
+  const paginatedBooths = useMemo(() => {
+    return filteredBooths.slice(
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
+    );
+  }, [filteredBooths, currentPage, itemsPerPage]);
+
+  // Drawer Expansion Handlers
+  const toggleExpand = useCallback((id: string) => {
+    setExpandedBoothIds((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  }, []);
+
+  const allExpanded =
+    paginatedBooths.length > 0 && paginatedBooths.every((b: any) => expandedBoothIds[b.id]);
+
+  const toggleAllExpanded = useCallback(() => {
+    if (allExpanded) {
+      setExpandedBoothIds({});
+    } else {
+      const next: Record<string, boolean> = {};
+      paginatedBooths.forEach((b: any) => {
+        next[b.id] = true;
+      });
+      setExpandedBoothIds(next);
+    }
+  }, [allExpanded, paginatedBooths]);
+
+  // CSV Export
+  const handleExportCsv = useCallback(() => {
+    if (!filteredBooths || filteredBooths.length === 0) return;
+
+    const headers = [
+      'Booth Number',
+      'Booth Name',
+      'Area',
+      'Panchayat',
+      'Union',
+      'Male Count',
+      'Female Count',
+      'Third Gender Count',
+      'Total Count',
+      'Recent TVK Votes',
+      'Recent TVK Vote %',
+      'Recent Election',
+      'Linked Kilais',
+      'Assigned Agents',
+    ];
+
+    const rows = filteredBooths.map((b: any) => {
+      const recent =
+        b.electionResults && b.electionResults.length > 0 ? b.electionResults[0] : null;
+      return [
+        `"${String(b.boothNo || '').replace(/"/g, '""')}"`,
+        `"${String(b.name || '').replace(/"/g, '""')}"`,
+        `"${String(b.area || '').replace(/"/g, '""')}"`,
+        `"${String(b.panchayatRel?.name || '').replace(/"/g, '""')}"`,
+        `"${String(b.union?.name || '').replace(/"/g, '""')}"`,
+        b.maleCount || 0,
+        b.femaleCount || 0,
+        b.thirdGenderCount || 0,
+        b.totalCount || 0,
+        recent ? recent.tvkVotes : '',
+        recent ? `${recent.tvkPercentage}%` : '',
+        recent
+          ? `"${String(recent.electionName || recent.electionYear).replace(/"/g, '""')}"`
+          : '',
+        `"${(b.kilais || []).map((k: any) => k.name).join('; ').replace(/"/g, '""')}"`,
+        `"${(b.agents || [])
+          .map((a: any) => `${a.name}${a.phone ? ` (${a.phone})` : ''}`)
+          .join('; ')
+          .replace(/"/g, '""')}"`,
+      ];
+    });
+
+    const csvContent =
+      'data:text/csv;charset=utf-8,\uFEFF' +
+      [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute(
+      'download',
+      `booths_export_${new Date().toISOString().slice(0, 10)}.csv`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, [filteredBooths]);
+
+  // Add / Edit Booth Dialog Handlers
+  const handleOpenBoothDialog = useCallback((booth?: any) => {
     if (booth) {
       setEditingBooth(booth);
       setFormData({
@@ -211,19 +460,25 @@ export default function BoothsPage() {
       });
     } else {
       setEditingBooth(null);
-      setFormData(initialFormState);
+      setFormData(initialBoothFormState);
     }
     setIsDialogOpen(true);
-  };
+  }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmitBooth = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       const { agents, ...restFormData } = formData;
       const payload = {
         ...restFormData,
-        unionId: restFormData.unionId && restFormData.unionId !== '__NONE__' ? restFormData.unionId : null,
-        panchayatId: restFormData.panchayatId && restFormData.panchayatId !== '__NONE__' ? restFormData.panchayatId : null,
+        unionId:
+          restFormData.unionId && restFormData.unionId !== '__NONE__'
+            ? restFormData.unionId
+            : null,
+        panchayatId:
+          restFormData.panchayatId && restFormData.panchayatId !== '__NONE__'
+            ? restFormData.panchayatId
+            : null,
         maleCount: Number(restFormData.maleCount) || 0,
         femaleCount: Number(restFormData.femaleCount) || 0,
         thirdGenderCount: Number(restFormData.thirdGenderCount) || 0,
@@ -236,1151 +491,448 @@ export default function BoothsPage() {
         await createBooth.mutateAsync(payload);
       }
       setIsDialogOpen(false);
-      setFormData(initialFormState);
+      setFormData(initialBoothFormState);
     } catch (error) {
       console.error('Failed to save booth', error);
       alert(t('errorSaving'));
     }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDeleteBooth = useCallback(async (id: string) => {
     if (window.confirm(t('deleteConfirm'))) {
       try {
         await deleteBooth.mutateAsync(id);
       } catch (error) {
-        console.error('Failed to delete', error);
+        console.error('Failed to delete booth', error);
         alert(t('errorDeleting'));
       }
     }
-  };
+  }, [deleteBooth, t]);
 
-  const filteredBooths = booths?.filter((b: any) => {
-    const matchesSearch = b.name.toLowerCase().includes(search.toLowerCase()) || 
-                          b.boothNo.toLowerCase().includes(search.toLowerCase());
-                          
-    const matchesUnion = filterUnionId ? b.kilais?.some((k: any) => k.unionId === filterUnionId) : true;
-    const matchesKilai = filterKilaiId ? b.kilais?.some((k: any) => k.id === filterKilaiId) : true;
-    
-    let matchesAgent = true;
-    if (filterAgentId === 'UNASSIGNED') {
-      matchesAgent = !b.agents || b.agents.length === 0;
-    } else if (filterAgentId === 'ASSIGNED') {
-      matchesAgent = b.agents && b.agents.length > 0;
-    } else if (filterAgentId) {
-      matchesAgent = b.agents?.some((a: any) => a.id === filterAgentId);
-    }
+  // Assign Agents Dialog Handlers
+  const handleOpenAssignAgentsDialog = useCallback((booth: any, election?: any) => {
+    const targetElection =
+      election || currentElection || (dbElections.length > 0 ? dbElections[0] : null);
+    setAssignAgentsBooth(booth);
+    setAssignAgentsElection(targetElection);
 
-    return matchesSearch && matchesUnion && matchesKilai && matchesAgent;
-  }) || [];
-
-  const totalPages = Math.ceil(filteredBooths.length / itemsPerPage);
-  const paginatedBooths = filteredBooths.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  const toggleExpand = (id: string) => {
-    setExpandedBoothIds(prev => ({
-      ...prev,
-      [id]: !prev[id]
-    }));
-  };
-
-  const allExpanded = paginatedBooths.length > 0 && paginatedBooths.every((b: any) => expandedBoothIds[b.id]);
-
-  const toggleAllExpanded = () => {
-    if (allExpanded) {
-      setExpandedBoothIds({});
+    if (targetElection) {
+      const assignments = (booth.agentAssignments || []).filter(
+        (a: any) => a.electionId === targetElection.id
+      );
+      if (assignments.length > 0) {
+        setAssignAgentsSelectedCadres(
+          assignments.map((a: any) => ({
+            ...(a.cadre || a),
+            role: a.role || 'Booth Agent',
+            blaFormUrl: a.blaFormUrl || null,
+            notes: a.notes || '',
+          }))
+        );
+      } else if (targetElection.isCurrent && booth.agents && booth.agents.length > 0) {
+        setAssignAgentsSelectedCadres(
+          booth.agents.map((a: any) => ({
+            ...a,
+            role: a.role || 'Booth Agent',
+            blaFormUrl: a.blaFormUrl || null,
+            notes: a.notes || '',
+          }))
+        );
+      } else {
+        setAssignAgentsSelectedCadres([]);
+      }
     } else {
-      const next: Record<string, boolean> = {};
-      paginatedBooths.forEach((b: any) => {
-        next[b.id] = true;
+      setAssignAgentsSelectedCadres(
+        (booth.agents || []).map((a: any) => ({
+          ...a,
+          role: a.role || 'Booth Agent',
+          blaFormUrl: a.blaFormUrl || null,
+          notes: a.notes || '',
+        }))
+      );
+    }
+    setIsAssignAgentsDialogOpen(true);
+  }, [currentElection, dbElections]);
+
+  const handleSaveAssignAgents = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!assignAgentsBooth || !assignAgentsElection) return;
+    try {
+      await assignBoothElectionAgents.mutateAsync({
+        boothId: assignAgentsBooth.id,
+        electionId: assignAgentsElection.id,
+        agents: assignAgentsSelectedCadres.map((c: any) => ({
+          cadreId: c.id,
+          role: c.role || 'Booth Agent',
+          blaFormUrl: c.blaFormUrl || null,
+          notes: c.notes || null,
+        })),
+        role: 'Booth Agent',
       });
-      setExpandedBoothIds(next);
+      setIsAssignAgentsDialogOpen(false);
+    } catch (err: any) {
+      alert(err.message || 'Error saving booth agents');
     }
   };
+
+  // Edit Single Agent Modal Handlers
+  const handleOpenEditAgentDialog = useCallback((booth: any, election: any, agent: any) => {
+    setEditingAgentData({
+      booth,
+      election,
+      agent,
+      cadreId: agent.cadreId || agent.id,
+      role: agent.assignmentRole || agent.role || 'Booth Agent',
+      blaFormUrl: agent.blaFormUrl || null,
+      notes: agent.assignmentNotes || agent.notes || '',
+    });
+  }, []);
+
+  const handleSaveEditAgent = useCallback(async (saveData: {
+    boothId: string;
+    electionId: string;
+    cadreId: string;
+    role: string;
+    blaFormUrl: string | null;
+    notes: string;
+  }) => {
+    try {
+      await updateBoothElectionAgent.mutateAsync({
+        boothId: saveData.boothId,
+        electionId: saveData.electionId,
+        cadreId: saveData.cadreId,
+        data: {
+          role: saveData.role,
+          blaFormUrl: saveData.blaFormUrl,
+          notes: saveData.notes,
+        },
+      });
+      setEditingAgentData(null);
+    } catch (err: any) {
+      alert(err.message || 'Error updating booth agent');
+    }
+  }, [updateBoothElectionAgent]);
+
+  const handleRemoveBoothElectionAgent = useCallback(async (
+    boothId: string,
+    electionId: string,
+    cadreId: string
+  ) => {
+    if (
+      confirm(
+        locale === 'ta'
+          ? 'இந்த முகவரை நீக்க விரும்புகிறீர்களா?'
+          : 'Are you sure you want to remove this booth agent for this election?'
+      )
+    ) {
+      try {
+        await removeBoothElectionAgent.mutateAsync({
+          boothId,
+          electionId,
+          cadreId,
+        });
+      } catch (err: any) {
+        alert(err.message || 'Error removing agent');
+      }
+    }
+  }, [locale, removeBoothElectionAgent]);
+
+  // Election Results Dialog Handlers
+  const handleOpenAddElectionDialog = useCallback((booth: any) => {
+    setElectionDialogBooth(booth);
+    setEditingElectionResult(null);
+    setElectionFormData({
+      ...initialElectionFormState,
+      totalVotesPolled: booth.totalCount ? Math.round(booth.totalCount * 0.75) : 0,
+    });
+    setIsElectionDialogOpen(true);
+  }, []);
+
+  const handleOpenEditElectionDialog = useCallback((booth: any, result: BoothElectionResult) => {
+    setElectionDialogBooth(booth);
+    setEditingElectionResult(result);
+    setElectionFormData({
+      electionYear: result.electionYear,
+      electionName: result.electionName,
+      totalVotesPolled: result.totalVotesPolled,
+      tvkVotes: result.tvkVotes,
+      tvkPercentage: result.tvkPercentage,
+      topParty1Name: result.topParty1Name || '',
+      topParty1Votes: result.topParty1Votes || 0,
+      topParty2Name: result.topParty2Name || '',
+      topParty2Votes: result.topParty2Votes || 0,
+      winnerPartyName: result.winnerPartyName || '',
+      margin: result.margin || 0,
+      notes: result.notes || '',
+    });
+    setIsElectionDialogOpen(true);
+  }, []);
+
+  const handleSaveElectionResult = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!electionDialogBooth) return;
+
+    try {
+      const polled = Number(electionFormData.totalVotesPolled) || 0;
+      const tvk = Number(electionFormData.tvkVotes) || 0;
+      const p1Votes = Number(electionFormData.topParty1Votes) || 0;
+      const p2Votes = Number(electionFormData.topParty2Votes) || 0;
+      const pct = polled > 0 ? Math.round((tvk / polled) * 10000) / 100 : 0;
+
+      const candidates = [
+        { name: 'TVK', votes: tvk },
+        { name: electionFormData.topParty1Name || 'Party 1', votes: p1Votes },
+        { name: electionFormData.topParty2Name || 'Party 2', votes: p2Votes },
+      ].sort((a, b) => b.votes - a.votes);
+
+      const computedWinner = candidates[0].name;
+      const computedMargin = candidates[0].votes - (candidates[1]?.votes || 0);
+
+      const payload: CreateBoothElectionResultDto = {
+        ...electionFormData,
+        totalVotesPolled: polled,
+        tvkVotes: tvk,
+        tvkPercentage: pct,
+        topParty1Votes: p1Votes,
+        topParty2Votes: p2Votes,
+        winnerPartyName: electionFormData.winnerPartyName || computedWinner,
+        margin: computedMargin,
+      };
+
+      if (editingElectionResult) {
+        await updateElectionResult.mutateAsync({
+          boothId: electionDialogBooth.id,
+          resultId: editingElectionResult.id,
+          data: payload,
+        });
+      } else {
+        await addElectionResult.mutateAsync({
+          boothId: electionDialogBooth.id,
+          data: payload,
+        });
+      }
+
+      setIsElectionDialogOpen(false);
+      setEditingElectionResult(null);
+    } catch (error) {
+      console.error('Failed to save election result', error);
+      alert('Error saving election result');
+    }
+  };
+
+  const handleDeleteElectionResult = useCallback(async (boothId: string, resultId: string) => {
+    if (window.confirm(t('deleteResultConfirm'))) {
+      try {
+        await deleteElectionResult.mutateAsync({ boothId, resultId });
+      } catch (error) {
+        console.error('Failed to delete election result', error);
+        alert('Error deleting election result');
+      }
+    }
+  }, [deleteElectionResult, t]);
+
+  const handleScrollToData = useCallback(() => {
+    dataSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
+
+  const handleSearchChange = useCallback((val: string) => {
+    setSearch(val);
+    setCurrentPage(1);
+  }, []);
+
+  const handleToggleAdvanced = useCallback(() => {
+    setIsAdvancedOpen((prev) => !prev);
+  }, []);
+
+  const handleUnionChange = useCallback((val: string) => {
+    setFilterUnionId(val);
+    setCurrentPage(1);
+  }, []);
+
+  const handleKilaiChange = useCallback((val: string) => {
+    setFilterKilaiId(val);
+    setCurrentPage(1);
+  }, []);
+
+  const handleAgentStatusChange = useCallback((val: string) => {
+    setFilterAgentId(val);
+    setCurrentPage(1);
+  }, []);
+
+  const handleClearFilters = useCallback(() => {
+    setSearch('');
+    setFilterUnionId('');
+    setFilterKilaiId('');
+    setFilterAgentId('');
+    setCurrentPage(1);
+  }, []);
+
+  const handleCloseViewBooth = useCallback(() => setViewingBooth(null), []);
+  const handleClosePreviewImage = useCallback(() => setPreviewImageUrl(null), []);
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both">
-      {/* Header */}
+      {/* Top Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-xl md:text-2xl lg:text-3xl font-heading font-bold uppercase tracking-wide text-primary">{t('title')}</h1>
-          <p className="text-muted-foreground mt-1 text-lg font-medium">{t('description')}</p>
+          <h1 className="text-xl md:text-2xl lg:text-3xl font-heading font-bold uppercase tracking-wide text-primary">
+            {t('title')}
+          </h1>
+          <p className="text-muted-foreground mt-1 text-lg font-medium">
+            {t('description')}
+          </p>
         </div>
-        <Button onClick={() => handleOpenDialog()} className="bg-primary hover:bg-primary/90 text-white font-semibold shadow-md h-11 px-6 rounded-lg transition-transform active:scale-95">
+        <Button
+          onClick={() => handleOpenBoothDialog()}
+          className="bg-primary hover:bg-primary/90 text-white font-semibold shadow-md h-11 px-6 rounded-lg transition-transform active:scale-95"
+        >
           <Plus className="mr-2 h-5 w-5" /> {t('addBooth')}
         </Button>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>{editingBooth ? t('editBooth') : t('addNewBooth')}</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-6 mt-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="boothNo">{t('boothNumber')} *</Label>
-                  <Input 
-                    id="boothNo" 
-                    value={formData.boothNo} 
-                    onChange={e => setFormData({...formData, boothNo: e.target.value})}
-                    required 
-                    placeholder={t('egB101')}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="area">{t('area')}</Label>
-                  <Input 
-                    id="area" 
-                    value={formData.area} 
-                    onChange={e => setFormData({...formData, area: e.target.value})}
-                    placeholder={t('egNorthZone')}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="name">{t('boothName')} *</Label>
-                <Input 
-                  id="name" 
-                  value={formData.name} 
-                  onChange={e => setFormData({...formData, name: e.target.value})}
-                  required 
-                  placeholder={t('egGovtSchool')}
-                />
-              </div>
-
-              {/* Administrative Hierarchy Selection */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="boothUnion">{locale === 'ta' ? 'அமைப்பு அலகு (ஒன்றியம் / நகரம்)' : 'Org Unit (Union / Town)'}</Label>
-                  <Select 
-                    value={formData.unionId || '__NONE__'} 
-                    onValueChange={(val) => setFormData({
-                      ...formData, 
-                      unionId: (!val || val === '__NONE__') ? '' : val,
-                      panchayatId: '',
-                      villageIds: []
-                    })}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder={locale === 'ta' ? 'அமைப்பு அலகைத் தேர்ந்தெடுக்கவும்' : 'Select Org Unit'}>
-                        {formData.unionId && formData.unionId !== '__NONE__'
-                          ? getOrgUnitName(unions?.find((u: any) => String(u.id || u._id) === formData.unionId), locale) 
-                          : (locale === 'ta' ? 'அமைப்பு அலகு இல்லை / தேர்ந்தெடுக்கப்படவில்லை' : 'None (Unassigned)')}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__NONE__">
-                        {locale === 'ta' ? 'அமைப்பு அலகு இல்லை / தேர்ந்தெடுக்கப்படவில்லை' : 'None (Unassigned)'}
-                      </SelectItem>
-                      {unions?.map((u: any) => (
-                        <SelectItem key={u.id || u._id} value={String(u.id || u._id)}>
-                          {getOrgUnitName(u, locale)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="boothPanchayat">{locale === 'ta' ? 'ஊராட்சி / வார்டு' : 'Panchayat / Ward'}</Label>
-                  <Select 
-                    value={formData.panchayatId || '__NONE__'} 
-                    onValueChange={(val) => setFormData({
-                      ...formData, 
-                      panchayatId: (!val || val === '__NONE__') ? '' : val,
-                      villageIds: []
-                    })}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder={locale === 'ta' ? 'ஊராட்சியைத் தேர்ந்தெடுக்கவும்' : 'Select Panchayat / Ward'}>
-                        {formData.panchayatId && formData.panchayatId !== '__NONE__'
-                          ? (() => {
-                              const p = unionPanchayats?.find(p => p.id === formData.panchayatId);
-                              return p ? (locale === 'ta' && p.nameTa ? `${p.nameTa} (${p.name})` : p.name) : formData.panchayatId;
-                            })()
-                          : (locale === 'ta' ? 'ஊராட்சி இல்லை / தேர்ந்தெடுக்கப்படவில்லை' : 'None (Unassigned)')}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="__NONE__">
-                        {locale === 'ta' ? 'ஊராட்சி இல்லை / தேர்ந்தெடுக்கப்படவில்லை' : 'None (Unassigned)'}
-                      </SelectItem>
-                      {unionPanchayats?.map((p: any) => (
-                        <SelectItem key={p.id} value={p.id}>
-                          {locale === 'ta' && p.nameTa ? `${p.nameTa} (${p.name})` : p.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Villages / Hamlets Covered on Electoral Roll */}
-              {formData.panchayatId && panchayatVillages && panchayatVillages.length > 0 && (
-                <div className="space-y-2">
-                  <Label>{locale === 'ta' ? 'வாக்குச்சாவடிக்குட்பட்ட கிராமங்கள் / குடியிருப்புகள்' : 'Villages / Hamlets Covered (Voter Roll)'}</Label>
-                  <div className="flex flex-wrap gap-1.5 p-2 rounded-lg border bg-muted/20">
-                    {panchayatVillages.map((v) => {
-                      const isSelected = formData.villageIds?.includes(v.id);
-                      return (
-                        <button
-                          type="button"
-                          key={v.id}
-                          onClick={() => {
-                            const curr = formData.villageIds || [];
-                            setFormData({
-                              ...formData,
-                              villageIds: isSelected ? curr.filter(id => id !== v.id) : [...curr, v.id]
-                            });
-                          }}
-                          className={cn(
-                            "text-xs px-2.5 py-1 rounded-full border transition-all flex items-center gap-1",
-                            isSelected
-                              ? "bg-primary text-white border-primary font-semibold"
-                              : "bg-background hover:bg-muted text-foreground border-border"
-                          )}
-                        >
-                          {isSelected && <Check className="w-3 h-3" />}
-                          {locale === 'ta' && v.nameTa ? v.nameTa : v.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label>{t('linkedKilais')}</Label>
-                <MultiSelectDropdown 
-                  options={kilais || []}
-                  selected={formData.kilaiIds}
-                  onChange={(val) => setFormData({...formData, kilaiIds: val})}
-                  placeholder="Select kilais..."
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>{t('boothAgents')}</Label>
-                <MultiAutocomplete 
-                  value={formData.agents}
-                  onChange={(val) => setFormData({...formData, agents: val, agentIds: val.map((v: any) => v.id)})}
-                  fetchOptions={async (search) => {
-                    return await cadreApi.getAll({ search, limit: '10' });
-                  }}
-                  getOptionLabel={(option) => option.name}
-                  getOptionValue={(option) => option.id}
-                  placeholder="Search agents (min 3 chars)..."
-                />
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="maleCount">{t('male')}</Label>
-                  <Input 
-                    id="maleCount" 
-                    type="number" 
-                    min="0"
-                    value={formData.maleCount} 
-                    onChange={e => {
-                      const val = parseInt(e.target.value) || 0;
-                      setFormData({...formData, maleCount: val, totalCount: val + formData.femaleCount + formData.thirdGenderCount});
-                    }}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="femaleCount">{t('female')}</Label>
-                  <Input 
-                    id="femaleCount" 
-                    type="number" 
-                    min="0"
-                    value={formData.femaleCount} 
-                    onChange={e => {
-                      const val = parseInt(e.target.value) || 0;
-                      setFormData({...formData, femaleCount: val, totalCount: formData.maleCount + val + formData.thirdGenderCount});
-                    }}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="thirdGenderCount">{t('thirdGender')}</Label>
-                  <Input 
-                    id="thirdGenderCount" 
-                    type="number" 
-                    min="0"
-                    value={formData.thirdGenderCount} 
-                    onChange={e => {
-                      const val = parseInt(e.target.value) || 0;
-                      setFormData({...formData, thirdGenderCount: val, totalCount: formData.maleCount + formData.femaleCount + val});
-                    }}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="totalCount">{t('total')}</Label>
-                  <Input 
-                    id="totalCount" 
-                    type="number" 
-                    min="0"
-                    value={formData.totalCount} 
-                    readOnly
-                    className="bg-muted cursor-not-allowed"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4 border-t">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>{tCommon('cancel')}</Button>
-                <Button type="submit" className="bg-primary text-white" disabled={createBooth.isPending || updateBooth.isPending}>
-                  {editingBooth ? t('updateBooth') : t('saveBooth')}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-
-        {/* View Booth Dialog */}
-        <Dialog open={!!viewingBooth} onOpenChange={(open) => !open && setViewingBooth(null)}>
-          <DialogContent className="sm:max-w-[500px] w-[95vw] max-w-full overflow-x-hidden overflow-y-auto max-h-[90vh]">
-            <DialogHeader>
-              <DialogTitle className="text-xl sm:text-2xl text-primary break-all pr-8 leading-tight">{viewingBooth?.name}</DialogTitle>
-              <div className="flex flex-wrap items-center gap-2 mt-1">
-                <span className="text-muted-foreground font-semibold">{t('boothHeader')} {viewingBooth?.boothNo}</span>
-                {viewingBooth?.panchayatRel && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary">
-                    <MapPin className="w-3 h-3" />
-                    {locale === 'ta' && viewingBooth.panchayatRel.nameTa ? viewingBooth.panchayatRel.nameTa : viewingBooth.panchayatRel.name}
-                  </span>
-                )}
-                {viewingBooth?.union && (
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-secondary text-secondary-foreground">
-                    <Building2 className="w-3 h-3" />
-                    {getOrgUnitName(viewingBooth.union, locale)}
-                  </span>
-                )}
-              </div>
-            </DialogHeader>
-            
-            <div className="space-y-6 mt-2">
-              {/* Linked Villages & Hamlets Covered on Electoral Roll */}
-              <div>
-                <h4 className="text-sm font-semibold mb-2 text-foreground/80 flex items-center gap-1.5">
-                  <MapPin className="w-4 h-4 text-primary" />
-                  {locale === 'ta' ? 'வாக்குச்சாவடிக்குட்பட்ட கிராமங்கள் / குடியிருப்புகள்' : 'Villages / Hamlets Covered'}
-                </h4>
-                <div className="flex flex-wrap gap-2">
-                  {viewingBooth?.villages?.length ? viewingBooth.villages.map((v: any) => (
-                    <span key={v.id} className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-800 border border-blue-200">
-                      {locale === 'ta' && v.nameTa ? v.nameTa : v.name}
-                    </span>
-                  )) : (
-                    <span className="text-xs text-muted-foreground italic bg-muted px-2.5 py-1 rounded-md">
-                      {locale === 'ta' ? 'குறிப்பிட்ட கிராமங்கள் எதுவும் இணைக்கப்படவில்லை' : 'No specific villages recorded'}
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              {/* Linked Kilais */}
-              <div>
-                <h4 className="text-sm font-semibold mb-3 text-foreground/80">{t('linkedKilais')}</h4>
-                <div className="flex flex-wrap gap-2">
-                  {viewingBooth?.kilais?.length ? viewingBooth.kilais.map((k: any) => (
-                    <span key={k.id} className="inline-flex items-center px-2.5 py-1 rounded-md text-sm font-medium bg-green-100 text-green-800 border border-green-200 max-w-full break-words whitespace-normal text-left">
-                      {k.name}
-                    </span>
-                  )) : (
-                    <span className="text-sm text-muted-foreground italic bg-muted px-3 py-1 rounded-md">{t('noKilaisLinked')}</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Agents */}
-              <div>
-                <h4 className="text-sm font-semibold mb-3 text-foreground/80">{t('agentsCadres')}</h4>
-                <div className="flex flex-wrap gap-2">
-                  {viewingBooth?.agents?.length ? viewingBooth.agents.map((a: any) => (
-                    <span key={a.id} className="inline-flex items-center px-2.5 py-1 rounded-md text-sm font-medium bg-primary/10 text-primary border border-primary/20 max-w-full break-words whitespace-normal text-left">
-                      {a.name}
-                    </span>
-                  )) : (
-                    <span className="text-sm text-muted-foreground italic bg-muted px-3 py-1 rounded-md">No agents assigned</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Demographics */}
-              <div>
-                <h4 className="text-sm font-semibold mb-3 text-foreground/80">{t('demographics')}</h4>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  <div className="bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900 rounded-lg p-3 text-center transition-all hover:scale-105">
-                    <div className="text-xs text-muted-foreground mb-1 font-medium">{t('male')}</div>
-                    <div className="text-xl font-bold text-blue-700 dark:text-blue-400">{viewingBooth?.maleCount || 0}</div>
-                  </div>
-                  <div className="bg-pink-50/50 dark:bg-pink-950/20 border border-pink-100 dark:border-pink-900 rounded-lg p-3 text-center transition-all hover:scale-105">
-                    <div className="text-xs text-muted-foreground mb-1 font-medium">{t('female')}</div>
-                    <div className="text-xl font-bold text-pink-700 dark:text-pink-400">{viewingBooth?.femaleCount || 0}</div>
-                  </div>
-                  <div className="bg-purple-50/50 dark:bg-purple-950/20 border border-purple-100 dark:border-purple-900 rounded-lg p-3 text-center transition-all hover:scale-105">
-                    <div className="text-xs text-muted-foreground mb-1 font-medium">{t('thirdGender')}</div>
-                    <div className="text-xl font-bold text-purple-700 dark:text-purple-400">{viewingBooth?.thirdGenderCount || 0}</div>
-                  </div>
-                  <div className="bg-muted/50 border rounded-lg p-3 text-center transition-all hover:scale-105">
-                    <div className="text-xs text-muted-foreground mb-1 font-medium">{t('total')}</div>
-                    <div className="text-xl font-bold text-foreground">{viewingBooth?.totalCount || 0}</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex justify-end pt-6 mt-2 border-t border-border/50">
-              <Button variant="outline" onClick={() => setViewingBooth(null)}>{t('close')}</Button>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
 
-      {/* Metrics Row */}
-      <div className="grid gap-6 sm:grid-cols-3">
-        <Card 
-          className="border-2 border-primary/20 dark:border-primary/30 shadow-md bg-white dark:bg-zinc-900 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-primary/50 hover:-translate-y-1 cursor-pointer"
-          onClick={() => {
-            dataSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }}
-        >
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 bg-primary/10 rounded-md text-primary">
-              <Building2 className="w-8 h-8" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t('totalBooths')}</p>
-              <h2 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold text-foreground mt-1">{booths?.length || 0}</h2>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="border-2 border-primary/20 dark:border-primary/30 shadow-md bg-white dark:bg-zinc-900 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-primary/50 hover:-translate-y-1">
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 bg-manjal/20 rounded-md text-amber-600 dark:text-manjal">
-              <Users className="w-8 h-8" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t('totalVoters')}</p>
-              <h2 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold text-foreground mt-1">
-                {booths?.reduce((acc: number, curr: any) => acc + (curr.totalCount || 0), 0) || 0}
-              </h2>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Top Metrics Cards */}
+      <BoothsMetrics
+        booths={booths}
+        onScrollToData={handleScrollToData}
+      />
 
-        <Card className="border-2 border-primary/20 dark:border-primary/30 shadow-md bg-white dark:bg-zinc-900 rounded-xl transition-all duration-300 hover:shadow-lg hover:border-primary/50 hover:-translate-y-1">
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 bg-primary/10 rounded-md text-primary">
-              <CheckCircle2 className="w-8 h-8" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{t('agentCoverage')}</p>
-              <h2 className="text-2xl md:text-3xl lg:text-4xl font-heading font-bold text-foreground mt-1">
-                {booths?.length ? Math.round((booths.filter((b: any) => b.agents?.length > 0).length / booths.length) * 100) : 0}%
-              </h2>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      {/* Search, Advanced Filters, View Switcher & Export */}
+      <BoothsFilters
+        search={search}
+        onSearchChange={handleSearchChange}
+        isAdvancedOpen={isAdvancedOpen}
+        onToggleAdvanced={handleToggleAdvanced}
+        filterUnionId={filterUnionId}
+        onUnionChange={handleUnionChange}
+        filterKilaiId={filterKilaiId}
+        onKilaiChange={handleKilaiChange}
+        filterAgentId={filterAgentId}
+        onAgentStatusChange={handleAgentStatusChange}
+        onClearFilters={handleClearFilters}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        onExportCsv={handleExportCsv}
+        hasPaginatedBooths={paginatedBooths.length > 0}
+        allExpanded={allExpanded}
+        onToggleAllExpanded={toggleAllExpanded}
+        unions={unions}
+        kilais={kilais}
+        dataSectionRef={dataSectionRef}
+      />
 
-      {/* Action Bar */}
-      <div ref={dataSectionRef} className="flex flex-col bg-card p-4 rounded-lg shadow-sm border border-primary/10 gap-4 scroll-mt-20">
-        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between w-full">
-          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            <div className="relative w-full sm:w-80">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-              <Input 
-                placeholder={t('searchPlaceholder')} 
-                className="pl-10 h-11 bg-zinc-50 dark:bg-zinc-900 border-primary/20 focus-visible:ring-primary/30 rounded-md transition-all"
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setCurrentPage(1);
-                }}
-              />
-            </div>
-            <Button 
-              variant={isAdvancedOpen || filterUnionId || filterKilaiId || filterAgentId ? "default" : "outline"} 
-              className={`h-11 px-4 gap-2 border-primary/20 transition-all ${isAdvancedOpen || filterUnionId || filterKilaiId || filterAgentId ? "bg-primary/10 text-primary hover:bg-primary/20 border-primary/30" : "text-muted-foreground hover:text-primary"}`}
-              onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
-            >
-              <Filter className="w-4 h-4" /> 
-              Advanced Search
-              {(filterUnionId || filterKilaiId || filterAgentId) && (
-                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground font-bold">
-                  {[filterUnionId, filterKilaiId, filterAgentId].filter(Boolean).length}
-                </span>
-              )}
-              <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${isAdvancedOpen ? "rotate-180" : ""}`} />
-            </Button>
-          </div>
-          <div className="flex gap-2 w-full sm:w-auto justify-end">
-            {viewMode === 'list' && paginatedBooths.length > 0 && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={toggleAllExpanded}
-                className="h-11 px-3 text-xs font-semibold text-primary border-primary/20 hover:bg-primary/10 flex items-center gap-1.5 shadow-2xs mr-1"
-                title={allExpanded ? (locale === 'ta' ? 'அனைத்தையும் சுருக்கு' : 'Collapse All') : (locale === 'ta' ? 'அனைத்தையும் விரி' : 'Expand All')}
-              >
-                {allExpanded ? (
-                  <>
-                    <ChevronUp className="w-4 h-4 text-primary" />
-                    <span className="hidden sm:inline">{locale === 'ta' ? 'அனைத்தையும் சுருக்கு' : 'Collapse All'}</span>
-                  </>
-                ) : (
-                  <>
-                    <ChevronDown className="w-4 h-4 text-primary" />
-                    <span className="hidden sm:inline">{locale === 'ta' ? 'அனைத்தையும் விரி' : 'Expand All'}</span>
-                  </>
-                )}
-              </Button>
-            )}
-            <div className="flex bg-muted/40 p-1 rounded-lg border border-primary/10 shadow-inner mr-2 items-center">
-              <button
-                type="button"
-                onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-background shadow-sm text-primary ring-1 ring-black/5' : 'text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5'}`}
-                title="Tile View"
-              >
-                <LayoutGrid className="w-5 h-5" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('list')}
-                className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-background shadow-sm text-primary ring-1 ring-black/5' : 'text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5'}`}
-                title="List View"
-              >
-                <List className="w-5 h-5" />
-              </button>
-            </div>
-            <Button variant="outline" className="h-11 rounded-md px-6 font-medium border-primary/20 text-primary hover:bg-[#eae8d3]">{tCommon('exportCsv')}</Button>
-          </div>
-        </div>
-
-        {/* Advanced Search Panel */}
-        {isAdvancedOpen && (
-          <div className="mt-4 bg-white dark:bg-zinc-900/50 p-5 rounded-xl border border-primary/10 shadow-sm animate-in slide-in-from-top-2 fade-in duration-200">
-            <div className="flex items-center justify-between mb-5">
-              <div className="flex items-center gap-2 text-primary font-semibold text-sm">
-                <Filter className="w-4 h-4" />
-                Advanced Filters
-              </div>
-              
-              {(filterUnionId || filterKilaiId || filterAgentId) && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="h-8 text-xs hover:text-destructive bg-destructive/10 hover:bg-destructive/10  px-3 rounded-full cursor-pointer"
-                  onClick={() => {
-                    setFilterUnionId('');
-                    setFilterKilaiId('');
-                    setFilterAgentId('');
-                  }}
-                >
-                  <X className="w-3 h-3 mr-1" /> Clear Filters
-                </Button>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="space-y-2">
-                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Org Unit</Label>
-                <Select value={filterUnionId} onValueChange={(v) => { setFilterUnionId(v === 'all' ? '' : (v || '')); setFilterKilaiId(''); setCurrentPage(1); }}>
-                  <SelectTrigger className="w-full !h-11 bg-background border-primary/20 hover:border-primary/40 transition-colors rounded-lg shadow-sm">
-                    <SelectValue placeholder="All Org Units">
-                      {filterUnionId && filterUnionId !== 'all' ? unions?.find((u: any) => String(u.id || u._id) === filterUnionId)?.name : "All Org Units"}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all" label="All Org Units">All Org Units</SelectItem>
-                    {unions?.map((u: any) => (
-                      <SelectItem key={String(u.id || u._id)} value={String(u.id || u._id)} label={u.name}>{u.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Kilai</Label>
-                <Select value={filterKilaiId} onValueChange={(v) => { setFilterKilaiId(v === 'all' ? '' : (v || '')); setCurrentPage(1); }} disabled={!filterUnionId}>
-                  <SelectTrigger className="w-full !h-11 bg-background border-primary/20 hover:border-primary/40 transition-colors rounded-lg shadow-sm">
-                    <SelectValue placeholder="All Kilais">
-                      {filterKilaiId && filterKilaiId !== 'all' ? kilais?.find((k: any) => String(k.id || k._id) === filterKilaiId)?.name : "All Kilais"}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all" label="All Kilais">All Kilais</SelectItem>
-                    {kilais?.filter((k: any) => String(k.unionId) === filterUnionId).map((k: any) => (
-                      <SelectItem key={String(k.id || k._id)} value={String(k.id || k._id)} label={k.name}>{k.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Agent Status</Label>
-                <div className="flex p-1 bg-muted/40 dark:bg-muted/20 rounded-lg border border-primary/10 shadow-inner h-11 items-center">
-                  <button
-                    type="button"
-                    onClick={() => { setFilterAgentId(''); setCurrentPage(1); }}
-                    className={`flex-1 text-xs font-semibold py-1.5 rounded-md transition-all duration-200 ${!filterAgentId ? 'bg-white dark:bg-zinc-800 text-primary shadow-sm ring-1 ring-black/5' : 'text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5'}`}
-                  >
-                    All
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setFilterAgentId('ASSIGNED'); setCurrentPage(1); }}
-                    className={`flex-1 text-xs font-semibold py-1.5 rounded-md transition-all duration-200 ${filterAgentId === 'ASSIGNED' ? 'bg-emerald-500 text-white shadow-sm ring-1 ring-black/5' : 'text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5'}`}
-                  >
-                    Assigned
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setFilterAgentId('UNASSIGNED'); setCurrentPage(1); }}
-                    className={`flex-1 text-xs font-semibold py-1.5 rounded-md transition-all duration-200 ${filterAgentId === 'UNASSIGNED' ? 'bg-rose-500 text-white shadow-sm ring-1 ring-black/5' : 'text-muted-foreground hover:bg-black/5 dark:hover:bg-white/5'}`}
-                  >
-                    Unassigned
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Data Section */}
+      {/* Main Data Section: Table or Grid */}
       {viewMode === 'list' ? (
-        <div className="rounded-lg border border-primary/20 bg-card shadow-sm overflow-hidden p-2 animate-in fade-in duration-300">
-          <Table>
-            <TableHeader className="bg-[#d7d4cf]">
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="w-[30%] min-w-[180px] font-semibold text-primary py-4">{t('boothHeader')}</TableHead>
-                <TableHead className="w-[18%] min-w-[120px] font-semibold text-primary py-4">{t('linkedKilais')}</TableHead>
-                <TableHead className="w-[22%] min-w-[130px] font-semibold text-primary py-4">{t('agentsCadres')}</TableHead>
-                <TableHead className="w-[14%] min-w-[100px] font-semibold text-primary py-4 text-center whitespace-nowrap">{t('mf3rd')}</TableHead>
-                <TableHead className="w-[8%] min-w-[70px] font-semibold text-primary py-4 text-center whitespace-nowrap">{t('totalCount')}</TableHead>
-                <TableHead className="w-[8%] min-w-[70px] font-semibold text-primary py-4 text-right pr-3">{tCommon('actions')}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">{t('loading')}</TableCell>
-                </TableRow>
-              ) : paginatedBooths.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">{t('noBooths')}</TableCell>
-                </TableRow>
-              ) : (
-                paginatedBooths.map((booth: any) => {
-                  const isExpanded = Boolean(expandedBoothIds[booth.id]);
-                  const totalCount = booth.totalCount || 0;
-                  const maleCount = booth.maleCount || 0;
-                  const femaleCount = booth.femaleCount || 0;
-                  const thirdCount = booth.thirdGenderCount || 0;
-                  const malePct = totalCount > 0 ? Math.round((maleCount / totalCount) * 100) : 0;
-                  const femalePct = totalCount > 0 ? Math.round((femaleCount / totalCount) * 100) : 0;
-                  const thirdPct = totalCount > 0 && thirdCount > 0 ? Math.round((thirdCount / totalCount) * 100) : 0;
-                  const agentsList = booth.agents || [];
-
-                  return (
-                    <React.Fragment key={booth.id}>
-                      {/* Main Table Row */}
-                      <TableRow 
-                        onClick={() => toggleExpand(booth.id)}
-                        className={`transition-colors group border-b cursor-pointer select-none ${
-                          isExpanded 
-                            ? 'bg-[#f3f3de] border-primary/20' 
-                            : 'hover:bg-[#eae8d3] border-b-primary/10'
-                        }`}
-                      >
-                        <TableCell className="py-4 w-[30%] min-w-[180px]">
-                          <div className="flex items-start gap-2 min-w-0">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleExpand(booth.id);
-                              }}
-                              className={`w-6 h-6 rounded-md flex items-center justify-center transition-all shrink-0 mt-0.5 ${
-                                isExpanded
-                                  ? 'bg-primary text-white shadow-2xs rotate-180 hover:bg-primary/90'
-                                  : 'bg-primary/10 text-primary hover:bg-primary/20 border border-primary/20'
-                              }`}
-                              title={isExpanded ? (locale === 'ta' ? 'சுருக்கு' : 'Collapse') : (locale === 'ta' ? 'விரி' : 'Expand')}
-                            >
-                              <ChevronDown className="w-3.5 h-3.5 transition-transform duration-200" />
-                            </button>
-                            <div className="flex flex-col items-start text-left min-w-0 flex-1">
-                              <Tooltip>
-                                <TooltipTrigger 
-                                  onClick={(e) => { 
-                                    e.stopPropagation(); 
-                                    toggleExpand(booth.id); 
-                                  }} 
-                                  className="cursor-pointer text-left focus:outline-none w-full">
-
-                                  <span className="font-bold text-xs sm:text-sm text-foreground underline decoration-dashed decoration-primary/30 underline-offset-4 hover:text-primary transition-colors break-words leading-snug w-full block">
-                                    {booth.name 
-                                      ? `${booth.boothNo} - ${shortenBoothName(booth.name)}`
-                                      : booth.boothNo}
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent side="right" className="max-w-[350px] whitespace-normal">
-                                  <p className="font-semibold text-sm mb-1">{booth.name}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                              {booth.panchayatRel && (
-                                <span className="inline-flex items-center gap-1 mt-0.5 text-xs text-primary font-medium break-words">
-                                  <MapPin className="w-3 h-3 shrink-0" />
-                                  <span>{locale === 'ta' && booth.panchayatRel.nameTa ? booth.panchayatRel.nameTa : booth.panchayatRel.name}</span>
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="font-medium py-4 w-[18%] min-w-[120px]">
-                          <div className="flex flex-wrap gap-1">
-                            {booth.kilais?.map((kilai: any, i: number) => (
-                              <span key={i} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800 border border-green-200 max-w-full break-words">
-                                {kilai.name}
-                              </span>
-                            ))}
-                          </div>
-                        </TableCell>
-                        <TableCell className="py-4 w-[22%] min-w-[130px]">
-                          <div className="flex flex-wrap gap-1">
-                            {agentsList.map((agent: any, index: number) => {
-                              const aName = locale === 'ta' ? translatePersonNameToTamil(agent.name) || agent.name : agent.name;
-                              return (
-                                <span key={index} className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold bg-primary/10 text-primary border border-primary/20 max-w-full truncate">
-                                  {aName}
-                                </span>
-                              );
-                            })}
-                            {!agentsList.length && <span className="text-xs text-muted-foreground italic">{t('noneAssigned')}</span>}
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center py-4 font-medium text-muted-foreground w-[14%] min-w-[100px] whitespace-nowrap text-xs sm:text-sm">
-                          <span className="text-blue-600 font-bold">{booth.maleCount || 0}</span> / <span className="text-pink-600 font-bold">{booth.femaleCount || 0}</span> / <span className="text-purple-600 font-bold">{booth.thirdGenderCount || 0}</span>
-                        </TableCell>
-                        <TableCell className="text-center font-bold text-foreground py-4 w-[8%] min-w-[70px] whitespace-nowrap text-xs sm:text-sm">
-                          {booth.totalCount || 0}
-                        </TableCell>
-                        <TableCell className="text-right py-4 pr-3 w-[8%] min-w-[70px]">
-                          <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 text-primary hover:bg-primary/10 rounded-full" 
-                              onClick={() => handleOpenDialog(booth)}
-                              title={t('editBooth')}
-                            >
-                              <Edit2 className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 text-destructive hover:bg-destructive/10 rounded-full" 
-                              onClick={() => handleDelete(booth.id)}
-                              title="Delete"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-
-                      {/* Inline Expanded Details Drawer (#f3f3ed background) */}
-                      {isExpanded && (
-                        <TableRow className="bg-[#f3f3ed] hover:bg-[#f3f3ed] dark:bg-zinc-850/60 dark:hover:bg-zinc-850/60 border-b border-primary/20">
-                          <TableCell colSpan={6} className="p-0">
-                            <div className="w-full max-w-full min-w-0 border-l-4 border-l-primary bg-[#f3f3ed] dark:bg-zinc-900/95 p-3.5 sm:p-5 md:p-6 space-y-4 overflow-hidden">
-                              {/* Drawer Header */}
-                              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-primary/15 dark:border-zinc-800">
-                                <div className="space-y-1.5 min-w-0 flex-1">
-                                  <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                                    <span className="bg-primary text-white text-xs font-bold font-mono px-2.5 py-0.5 rounded-md shadow-2xs shrink-0">
-                                      #{booth.boothNo}
-                                    </span>
-                                    {booth.area && (
-                                      <span className="inline-flex items-center gap-1 text-[11px] sm:text-xs font-semibold text-gray-700 dark:text-zinc-300 bg-white dark:bg-zinc-800 px-2 py-0.5 rounded border border-gray-200 dark:border-zinc-700 shrink-0">
-                                        <MapPin className="w-3 h-3 text-muted-foreground" />
-                                        <span>{booth.area}</span>
-                                      </span>
-                                    )}
-                                    {booth.panchayatRel && (
-                                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-bold bg-primary/10 text-primary shrink-0">
-                                        <MapPin className="w-3 h-3" />
-                                        {locale === 'ta' && booth.panchayatRel.nameTa ? booth.panchayatRel.nameTa : booth.panchayatRel.name}
-                                      </span>
-                                    )}
-                                    {booth.union && (
-                                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-secondary text-secondary-foreground shrink-0">
-                                        <Building2 className="w-3 h-3" />
-                                        {getOrgUnitName(booth.union, locale)}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <h3 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white leading-snug break-words">
-                                    {booth.name}
-                                  </h3>
-                                </div>
-
-                                <div className="flex items-center gap-2 shrink-0 self-start sm:self-center">
-                                  {/* <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => handleOpenDialog(booth)}
-                                    className="h-8 text-xs font-semibold text-primary border-primary/20 hover:bg-primary/10 gap-1.5"
-                                  >
-                                    <Edit2 className="w-3.5 h-3.5" />
-                                    <span>{t('editBooth')}</span>
-                                  </Button> */}
-                                  <button
-                                    type="button"
-                                    onClick={() => toggleExpand(booth.id)}
-                                    className="text-xs font-semibold text-muted-foreground hover:text-foreground flex items-center gap-1 px-2 py-1 rounded hover:bg-black/5 dark:hover:bg-white/5"
-                                  >
-                                    <span>{locale === 'ta' ? 'சுருக்கு' : 'Collapse'}</span>
-                                    <ChevronUp className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
-                              </div>
-
-                              {/* Voter Demographics Matrix */}
-                              <div className="space-y-2">
-                                <div className="flex flex-wrap items-center justify-between gap-1 text-xs font-bold text-gray-800 dark:text-zinc-200">
-                                  <span className="flex items-center gap-1.5 text-primary">
-                                    <Users className="w-4 h-4" />
-                                    <span>{t('demographics')}</span>
-                                  </span>
-                                  <span className="text-[11px] font-mono text-muted-foreground">
-                                    {t('total')}: <span className="font-bold text-gray-900 dark:text-white">{totalCount.toLocaleString()}</span>
-                                  </span>
-                                </div>
-
-                                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-2 sm:gap-2.5">
-                                  <div className="p-3 rounded-xl bg-white dark:bg-zinc-800/90 border border-blue-200/60 dark:border-blue-900/40 shadow-2xs">
-                                    <div className="flex items-center justify-between gap-1">
-                                      <span className="text-xs font-semibold text-blue-700 dark:text-blue-300 truncate">
-                                        {t('male')}
-                                      </span>
-                                      <span className="text-[10px] font-mono font-bold text-blue-600 dark:text-blue-400 shrink-0">
-                                        {malePct}%
-                                      </span>
-                                    </div>
-                                    <p className="text-base sm:text-lg font-extrabold font-mono text-gray-900 dark:text-white mt-1">
-                                      {maleCount.toLocaleString()}
-                                    </p>
-                                  </div>
-
-                                  <div className="p-3 rounded-xl bg-white dark:bg-zinc-800/90 border border-pink-200/60 dark:border-pink-900/40 shadow-2xs">
-                                    <div className="flex items-center justify-between gap-1">
-                                      <span className="text-xs font-semibold text-pink-700 dark:text-pink-300 truncate">
-                                        {t('female')}
-                                      </span>
-                                      <span className="text-[10px] font-mono font-bold text-pink-600 dark:text-pink-400 shrink-0">
-                                        {femalePct}%
-                                      </span>
-                                    </div>
-                                    <p className="text-base sm:text-lg font-extrabold font-mono text-gray-900 dark:text-white mt-1">
-                                      {femaleCount.toLocaleString()}
-                                    </p>
-                                  </div>
-
-                                  <div className="p-3 rounded-xl bg-white dark:bg-zinc-800/90 border border-purple-200/60 dark:border-purple-900/40 shadow-2xs">
-                                    <div className="flex items-center justify-between gap-1">
-                                      <span className="text-xs font-semibold text-purple-700 dark:text-purple-300 truncate" title={t('thirdGender')}>
-                                        {t('thirdGender')}
-                                      </span>
-                                      <span className="text-[10px] font-mono font-bold text-purple-600 dark:text-purple-400 shrink-0">
-                                        {thirdPct}%
-                                      </span>
-                                    </div>
-                                    <p className="text-base sm:text-lg font-extrabold font-mono text-gray-900 dark:text-white mt-1">
-                                      {thirdCount.toLocaleString()}
-                                    </p>
-                                  </div>
-
-                                  <div className="p-3 rounded-xl bg-white dark:bg-zinc-800/90 border border-primary/30 shadow-2xs">
-                                    <div className="flex items-center justify-between gap-1">
-                                      <span className="text-xs font-bold text-primary truncate">
-                                        {t('total')}
-                                      </span>
-                                      <span className="text-[10px] font-mono font-bold text-primary shrink-0">
-                                        100%
-                                      </span>
-                                    </div>
-                                    <p className="text-base sm:text-lg font-extrabold font-mono text-primary mt-1">
-                                      {totalCount.toLocaleString()}
-                                    </p>
-                                  </div>
-                                </div>
-
-                                {totalCount > 0 && (
-                                  <div className="w-full h-2 rounded-full bg-gray-200/70 dark:bg-zinc-800 flex overflow-hidden">
-                                    <div style={{ width: `${malePct}%` }} className="bg-blue-500 h-full" title={`Male: ${malePct}%`} />
-                                    <div style={{ width: `${femalePct}%` }} className="bg-pink-500 h-full" title={`Female: ${femalePct}%`} />
-                                    {thirdCount > 0 && (
-                                      <div style={{ width: `${thirdPct}%` }} className="bg-purple-500 h-full" title={`Other: ${thirdPct}%`} />
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Villages / Hamlets Covered */}
-                              {booth.villages && booth.villages.length > 0 && (
-                                <div className="space-y-1.5 pt-1 border-t border-primary/10 dark:border-zinc-800">
-                                  <h4 className="text-xs font-bold text-gray-800 dark:text-zinc-200 flex items-center gap-1.5">
-                                    <MapPin className="w-3.5 h-3.5 text-primary" />
-                                    <span>{locale === 'ta' ? 'வாக்குச்சாவடிக்குட்பட்ட கிராமங்கள் / குடியிருப்புகள்' : 'Villages / Hamlets Covered'}</span>
-                                  </h4>
-                                  <div className="flex flex-wrap gap-1.5">
-                                    {booth.villages.map((v: any) => (
-                                      <span key={v.id} className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-white dark:bg-zinc-800 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40">
-                                        {locale === 'ta' && v.nameTa ? v.nameTa : v.name}
-                                      </span>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Linked Kilais */}
-                              {booth.kilais && booth.kilais.length > 0 && (
-                                <div className="space-y-1.5 pt-1 border-t border-primary/10 dark:border-zinc-800">
-                                  <h4 className="text-xs font-bold text-gray-800 dark:text-zinc-200 flex items-center gap-1.5">
-                                    <Building2 className="w-3.5 h-3.5 text-green-600" />
-                                    <span>{t('linkedKilais')}</span>
-                                  </h4>
-                                  <div className="flex flex-wrap gap-1.5">
-                                    {booth.kilais.map((k: any, i: number) => (
-                                      <span key={i} className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-semibold bg-white dark:bg-zinc-800 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-800/40">
-                                        {k.name}
-                                      </span>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Booth Agents Section */}
-                              <div className="space-y-2 pt-1 border-t border-primary/10 dark:border-zinc-800">
-                                <h4 className="text-xs font-bold text-gray-800 dark:text-zinc-200 flex items-center gap-1.5">
-                                  <Users className="w-3.5 h-3.5 text-primary" />
-                                  <span>{t('agentsCadres')}</span>
-                                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                                    {agentsList.length}
-                                  </span>
-                                </h4>
-
-                                {agentsList.length > 0 ? (
-                                  <div className="grid gap-2 sm:gap-2.5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                                    {agentsList.map((agent: any) => {
-                                      const agentName = locale === 'ta' ? translatePersonNameToTamil(agent.name) || agent.name : agent.name;
-                                      return (
-                                        <div
-                                          key={agent.id || agent.name}
-                                          className="p-2.5 rounded-xl bg-white dark:bg-zinc-800 border border-gray-200/80 dark:border-zinc-700/80 shadow-2xs flex flex-wrap sm:flex-nowrap items-center justify-between gap-2"
-                                        >
-                                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                                            {/* Avatar with bg-red-800 */}
-                                            <div className="w-7 h-7 rounded-full bg-red-800 text-white font-bold text-[10px] flex items-center justify-center shrink-0 shadow-2xs">
-                                              {agent.name?.charAt(0) || 'A'}
-                                            </div>
-                                            <div className="min-w-0 flex-1">
-                                              <p className="font-bold text-xs text-gray-900 dark:text-white truncate">
-                                                {agentName}
-                                              </p>
-                                              <p className="text-[10px] text-muted-foreground truncate">
-                                                {agent.designation || agent.role || (locale === 'ta' ? 'சாவடி முகவர்' : 'Booth Agent')}
-                                              </p>
-                                            </div>
-                                          </div>
-
-                                          {agent.phone && (
-                                            <button
-                                              type="button"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                setCallConfirmation({
-                                                  name: agentName,
-                                                  phone: agent.phone,
-                                                });
-                                              }}
-                                              className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-[11px] font-mono font-bold hover:bg-emerald-100 transition-colors shrink-0"
-                                            >
-                                              <Phone className="w-2.5 h-2.5 text-emerald-600" />
-                                              <span>{agent.phone}</span>
-                                            </button>
-                                          )}
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                ) : (
-                                  <div className="p-3 rounded-xl bg-white/60 dark:bg-zinc-800/40 border border-dashed border-gray-200 dark:border-zinc-700 text-center">
-                                    <p className="text-xs text-muted-foreground">
-                                      {locale === 'ta' ? 'இந்த வாக்குச்சாவடிக்கு முகவர்கள் இன்னும் நியமிக்கப்படவில்லை.' : 'No agents assigned to this booth yet.'}
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                    </React.Fragment>
-                  );
-                })
-              )}</TableBody>
-          </Table>
-        </div>
+        <BoothsTableView
+          booths={paginatedBooths}
+          isLoading={isLoading}
+          currentElection={currentElection}
+          expandedBoothIds={expandedBoothIds}
+          onToggleExpand={toggleExpand}
+          selectedElectionId={selectedElectionId}
+          onSelectElectionId={setSelectedElectionId}
+          dbElections={dbElections}
+          onOpenDialog={handleOpenBoothDialog}
+          onDelete={handleDeleteBooth}
+          onOpenAssignAgentsDialog={handleOpenAssignAgentsDialog}
+          onOpenEditAgentDialog={handleOpenEditAgentDialog}
+          onRemoveBoothElectionAgent={handleRemoveBoothElectionAgent}
+          onOpenAddElectionDialog={handleOpenAddElectionDialog}
+          onOpenEditElectionDialog={handleOpenEditElectionDialog}
+          onDeleteElectionResult={handleDeleteElectionResult}
+          onPreviewImage={setPreviewImageUrl}
+          onCallCadre={setCallingCadre}
+        />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-in fade-in zoom-in-95 duration-300">
-          {isLoading ? (
-            <div className="col-span-full text-center py-8 text-muted-foreground">{t('loading')}</div>
-          ) : paginatedBooths.length === 0 ? (
-            <div className="col-span-full text-center py-8 text-muted-foreground">{t('noBooths')}</div>
-          ) : (
-            paginatedBooths.map((booth: any) => (
-              <Card key={booth.id} className="p-1 gap-1 overflow-hidden border-2 border-primary/20 dark:border-primary/30 shadow-md hover:border-primary/50 hover:shadow-xl transition-all duration-300 group bg-card relative rounded-xl">
-                <div className="absolute top-2 right-2 flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm rounded-full p-0.5 shadow-sm">
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-primary/20 rounded-full" onClick={() => handleOpenDialog(booth)}>
-                    <Edit2 className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/20 rounded-full" onClick={() => handleDelete(booth.id)}>
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-                
-                <div className="bg-[#eae8d3] p-4 border-b border-primary/10">
-                  <div className="pr-14">
-                    <h3 className="font-bold text-lg text-primary mb-0.5 truncate" title={booth.boothNo}>{booth.boothNo}</h3>
-                    <Tooltip>
-                      <TooltipTrigger onClick={() => setViewingBooth(booth)} className="text-left w-full">
-                        <p className="text-sm font-semibold text-foreground leading-snug break-words underline decoration-dashed decoration-primary/30 underline-offset-4 hover:text-primary transition-colors">
-                          {booth.name ? shortenBoothName(booth.name) : t('noAreaSpecified')}
-                        </p>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="max-w-[350px] whitespace-normal z-50">
-                        <p className="font-semibold text-sm mb-1">{booth.name}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                    <div className="flex flex-wrap items-center gap-1.5 mt-2">
-                      {booth.panchayatRel && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-primary/10 text-primary">
-                          <MapPin className="w-3 h-3" />
-                          {locale === 'ta' && booth.panchayatRel.nameTa ? booth.panchayatRel.nameTa : booth.panchayatRel.name}
-                        </span>
-                      )}
-                      {booth.union && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-muted text-muted-foreground">
-                          {getOrgUnitName(booth.union, locale)}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                
-                <CardContent className="p-5 space-y-5">
-                  <div className="space-y-4">
-                    {booth.villages && booth.villages.length > 0 && (
-                      <div>
-                        <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
-                          <MapPin className="w-3.5 h-3.5"/> {locale === 'ta' ? 'வாக்குச்சாவடிக்குட்பட்ட பகுதிகள்' : 'Villages Covered'}
-                        </p>
-                        <div className="flex flex-wrap gap-1 min-h-[1.5rem]">
-                          {booth.villages.map((v: any) => (
-                            <span key={v.id} className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800/40">
-                              {locale === 'ta' && v.nameTa ? v.nameTa : v.name}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    <div>
-                      <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2 flex items-center gap-1.5"><Building2 className="w-3.5 h-3.5"/> {t('linkedKilais')}</p>
-                      <div className="flex flex-wrap gap-1.5 min-h-[1.5rem]">
-                        {booth.kilais?.map((kilai: any, i: number) => (
-                          <span key={i} className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/50">
-                            {kilai.name}
-                          </span>
-                        ))}
-                        {!booth.kilais?.length && <span className="text-xs text-muted-foreground italic">None</span>}
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-widest mb-2 flex items-center gap-1.5"><Users className="w-3.5 h-3.5"/> {t('agentsCadres')}</p>
-                      <div className="flex flex-wrap gap-1.5 min-h-[1.5rem]">
-                        {booth.agents?.map((agent: any, index: number) => (
-                          <span key={index} className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20">
-                            {agent.name}
-                          </span>
-                        ))}
-                        {!booth.agents?.length && <span className="text-xs text-rose-500 font-medium italic bg-rose-50 dark:bg-rose-900/20 px-2 py-0.5 rounded-md border border-rose-100 dark:border-rose-900/50">{t('noneAssigned')}</span>}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-primary/5 bg-zinc-50/50 dark:bg-zinc-900/50 -mx-5 px-5 -mb-5 pb-5 rounded-b-xl">
-                    <div>
-                      <p className="text-[11px] font-bold text-muted-foreground tracking-wide mb-1">{t('mf3rd')}</p>
-                      <p className="font-semibold text-sm">
-                        <span className="text-blue-600 dark:text-blue-400" title="Male">{booth.maleCount}</span><span className="text-muted-foreground/30 mx-1">/</span><span className="text-pink-600 dark:text-pink-400" title="Female">{booth.femaleCount}</span><span className="text-muted-foreground/30 mx-1">/</span><span className="text-purple-600 dark:text-purple-400" title="Third Gender">{booth.thirdGenderCount}</span>
-                      </p>
-                    </div>
-                    <div className="text-right border-l border-primary/10 pl-4">
-                      <p className="text-[11px] font-bold text-muted-foreground tracking-wide mb-1">{t('totalCount')}</p>
-                      <p className="font-black text-xl text-primary">{booth.totalCount}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          )}
-        </div>
+        <BoothsGridView
+          booths={paginatedBooths}
+          isLoading={isLoading}
+          currentElection={currentElection}
+          onOpenDialog={handleOpenBoothDialog}
+          onDelete={handleDeleteBooth}
+          onOpenAssignAgentsDialog={handleOpenAssignAgentsDialog}
+          onOpenAddElectionDialog={handleOpenAddElectionDialog}
+          onOpenEditElectionDialog={handleOpenEditElectionDialog}
+          onPreviewImage={setPreviewImageUrl}
+          onSelectBooth={setViewingBooth}
+        />
       )}
 
       {/* Pagination Controls */}
-      {totalPages > 0 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 px-5 py-4 border border-primary/10 bg-white dark:bg-zinc-900 rounded-xl mt-6 shadow-sm">
-            <div className="text-sm text-muted-foreground font-medium text-center sm:text-left">
-              {t('showing')} {((currentPage - 1) * itemsPerPage) + 1} {t('to')} {Math.min(currentPage * itemsPerPage, filteredBooths.length)} {t('of')} {filteredBooths.length} {t('entries')}
-            </div>
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                disabled={currentPage === 1}
-                className="bg-card hover:bg-primary hover:text-primary-foreground border-primary/20 transition-colors"
-              >
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                {t('previous')}
-              </Button>
-              <div className="text-sm font-semibold text-primary px-2">
-                {t('page')} {currentPage} {t('of')} {totalPages}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                disabled={currentPage === totalPages}
-                className="bg-card hover:bg-primary hover:text-primary-foreground border-primary/20 transition-colors"
-              >
-                {t('next')}
-                <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
-            </div>
-          </div>
-        )}
+      <BoothsPagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalEntries={filteredBooths.length}
+        itemsPerPage={itemsPerPage}
+        onPageChange={setCurrentPage}
+      />
+
+      {/* Add / Edit Booth Dialog */}
+      <BoothDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        editingBooth={editingBooth}
+        formData={formData}
+        setFormData={setFormData}
+        onSubmit={handleSubmitBooth}
+        isPending={createBooth.isPending || updateBooth.isPending}
+        unions={unions}
+        unionPanchayats={unionPanchayats}
+        panchayatVillages={panchayatVillages}
+        kilais={kilais}
+      />
+
+      {/* View Booth Details Dialog */}
+      <ViewBoothDialog
+        booth={viewingBooth}
+        onClose={handleCloseViewBooth}
+      />
+
+      {/* Assign Booth Agents Dialog */}
+      <AssignAgentsDialog
+        open={isAssignAgentsDialogOpen}
+        onOpenChange={setIsAssignAgentsDialogOpen}
+        booth={assignAgentsBooth}
+        election={assignAgentsElection}
+        selectedCadres={assignAgentsSelectedCadres}
+        onSelectedCadresChange={setAssignAgentsSelectedCadres}
+        onSave={handleSaveAssignAgents}
+        isPending={assignBoothElectionAgents.isPending}
+        onPreviewImage={setPreviewImageUrl}
+      />
+
+      {/* Edit Single Booth Agent Modal (Designation/Role control removed) */}
+      <EditAgentDialog
+        data={editingAgentData}
+        onClose={() => setEditingAgentData(null)}
+        onSave={handleSaveEditAgent}
+        isPending={updateBoothElectionAgent.isPending}
+        onPreviewImage={setPreviewImageUrl}
+      />
+
+      {/* Add / Edit Past Election Results Dialog */}
+      <ElectionResultDialog
+        open={isElectionDialogOpen}
+        onOpenChange={setIsElectionDialogOpen}
+        booth={electionDialogBooth}
+        editingResult={editingElectionResult}
+        formData={electionFormData}
+        onFormDataChange={setElectionFormData}
+        onSubmit={handleSaveElectionResult}
+        isPending={addElectionResult.isPending || updateElectionResult.isPending}
+        dbElections={dbElections}
+      />
+
+      {/* High-Res BLA Form Preview Modal */}
+      <BlaPreviewDialog
+        imageUrl={previewImageUrl}
+        onClose={handleClosePreviewImage}
+      />
+
+      {/* Cadre Call Confirmation Dialog */}
+      <CallConfirmationDialog
+        person={callingCadre}
+        onOpenChange={(open) => !open && setCallingCadre(null)}
+      />
     </div>
   );
 }

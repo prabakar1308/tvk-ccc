@@ -5,11 +5,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useRoles } from '@/hooks/use-roles';
 import { useUser } from '@/contexts/user-context';
 import { cadreApi, Cadre } from '@/services/api/cadres';
-import { Shield, ShieldCheck, UserCog, Settings2, Sparkles, Layers } from 'lucide-react';
+import { Shield, ShieldCheck, UserCog, Settings2, Sparkles, Layers, Vote } from 'lucide-react';
 
 import { MobileTabNav, TabKey } from './components/mobile-tab-nav';
 import { GeneralTab } from './components/general-tab';
 import { MasterDataTab } from './components/master-data-tab';
+import { ElectionsTab } from './components/elections-tab';
 import { SystemRolesTab } from './components/system-roles-tab';
 import { RoleAssignmentTab } from './components/role-assignment-tab';
 
@@ -234,6 +235,13 @@ export default function SettingsPage() {
               <span>General</span>
             </TabsTrigger>
             <TabsTrigger 
+              value="elections" 
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-2 py-2.5 px-4.5 rounded-xl text-sm sm:text-base font-bold transition-all whitespace-nowrap data-active:bg-gradient-to-r data-active:from-[#8F0A1B] data-active:to-[#B81930] data-active:text-white data-active:shadow-md data-active:shadow-[#8F0A1B]/20 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 cursor-pointer h-auto"
+            >
+              <Vote className="w-4.5 h-4.5 shrink-0" />
+              <span>Elections</span>
+            </TabsTrigger>
+            <TabsTrigger 
               value="master-data" 
               className="flex-1 sm:flex-initial flex items-center justify-center gap-2 py-2.5 px-4.5 rounded-xl text-sm sm:text-base font-bold transition-all whitespace-nowrap data-active:bg-gradient-to-r data-active:from-[#8F0A1B] data-active:to-[#B81930] data-active:text-white data-active:shadow-md data-active:shadow-[#8F0A1B]/20 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 cursor-pointer h-auto"
             >
@@ -272,6 +280,13 @@ export default function SettingsPage() {
         {/* ========================================================================= */}
         <TabsContent value="general">
           <GeneralTab />
+        </TabsContent>
+
+        {/* ========================================================================= */}
+        {/* TAB 0.2: ELECTIONS MASTER DATA */}
+        {/* ========================================================================= */}
+        <TabsContent value="elections">
+          <ElectionsTab />
         </TabsContent>
 
         {/* ========================================================================= */}

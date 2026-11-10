@@ -5,10 +5,16 @@ import {
   CreateVillageDto,
 } from '@/services/api/villages';
 
-export function useVillages(panchayatId?: string, search?: string) {
+export function useVillages(
+  panchayatId?: string,
+  search?: string,
+  options?: { enabled?: boolean }
+) {
   return useQuery({
     queryKey: ['villages', { panchayatId, search }],
     queryFn: () => villageApi.getAll(panchayatId, search),
+    enabled: options?.enabled ?? true,
+    staleTime: 60 * 1000,
   });
 }
 

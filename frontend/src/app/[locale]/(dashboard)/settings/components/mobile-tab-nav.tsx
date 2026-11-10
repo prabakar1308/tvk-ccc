@@ -1,11 +1,11 @@
 'use client';
 
 import React from 'react';
-import { ChevronLeft, ChevronRight, Settings2, Shield, UserCog, Layers } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Settings2, Shield, UserCog, Layers, Vote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-export type TabKey = 'general' | 'roles' | 'user-roles' | 'master-data';
+export type TabKey = 'general' | 'elections' | 'roles' | 'user-roles' | 'master-data';
 
 export interface TabConfig {
   key: TabKey;
@@ -35,6 +35,12 @@ export function MobileTabNav({
       label: 'General',
       icon: <Settings2 className="w-4 h-4 shrink-0 text-[#FFC72C]" />,
       description: 'System info, language & health',
+    },
+    {
+      key: 'elections',
+      label: 'Elections',
+      icon: <Vote className="w-4 h-4 shrink-0 text-[#FFC72C]" />,
+      description: 'Manage elections & active election',
     },
     {
       key: 'master-data',
