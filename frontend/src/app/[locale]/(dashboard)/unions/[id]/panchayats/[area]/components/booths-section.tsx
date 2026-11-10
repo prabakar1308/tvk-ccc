@@ -271,7 +271,7 @@ export function BoothsSection({
                   {/* Assigned Kilai Column (Panchayat Page only) */}
                   {showAssignedKilai && (
                     <TableHead className="w-[18%] min-w-[140px] text-xs font-bold text-gray-700 dark:text-zinc-200 py-3.5">
-                      {locale === 'ta' ? 'இணைக்கப்பட்ட கிளை' : 'Assigned Kilai'}
+                      {locale === 'ta' ? 'இணைக்கப்பட்ட கிளைகள்' : 'Assigned Kilais'}
                     </TableHead>
                   )}
 
@@ -295,13 +295,54 @@ export function BoothsSection({
                   const boothNumber = booth.boothNo || idx + 1;
                   const boothName = booth.name || `${locale === 'ta' ? 'சாவடி' : 'Booth'} ${boothNumber}`;
 
-                  // Resolve Assigned Kilai Name
-                  const assignedKilaiObj =
-                    booth.kilais && booth.kilais.length > 0 ? booth.kilais[0] : null;
-                  const kilaiDisplayName =
-                    locale === 'ta' && (assignedKilaiObj?.translations?.ta?.name || assignedKilaiObj?.tamilName || booth.kilaiTamilName)
-                      ? assignedKilaiObj?.translations?.ta?.name || assignedKilaiObj?.tamilName || booth.kilaiTamilName
-                      : assignedKilaiObj?.name || booth.kilaiName || null;
+                  // Resolve all Assigned Kilais as a list
+                  const kilaisList: { id?: string; name: string }[] = (() => {
+                    const map = new Map<string, { id?: string; name: string }>();
+
+                    if (Array.isArray(booth.kilais) && booth.kilais.length > 0) {
+                      booth.kilais.forEach((k: any, kIdx: number) => {
+                        if (!k) return;
+                        const id = k.id || `k-${kIdx}`;
+                        const name =
+                          locale === 'ta' && (k.translations?.ta?.name || k.tamilName)
+                            ? k.translations?.ta?.name || k.tamilName
+                            : k.name || (typeof k === 'string' ? k : '');
+                        if (name) {
+                          map.set(name, { id, name });
+                        }
+                      });
+                    }
+
+                    if (Array.isArray(booth.linkedKilais) && booth.linkedKilais.length > 0) {
+                      booth.linkedKilais.forEach((k: any, kIdx: number) => {
+                        if (!k) return;
+                        if (typeof k === 'string') {
+                          map.set(k, { name: k });
+                        } else {
+                          const id = k.id || `lk-${kIdx}`;
+                          const name =
+                            locale === 'ta' && (k.translations?.ta?.name || k.tamilName)
+                              ? k.translations?.ta?.name || k.tamilName
+                              : k.name || '';
+                          if (name) {
+                            map.set(name, { id, name });
+                          }
+                        }
+                      });
+                    }
+
+                    if (map.size === 0 && (booth.kilaiName || booth.kilaiTamilName)) {
+                      const name =
+                        locale === 'ta' && booth.kilaiTamilName
+                          ? booth.kilaiTamilName
+                          : booth.kilaiName || '';
+                      if (name) {
+                        map.set(name, { id: booth.kilaiId, name });
+                      }
+                    }
+
+                    return Array.from(map.values());
+                  })();
 
                   const isExpanded = Boolean(expandedBoothIds[boothKey]);
 
@@ -392,13 +433,20 @@ export function BoothsSection({
                           </div>
                         </TableCell>
 
-                        {/* Assigned Kilai (Only in Panchayat page) */}
+                        {/* Assigned Kilais (Only in Panchayat page) */}
                         {showAssignedKilai && (
                           <TableCell className="py-3 text-xs text-gray-800 dark:text-zinc-200 font-medium">
-                            {kilaiDisplayName ? (
-                              <span className="inline-flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-md text-[11px] font-medium">
-                                {kilaiDisplayName}
-                              </span>
+                            {kilaisList.length > 0 ? (
+                              <div className="flex flex-wrap gap-1 max-w-[240px]">
+                                {kilaisList.map((k, kIdx) => (
+                                  <span
+                                    key={k.id || `${k.name}-${kIdx}`}
+                                    className="inline-flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-md text-[11px] font-medium"
+                                  >
+                                    {k.name}
+                                  </span>
+                                ))}
+                              </div>
                             ) : (
                               <span className="text-muted-foreground italic text-xs">-</span>
                             )}
@@ -544,11 +592,18 @@ export function BoothsSection({
                                         <span>{booth.area}</span>
                                       </span>
                                     )}
-                                    {showAssignedKilai && kilaiDisplayName && (
-                                      <span className="text-[11px] bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded font-medium shrink-0">
-                                        {locale === 'ta' ? 'கிளை: ' : 'Kilai: '}
-                                        {kilaiDisplayName}
-                                      </span>
+                                    {showAssignedKilai && kilaisList.length > 0 && (
+                                      <div className="flex items-center gap-1 flex-wrap shrink-0">
+                                        {kilaisList.map((k, kIdx) => (
+                                          <span
+                                            key={k.id || `${k.name}-${kIdx}`}
+                                            className="text-[11px] bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded font-medium shrink-0"
+                                          >
+                                            {locale === 'ta' ? 'கிளை: ' : 'Kilai: '}
+                                            {k.name}
+                                          </span>
+                                        ))}
+                                      </div>
                                     )}
                                   </div>
                                   <h3 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white leading-snug break-words">
@@ -922,12 +977,54 @@ export function BoothsSection({
             const boothNumber = booth.boothNo || idx + 1;
             const boothName = booth.name || `${locale === 'ta' ? 'சாவடி' : 'Booth'} ${boothNumber}`;
 
-            const assignedKilaiObj =
-              booth.kilais && booth.kilais.length > 0 ? booth.kilais[0] : null;
-            const kilaiDisplayName =
-              locale === 'ta' && (assignedKilaiObj?.translations?.ta?.name || assignedKilaiObj?.tamilName || booth.kilaiTamilName)
-                ? assignedKilaiObj?.translations?.ta?.name || assignedKilaiObj?.tamilName || booth.kilaiTamilName
-                : assignedKilaiObj?.name || booth.kilaiName || null;
+            // Resolve all Assigned Kilais as a list
+            const kilaisList: { id?: string; name: string }[] = (() => {
+              const map = new Map<string, { id?: string; name: string }>();
+
+              if (Array.isArray(booth.kilais) && booth.kilais.length > 0) {
+                booth.kilais.forEach((k: any, kIdx: number) => {
+                  if (!k) return;
+                  const id = k.id || `k-${kIdx}`;
+                  const name =
+                    locale === 'ta' && (k.translations?.ta?.name || k.tamilName)
+                      ? k.translations?.ta?.name || k.tamilName
+                      : k.name || (typeof k === 'string' ? k : '');
+                  if (name) {
+                    map.set(name, { id, name });
+                  }
+                });
+              }
+
+              if (Array.isArray(booth.linkedKilais) && booth.linkedKilais.length > 0) {
+                booth.linkedKilais.forEach((k: any, kIdx: number) => {
+                  if (!k) return;
+                  if (typeof k === 'string') {
+                    map.set(k, { name: k });
+                  } else {
+                    const id = k.id || `lk-${kIdx}`;
+                    const name =
+                      locale === 'ta' && (k.translations?.ta?.name || k.tamilName)
+                        ? k.translations?.ta?.name || k.tamilName
+                        : k.name || '';
+                    if (name) {
+                      map.set(name, { id, name });
+                    }
+                  }
+                });
+              }
+
+              if (map.size === 0 && (booth.kilaiName || booth.kilaiTamilName)) {
+                const name =
+                  locale === 'ta' && booth.kilaiTamilName
+                    ? booth.kilaiTamilName
+                    : booth.kilaiName || '';
+                if (name) {
+                  map.set(name, { id: booth.kilaiId, name });
+                }
+              }
+
+              return Array.from(map.values());
+            })();
 
             const totalCount = booth.totalCount || booth.totalVoters || 0;
             const maleCount = booth.maleCount || 0;
@@ -963,10 +1060,18 @@ export function BoothsSection({
                         )}
                       </div>
 
-                      {showAssignedKilai && kilaiDisplayName && (
-                        <span className="text-[10px] bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-1.5 py-0.5 rounded font-medium truncate max-w-[140px]">
-                          {kilaiDisplayName}
-                        </span>
+                      {showAssignedKilai && kilaisList.length > 0 && (
+                        <div className="flex items-center gap-1 flex-wrap justify-end max-w-[200px]">
+                          {kilaisList.map((k, kIdx) => (
+                            <span
+                              key={k.id || `${k.name}-${kIdx}`}
+                              className="text-[10px] bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-1.5 py-0.5 rounded font-medium truncate max-w-[140px]"
+                              title={k.name}
+                            >
+                              {k.name}
+                            </span>
+                          ))}
+                        </div>
                       )}
                     </div>
 

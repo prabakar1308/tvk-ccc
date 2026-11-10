@@ -176,12 +176,34 @@ export default function PanchayatDetailsPage() {
       String(a.boothNo || '').localeCompare(String(b.boothNo || ''), undefined, { numeric: true })
     );
 
-    return sorted.map((b: any) => ({
-      ...b,
-      kilaiName: b.kilais?.[0]?.name || b.kilaiName || (locale === 'ta' ? 'இணைக்கப்பட்டது' : 'Assigned'),
-      kilaiTamilName: b.kilais?.[0]?.translations?.ta?.name || b.kilaiTamilName || b.kilais?.[0]?.name || b.kilaiName,
-      kilaiId: b.kilais?.[0]?.id || b.kilaiId,
-    }));
+    return sorted.map((b: any) => {
+      // Find all kilais in panchayatKilais that reference this booth
+      const linkedFromKilaiList = panchayatKilais.filter((k: any) =>
+        (k.booths || []).some((kb: any) => kb.id === b.id || String(kb.boothNo) === String(b.boothNo)) ||
+        (k.linkedBooths || []).some((bNo: string) => String(bNo) === String(b.boothNo))
+      );
+
+      // Merge booth's existing kilais with any matched from panchayatKilais
+      const combinedKilaisMap = new Map<string, any>();
+      (b.kilais || []).forEach((k: any) => {
+        if (k.id) combinedKilaisMap.set(k.id, k);
+        else if (k.name) combinedKilaisMap.set(k.name, k);
+      });
+      linkedFromKilaiList.forEach((k: any) => {
+        if (k.id && !combinedKilaisMap.has(k.id)) combinedKilaisMap.set(k.id, k);
+        else if (k.name && !combinedKilaisMap.has(k.name)) combinedKilaisMap.set(k.name, k);
+      });
+
+      const combinedKilais = Array.from(combinedKilaisMap.values());
+
+      return {
+        ...b,
+        kilais: combinedKilais.length > 0 ? combinedKilais : b.kilais,
+        kilaiName: combinedKilais[0]?.name || b.kilais?.[0]?.name || b.kilaiName || (locale === 'ta' ? 'இணைக்கப்பட்டது' : 'Assigned'),
+        kilaiTamilName: combinedKilais[0]?.translations?.ta?.name || combinedKilais[0]?.tamilName || b.kilais?.[0]?.translations?.ta?.name || b.kilaiTamilName || b.kilais?.[0]?.name || b.kilaiName,
+        kilaiId: combinedKilais[0]?.id || b.kilais?.[0]?.id || b.kilaiId,
+      };
+    });
   }, [dedicatedBooths, dbPanchayat, targetPanchayatId, panchayatKilais, areaParam, areaNameEn, areaNameTa, locale]);
 
   const geoData = useMemo(() => {
