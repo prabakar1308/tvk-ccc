@@ -202,32 +202,105 @@ export class KilaisService {
     });
   }
 
+  private async resolveKilaiId(idOrSlug: string): Promise<string> {
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug);
+    if (isUuid) return idOrSlug;
+
+    const kilai = await this.findOne(idOrSlug);
+    return kilai.id;
+  }
+
   async findOne(id: string) {
-    const kilai = await this.prisma.kilai.findUnique({
-      where: { id },
-      include: {
-        union: true,
-        panchayatRel: true,
-        villagesRel: true,
-        booths: true,
-        officeBearers: {
-          include: { cadre: true },
-        },
-        _count: {
-          select: {
-            cadres: true,
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+
+    let kilai: any = null;
+
+    if (isUuid) {
+      kilai = await this.prisma.kilai.findUnique({
+        where: { id },
+        include: {
+          union: true,
+          panchayatRel: true,
+          villagesRel: true,
+          booths: true,
+          officeBearers: {
+            include: { cadre: true },
+          },
+          _count: {
+            select: {
+              cadres: true,
+            },
           },
         },
-      },
-    });
+      });
+    }
 
     if (!kilai) {
-      throw new NotFoundException(`Kilai with ID ${id} not found`);
+      const decoded = decodeURIComponent(id).trim();
+      const normalizedName = decoded.replace(/[-_]+/g, ' ').trim();
+      const cleanSlug = decoded.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+      // 1. Try exact or normalized name match
+      kilai = await this.prisma.kilai.findFirst({
+        where: {
+          OR: [
+            { id: decoded },
+            { name: { equals: decoded, mode: 'insensitive' as const } },
+            { name: { equals: normalizedName, mode: 'insensitive' as const } },
+          ],
+        },
+        include: {
+          union: true,
+          panchayatRel: true,
+          villagesRel: true,
+          booths: true,
+          officeBearers: {
+            include: { cadre: true },
+          },
+          _count: {
+            select: {
+              cadres: true,
+            },
+          },
+        },
+      });
+
+      // 2. Fallback: match by alphanumeric slug
+      if (!kilai && cleanSlug) {
+        const allKilais = await this.prisma.kilai.findMany({
+          include: {
+            union: true,
+            panchayatRel: true,
+            villagesRel: true,
+            booths: true,
+            officeBearers: {
+              include: { cadre: true },
+            },
+            _count: {
+              select: {
+                cadres: true,
+              },
+            },
+          },
+        });
+
+        kilai =
+          allKilais.find((k) => {
+            const kSlug = (k.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+            return kSlug === cleanSlug;
+          }) || null;
+      }
+    }
+
+    if (!kilai) {
+      throw new NotFoundException(`Kilai with ID or name "${id}" not found`);
     }
 
     const kilaiCadres = await this.prisma.cadre.findMany({
       where: {
-        homeKilaiId: id,
+        homeKilaiId: kilai.id,
         level: 'KILAI',
       },
       include: {
@@ -357,8 +430,10 @@ export class KilaisService {
       };
     }
 
+    const resolvedId = await this.resolveKilaiId(id);
+
     return this.prisma.kilai.update({
-      where: { id },
+      where: { id: resolvedId },
       data: updateData,
       include: {
         panchayatRel: true,
@@ -369,14 +444,15 @@ export class KilaisService {
   }
 
   async remove(id: string) {
-    const kilai = await this.prisma.kilai.findUnique({ where: { id } });
+    const resolvedId = await this.resolveKilaiId(id);
+    const kilai = await this.prisma.kilai.findUnique({ where: { id: resolvedId } });
     if (!kilai) {
       throw new NotFoundException(`Kilai with ID ${id} not found`);
     }
 
     // Instead of actual deletion, we could soft delete, but for now we'll update status
     return this.prisma.kilai.update({
-      where: { id },
+      where: { id: resolvedId },
       data: { status: 'INACTIVE' },
     });
   }
@@ -384,14 +460,16 @@ export class KilaisService {
   // --- Sub resources ---
 
   async getOfficeBearers(kilaiId: string) {
+    const resolvedId = await this.resolveKilaiId(kilaiId);
     return this.prisma.officeBearer.findMany({
-      where: { kilaiId },
+      where: { kilaiId: resolvedId },
       include: { cadre: true },
       orderBy: { joinedOn: 'desc' },
     });
   }
 
   async addOfficeBearer(kilaiId: string, payload: any) {
+    const resolvedId = await this.resolveKilaiId(kilaiId);
     const { role, status, joinedOn, cadre } = payload;
 
     return this.prisma.$transaction(async (tx) => {
@@ -405,7 +483,7 @@ export class KilaisService {
           voterId: cadre.voterId,
           photoUrl: cadre.photoUrl,
           attachments: cadre.attachments,
-          homeKilaiId: kilaiId, // Or keep existing
+          homeKilaiId: resolvedId, // Or keep existing
         },
         create: {
           memberId: cadre.memberId,
@@ -415,7 +493,7 @@ export class KilaisService {
           voterId: cadre.voterId,
           photoUrl: cadre.photoUrl,
           attachments: cadre.attachments,
-          homeKilaiId: kilaiId,
+          homeKilaiId: resolvedId,
         },
       });
 
@@ -425,7 +503,7 @@ export class KilaisService {
           role,
           status: status || 'ACTIVE',
           joinedOn: joinedOn ? new Date(joinedOn) : new Date(),
-          kilaiId,
+          kilaiId: resolvedId,
           cadreId: savedCadre.id,
         },
         include: { cadre: true },

@@ -149,8 +149,13 @@ export function CadreViewDialog({
             )}
 
             <div className="space-y-1">
-              <Label className="text-muted-foreground text-xs uppercase tracking-wider">Place / Area</Label>
-              <div className="font-medium text-gray-900 dark:text-zinc-100">{cadre.area || '-'}</div>
+              <Label className="text-muted-foreground text-xs uppercase tracking-wider">Panchayat</Label>
+              <div className="font-medium text-gray-900 dark:text-zinc-100">{cadre.panchayat || cadre.area || '-'}</div>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-muted-foreground text-xs uppercase tracking-wider">Village</Label>
+              <div className="font-medium text-gray-900 dark:text-zinc-100">{cadre.village || '-'}</div>
             </div>
 
             <div className="space-y-1">
@@ -159,6 +164,20 @@ export function CadreViewDialog({
                 {cadre.boothNo ? (booth ? `${booth.boothNo} - ${booth.area || booth.name}` : cadre.boothNo) : '-'}
               </div>
             </div>
+
+            {(cadre.dateOfBirth || cadre.dob) && (
+              <div className="space-y-1">
+                <Label className="text-muted-foreground text-xs uppercase tracking-wider">Date of Birth</Label>
+                <div className="font-medium text-gray-900 dark:text-zinc-100">{cadre.dateOfBirth || cadre.dob}</div>
+              </div>
+            )}
+
+            {cadre.remarks && (
+              <div className="col-span-2 space-y-1">
+                <Label className="text-muted-foreground text-xs uppercase tracking-wider">Remarks</Label>
+                <div className="font-medium text-gray-900 dark:text-zinc-100 text-sm whitespace-pre-wrap">{cadre.remarks}</div>
+              </div>
+            )}
           </div>
 
           {(cadre.attachments?.aadhaarPhoto || cadre.attachments?.voterIdPhoto) && (

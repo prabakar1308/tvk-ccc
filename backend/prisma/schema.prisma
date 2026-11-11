@@ -234,6 +234,11 @@ model Cadre {
   role          String?
   area          String?
   boothNo       String?
+  panchayat     String?
+  village       String?
+  dateOfBirth   String?
+  dob           String?
+  remarks       String?
 
   level CadreLevel @default(KILAI)
 

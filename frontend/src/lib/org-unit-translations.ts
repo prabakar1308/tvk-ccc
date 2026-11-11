@@ -235,3 +235,22 @@ export function getUnionSlug(name?: string | null): string {
     .replace(/[\s\-_]+/g, '-')
     .replace(/[^a-z0-9\-]/g, '');
 }
+
+/**
+ * Creates a clean, human-readable URL slug for a kilai name.
+ * e.g. "Ak Karaikkadu" -> "ak-karaikkadu"
+ *      "K.Pudur" -> "k-pudur"
+ *      "Sothikuppam 80" -> "sothikuppam-80"
+ */
+export function getKilaiSlug(name?: string | null): string {
+  if (!name) return '';
+  const trimmed = name.trim();
+  const slug = trimmed
+    .toLowerCase()
+    .replace(/[\s\-_.]+/g, '-')
+    .replace(/[^a-z0-9\-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+
+  return slug || encodeURIComponent(trimmed);
+}

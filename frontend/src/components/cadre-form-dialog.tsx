@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -11,8 +11,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Upload, FileText, X, Camera, AlertCircle } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Upload, FileText, X, Camera, AlertCircle, Check, ChevronsUpDown } from "lucide-react";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { cn } from "@/lib/utils";
 import { CreateCadreDto } from '@/services/api/cadres';
@@ -21,7 +24,8 @@ import { useCreateCadre, useUpdateCadre } from '@/hooks/use-cadres';
 import { useDistricts } from '@/hooks/use-districts';
 import { useUnions } from '@/hooks/use-unions';
 import { useKilais } from '@/hooks/use-kilais';
-import { AreaMultiSelect } from '@/components/shared/area-multi-select';
+import { usePanchayats } from '@/hooks/use-panchayats';
+import { useVillages } from '@/hooks/use-villages';
 import { BoothMultiSelect } from '@/components/shared/booth-multi-select';
 
 export interface CadreFormData {
@@ -37,6 +41,10 @@ export interface CadreFormData {
   voterId?: string | null;
   photoUrl?: string | null;
   attachments?: { aadhaarPhoto?: string; voterIdPhoto?: string };
+  panchayat?: string | null;
+  village?: string | null;
+  dateOfBirth?: string | null;
+  remarks?: string | null;
   area?: string | null;
   boothNo?: string | null;
   wingId?: string | null;
@@ -53,6 +61,8 @@ export interface CadreFormDialogProps {
   defaultUnionId?: string;
   defaultKilaiId?: string;
   defaultBoothNo?: string;
+  defaultPanchayat?: string;
+  defaultVillage?: string;
   defaultArea?: string;
   defaultWingId?: string;
   defaultRole?: string;
@@ -70,6 +80,8 @@ export function CadreFormDialog({
   defaultUnionId,
   defaultKilaiId,
   defaultBoothNo,
+  defaultPanchayat,
+  defaultVillage,
   defaultArea,
   defaultWingId,
   defaultRole,
@@ -95,6 +107,10 @@ export function CadreFormDialog({
     aadhaarNumber: '',
     photoUrl: '',
     attachments: { aadhaarPhoto: '', voterIdPhoto: '' },
+    panchayat: defaultPanchayat || defaultArea || '',
+    village: defaultVillage || '',
+    dateOfBirth: '',
+    remarks: '',
     area: defaultArea || '',
     boothNo: defaultBoothNo || '',
     wingId: defaultWingId,
@@ -103,6 +119,68 @@ export function CadreFormDialog({
   const [formData, setFormData] = useState<CadreFormData>(initialFormData);
 
   const filteredKilais = kilais.filter((k: any) => k.unionId === formData.unionId);
+
+  // Panchayats and Villages resolution
+  const { data: dbPanchayats = [] } = usePanchayats(formData.unionId || undefined);
+
+  const [isPanchayatOpen, setIsPanchayatOpen] = useState(false);
+  const [panchayatSearch, setPanchayatSearch] = useState('');
+  const [isVillageOpen, setIsVillageOpen] = useState(false);
+  const [villageSearch, setVillageSearch] = useState('');
+
+  const availablePanchayats = useMemo(() => {
+    const map = new Map<string, { id?: string; name: string; nameTa?: string }>();
+    (dbPanchayats || []).forEach((p: any) => {
+      if (p.name) {
+        map.set(p.name.trim().toLowerCase(), {
+          id: p.id,
+          name: p.name.trim(),
+          nameTa: p.nameTa?.trim() || undefined,
+        });
+      }
+    });
+
+    const currentUnion = unions.find((u: any) => String(u.id || u._id) === formData.unionId);
+    (currentUnion?.areasCovered || []).forEach((a: string) => {
+      const key = a.trim().toLowerCase();
+      if (!map.has(key)) {
+        map.set(key, { name: a.trim() });
+      }
+    });
+
+    return Array.from(map.values());
+  }, [dbPanchayats, unions, formData.unionId]);
+
+  const matchedPanchayat = useMemo(() => {
+    if (!formData.panchayat) return null;
+    const pLow = formData.panchayat.trim().toLowerCase();
+    return availablePanchayats.find((p) => p.name.toLowerCase() === pLow);
+  }, [availablePanchayats, formData.panchayat]);
+
+  const { data: dbVillages = [] } = useVillages(matchedPanchayat?.id || undefined);
+
+  const availableVillages = useMemo(() => {
+    const map = new Map<string, { id?: string; name: string; nameTa?: string }>();
+    (dbVillages || []).forEach((v: any) => {
+      if (v.name) {
+        map.set(v.name.trim().toLowerCase(), {
+          id: v.id,
+          name: v.name.trim(),
+          nameTa: v.nameTa?.trim() || undefined,
+        });
+      }
+    });
+
+    const currentKilai = kilais.find((k: any) => String(k.id || k._id) === formData.homeKilaiId);
+    (currentKilai?.villages || []).forEach((v: string) => {
+      const key = v.trim().toLowerCase();
+      if (!map.has(key)) {
+        map.set(key, { name: v.trim() });
+      }
+    });
+
+    return Array.from(map.values());
+  }, [dbVillages, kilais, formData.homeKilaiId]);
 
   const [pendingFiles, setPendingFiles] = useState<{
     photo?: File;
@@ -134,6 +212,10 @@ export function CadreFormDialog({
             voterId: cadre.voterId || '',
             photoUrl: cadre.photoUrl || '',
             attachments: cadre.attachments || { aadhaarPhoto: '', voterIdPhoto: '' },
+            panchayat: cadre.panchayat || cadre.area || '',
+            village: cadre.village || '',
+            dateOfBirth: cadre.dateOfBirth || cadre.dob || '',
+            remarks: cadre.remarks || '',
             area: cadre.area || '',
             boothNo: cadre.boothNo || '',
           });
@@ -146,6 +228,10 @@ export function CadreFormDialog({
           unionId: defaultUnionId, 
           homeKilaiId: defaultKilaiId,
           boothNo: defaultBoothNo || '',
+          panchayat: defaultPanchayat || defaultArea || '',
+          village: defaultVillage || '',
+          dateOfBirth: '',
+          remarks: '',
           area: defaultArea || '',
           wingId: defaultWingId,
           role: defaultRole || '',
@@ -246,6 +332,12 @@ export function CadreFormDialog({
         districtId: formData.level === 'DISTRICT' ? (formData.districtId || undefined) : (editingId ? null : undefined),
         unionId: (formData.level === 'UNION' || formData.level === 'KILAI') ? (formData.unionId || undefined) : (editingId ? null : undefined),
         homeKilaiId: formData.level === 'KILAI' ? (formData.homeKilaiId || undefined) : (editingId ? null : undefined),
+        panchayat: formData.panchayat?.trim() || null,
+        village: formData.village?.trim() || null,
+        dateOfBirth: formData.dateOfBirth?.trim() || null,
+        dob: formData.dateOfBirth?.trim() || null,
+        remarks: formData.remarks?.trim() || null,
+        area: [formData.panchayat?.trim(), formData.village?.trim()].filter(Boolean).join(', ') || formData.area || null,
         attachments: {
           aadhaarPhoto: aadhaarPhoto || undefined,
           voterIdPhoto: voterIdPhoto || undefined,
@@ -496,20 +588,267 @@ export function CadreFormDialog({
                 required
               />
             </div>
-            <div className="col-span-2 space-y-2 flex flex-col">
-              <Label>Area</Label>
-              <AreaMultiSelect
-                value={formData.area ? formData.area.split(',').map((s) => s.trim()).filter(Boolean) : []}
-                onChange={(val) => setFormData((prev) => ({ ...prev, area: val.join(', ') }))}
-                displayStyle="badges"
+            <div className="space-y-2">
+              <Label htmlFor="dateOfBirth">
+                Date of Birth <span className="text-muted-foreground text-xs font-normal">(Optional)</span>
+              </Label>
+              <Input 
+                id="dateOfBirth" 
+                type="date"
+                value={formData.dateOfBirth || ''}
+                onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
+                className="w-full"
               />
             </div>
+
+            <div className="space-y-2 flex flex-col">
+              <Label htmlFor="panchayat">Panchayat</Label>
+              <Popover open={isPanchayatOpen} onOpenChange={setIsPanchayatOpen}>
+                <PopoverTrigger
+                  className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm hover:bg-accent hover:text-accent-foreground font-normal"
+                >
+                  <span className={formData.panchayat ? "text-foreground font-medium truncate" : "text-muted-foreground truncate"}>
+                    {formData.panchayat || "Select or enter panchayat"}
+                  </span>
+                  <div className="flex items-center gap-1 shrink-0 ml-1">
+                    {formData.panchayat && (
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setFormData((prev) => ({ ...prev, panchayat: '', village: '' }));
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.stopPropagation();
+                            setFormData((prev) => ({ ...prev, panchayat: '', village: '' }));
+                          }
+                        }}
+                        className="p-0.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
+                        title="Clear"
+                      >
+                        <X className="h-3 w-3" />
+                      </span>
+                    )}
+                    <ChevronsUpDown className="h-3.5 w-3.5 opacity-50" />
+                  </div>
+                </PopoverTrigger>
+                <PopoverContent className="w-[280px] p-0" align="start">
+                  <Command>
+                    <CommandInput
+                      placeholder="Search or type panchayat..."
+                      value={panchayatSearch}
+                      onValueChange={setPanchayatSearch}
+                    />
+                    <CommandList className="max-h-52">
+                      <CommandEmpty>
+                        <div className="p-2 text-center text-xs">
+                          {panchayatSearch ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="w-full text-xs"
+                              onClick={() => {
+                                setFormData((prev) => ({ ...prev, panchayat: panchayatSearch }));
+                                setIsPanchayatOpen(false);
+                                setPanchayatSearch('');
+                              }}
+                            >
+                              Use "{panchayatSearch}"
+                            </Button>
+                          ) : (
+                            <span className="text-muted-foreground">Type to enter a custom panchayat.</span>
+                          )}
+                        </div>
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {panchayatSearch &&
+                          !availablePanchayats.some(
+                            (p) => p.name.toLowerCase() === panchayatSearch.toLowerCase()
+                          ) && (
+                            <CommandItem
+                              value={`custom-${panchayatSearch}`}
+                              onSelect={() => {
+                                setFormData((prev) => ({ ...prev, panchayat: panchayatSearch }));
+                                setIsPanchayatOpen(false);
+                                setPanchayatSearch('');
+                              }}
+                              className="text-primary font-medium"
+                            >
+                              + Use "{panchayatSearch}"
+                            </CommandItem>
+                          )}
+                        {availablePanchayats.map((p) => {
+                          const isSelected =
+                            formData.panchayat?.toLowerCase() === p.name.toLowerCase();
+                          return (
+                            <CommandItem
+                              key={p.name}
+                              value={`${p.name} ${p.nameTa || ''}`}
+                              onSelect={() => {
+                                setFormData((prev) => ({ ...prev, panchayat: p.name }));
+                                setIsPanchayatOpen(false);
+                                setPanchayatSearch('');
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4 shrink-0",
+                                  isSelected ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <span className="truncate">{p.name}</span>
+                              {p.nameTa && (
+                                <span className="ml-1.5 text-xs text-muted-foreground truncate">
+                                  ({p.nameTa})
+                                </span>
+                              )}
+                            </CommandItem>
+                          );
+                        })}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="space-y-2 flex flex-col">
+              <Label htmlFor="village">Village</Label>
+              <Popover open={isVillageOpen} onOpenChange={setIsVillageOpen}>
+                <PopoverTrigger
+                  className="flex h-9 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm hover:bg-accent hover:text-accent-foreground font-normal"
+                >
+                  <span className={formData.village ? "text-foreground font-medium truncate" : "text-muted-foreground truncate"}>
+                    {formData.village || "Select or enter village"}
+                  </span>
+                  <div className="flex items-center gap-1 shrink-0 ml-1">
+                    {formData.village && (
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setFormData((prev) => ({ ...prev, village: '' }));
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.stopPropagation();
+                            setFormData((prev) => ({ ...prev, village: '' }));
+                          }
+                        }}
+                        className="p-0.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
+                        title="Clear"
+                      >
+                        <X className="h-3 w-3" />
+                      </span>
+                    )}
+                    <ChevronsUpDown className="h-3.5 w-3.5 opacity-50" />
+                  </div>
+                </PopoverTrigger>
+                <PopoverContent className="w-[280px] p-0" align="start">
+                  <Command>
+                    <CommandInput
+                      placeholder="Search or type village..."
+                      value={villageSearch}
+                      onValueChange={setVillageSearch}
+                    />
+                    <CommandList className="max-h-52">
+                      <CommandEmpty>
+                        <div className="p-2 text-center text-xs">
+                          {villageSearch ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="w-full text-xs"
+                              onClick={() => {
+                                setFormData((prev) => ({ ...prev, village: villageSearch }));
+                                setIsVillageOpen(false);
+                                setVillageSearch('');
+                              }}
+                            >
+                              Use "{villageSearch}"
+                            </Button>
+                          ) : (
+                            <span className="text-muted-foreground">Type to enter a custom village.</span>
+                          )}
+                        </div>
+                      </CommandEmpty>
+                      <CommandGroup>
+                        {villageSearch &&
+                          !availableVillages.some(
+                            (v) => v.name.toLowerCase() === villageSearch.toLowerCase()
+                          ) && (
+                            <CommandItem
+                              value={`custom-${villageSearch}`}
+                              onSelect={() => {
+                                setFormData((prev) => ({ ...prev, village: villageSearch }));
+                                setIsVillageOpen(false);
+                                setVillageSearch('');
+                              }}
+                              className="text-primary font-medium"
+                            >
+                              + Use "{villageSearch}"
+                            </CommandItem>
+                          )}
+                        {availableVillages.map((v) => {
+                          const isSelected =
+                            formData.village?.toLowerCase() === v.name.toLowerCase();
+                          return (
+                            <CommandItem
+                              key={v.name}
+                              value={`${v.name} ${v.nameTa || ''}`}
+                              onSelect={() => {
+                                setFormData((prev) => ({ ...prev, village: v.name }));
+                                setIsVillageOpen(false);
+                                setVillageSearch('');
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4 shrink-0",
+                                  isSelected ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              <span className="truncate">{v.name}</span>
+                              {v.nameTa && (
+                                <span className="ml-1.5 text-xs text-muted-foreground truncate">
+                                  ({v.nameTa})
+                                </span>
+                              )}
+                            </CommandItem>
+                          );
+                        })}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+
             <div className="col-span-2 space-y-2 flex flex-col">
               <Label>Booth</Label>
               <BoothMultiSelect
                 value={formData.boothNo ? formData.boothNo.split(',').map((s) => s.trim()).filter(Boolean) : []}
                 onChange={(val) => setFormData((prev) => ({ ...prev, boothNo: val.join(', ') }))}
                 displayStyle="badges"
+              />
+            </div>
+
+            <div className="col-span-2 space-y-2 flex flex-col">
+              <Label htmlFor="remarks">
+                Remarks <span className="text-muted-foreground text-xs font-normal">(Optional)</span>
+              </Label>
+              <Textarea
+                id="remarks"
+                placeholder="Enter any additional remarks..."
+                value={formData.remarks || ''}
+                onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
+                rows={2}
+                className="resize-none"
               />
             </div>
           </div>

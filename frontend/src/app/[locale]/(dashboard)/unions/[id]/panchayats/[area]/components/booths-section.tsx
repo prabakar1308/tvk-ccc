@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/table';
 import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
 import { translatePersonNameToTamil } from '@/lib/name-translations';
+import { getKilaiSlug } from '@/lib/org-unit-translations';
 import { cn } from '@/lib/utils';
 
 export interface BoothsSectionProps {
@@ -439,12 +440,14 @@ export function BoothsSection({
                             {kilaisList.length > 0 ? (
                               <div className="flex flex-wrap gap-1 max-w-[240px]">
                                 {kilaisList.map((k, kIdx) => (
-                                  <span
+                                  <Link
                                     key={k.id || `${k.name}-${kIdx}`}
-                                    className="inline-flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-md text-[11px] font-medium"
+                                    href={`/kilais/${getKilaiSlug(k.name) || k.id}`}
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="inline-flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-md text-[11px] font-medium transition-colors"
                                   >
                                     {k.name}
-                                  </span>
+                                  </Link>
                                 ))}
                               </div>
                             ) : (
@@ -595,13 +598,15 @@ export function BoothsSection({
                                     {showAssignedKilai && kilaisList.length > 0 && (
                                       <div className="flex items-center gap-1 flex-wrap shrink-0">
                                         {kilaisList.map((k, kIdx) => (
-                                          <span
+                                          <Link
                                             key={k.id || `${k.name}-${kIdx}`}
-                                            className="text-[11px] bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded font-medium shrink-0"
+                                            href={`/kilais/${getKilaiSlug(k.name) || k.id}`}
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="text-[11px] bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded font-medium shrink-0 transition-colors"
                                           >
                                             {locale === 'ta' ? 'கிளை: ' : 'Kilai: '}
                                             {k.name}
-                                          </span>
+                                          </Link>
                                         ))}
                                       </div>
                                     )}
@@ -1063,13 +1068,15 @@ export function BoothsSection({
                       {showAssignedKilai && kilaisList.length > 0 && (
                         <div className="flex items-center gap-1 flex-wrap justify-end max-w-[200px]">
                           {kilaisList.map((k, kIdx) => (
-                            <span
+                            <Link
                               key={k.id || `${k.name}-${kIdx}`}
-                              className="text-[10px] bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-1.5 py-0.5 rounded font-medium truncate max-w-[140px]"
+                              href={`/kilais/${getKilaiSlug(k.name) || k.id}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-[10px] bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-1.5 py-0.5 rounded font-medium truncate max-w-[140px] transition-colors"
                               title={k.name}
                             >
                               {k.name}
-                            </span>
+                            </Link>
                           ))}
                         </div>
                       )}

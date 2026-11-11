@@ -19,6 +19,11 @@ export interface Cadre {
   canonicalRole?: string;
   area?: string;
   boothNo?: string;
+  panchayat?: string;
+  village?: string;
+  dateOfBirth?: string;
+  dob?: string;
+  remarks?: string;
   officeBearerRoles?: { role: string }[];
   wingId?: string;
   wing?: any;

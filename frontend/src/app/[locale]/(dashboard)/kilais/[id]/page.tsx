@@ -3,14 +3,13 @@
 import { useParams } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import { useKilai } from '@/hooks/use-kilais';
-import { getOrgUnitName, getUnitTypeLabel } from '@/lib/org-unit-translations';
-import { ArrowLeft, MapPin, Building2, Users, Tent, Phone } from 'lucide-react';
-import { Link } from '@/i18n/routing';
-import { useState } from 'react';
+import { getOrgUnitName, getUnitTypeLabel, getUnionSlug, getKilaiSlug } from '@/lib/org-unit-translations';
+import { ArrowLeft, MapPin, Building2, Users, Tent, Phone, Upload, Plus } from 'lucide-react';
+import { Link, useRouter } from '@/i18n/routing';
+import { useState, useEffect } from 'react';
 import { CadreFormDialog } from '@/components/cadre-form-dialog';
 import { CadreViewDialog } from '@/components/cadre-view-dialog';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
 import { CadreCard } from '@/components/cadre-card';
@@ -28,7 +27,20 @@ import {
 export default function KilaiDetailsPage() {
   const { id } = useParams();
   const locale = useLocale();
+  const router = useRouter();
   const { data: kilai, isLoading } = useKilai(id as string);
+
+  // Canonicalize URL: redirect UUID to clean slug /kilais/[kilaiSlug]
+  useEffect(() => {
+    if (!kilai?.name) return;
+    const cleanSlug = getKilaiSlug(kilai.name);
+    if (!cleanSlug) return;
+
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id as string);
+    if (isUuid) {
+      router.replace(`/kilais/${cleanSlug}`);
+    }
+  }, [kilai, id, router]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null);
@@ -64,22 +76,62 @@ export default function KilaiDetailsPage() {
           <div>
             <h1 className="text-xl sm:text-lg md:text-xl lg:text-2xl font-heading font-bold text-gray-900">{kilaiData.name} {kilaiData.tamilName && <span className="text-xl font-normal text-muted-foreground">({kilaiData.tamilName})</span>}</h1>
             <p className="text-muted-foreground font-medium mt-1 flex flex-wrap items-center gap-2">
-              <span className="flex items-center gap-1.5">
-                <Building2 className="w-4 h-4" />
-                {locale === 'ta' ? 'அமைப்பு அலகு' : 'Union'}: {getOrgUnitName(kilaiData.union, locale) || (locale === 'ta' ? 'தெரியவில்லை' : 'Unknown')}
-              </span>
-              {(kilaiData.panchayatRel || kilaiData.panchayat) && (
-                <span className="flex items-center gap-1 text-primary font-semibold">
-                  • <MapPin className="w-3.5 h-3.5" />
-                  {locale === 'ta' ? 'ஊராட்சி' : 'Panchayat'}: {kilaiData.panchayatRel ? (locale === 'ta' && kilaiData.panchayatRel.nameTa ? kilaiData.panchayatRel.nameTa : kilaiData.panchayatRel.name) : kilaiData.panchayat}
+              {kilaiData.union ? (
+                <Link
+                  href={`/unions/${getUnionSlug(kilaiData.union?.name) || kilaiData.union?.id}`}
+                  className="flex items-center gap-1.5 hover:text-primary transition-colors"
+                >
+                  <Building2 className="w-4 h-4" />
+                  <span>
+                    {locale === 'ta' ? 'அமைப்பு அலகு' : 'Union'}: {getOrgUnitName(kilaiData.union, locale)}
+                  </span>
+                </Link>
+              ) : (
+                <span className="flex items-center gap-1.5">
+                  <Building2 className="w-4 h-4" />
+                  {locale === 'ta' ? 'அமைப்பு அலகு' : 'Union'}: {locale === 'ta' ? 'தெரியவில்லை' : 'Unknown'}
                 </span>
+              )}
+              {(kilaiData.panchayatRel || kilaiData.panchayat) && (
+                <Link
+                  href={`/panchayats/${kilaiData.panchayatRel?.code || kilaiData.panchayatRel?.id || encodeURIComponent(kilaiData.panchayat)}`}
+                  className="flex items-center gap-1 text-primary font-semibold hover:underline"
+                >
+                  • <MapPin className="w-3.5 h-3.5" />
+                  {locale === 'ta' ? 'ஊராட்சி' : 'Panchayat'}:{' '}
+                  {kilaiData.panchayatRel
+                    ? locale === 'ta' && kilaiData.panchayatRel.nameTa
+                      ? kilaiData.panchayatRel.nameTa
+                      : kilaiData.panchayatRel.name
+                    : kilaiData.panchayat}
+                </Link>
               )}
             </p>
           </div>
         </div>
-        <Button onClick={() => setIsModalOpen(true)} className="bg-primary hover:bg-primary/90 text-white font-semibold shadow-md h-11 px-6 rounded-lg transition-transform active:scale-95">
-          <Plus className="mr-2 h-5 w-5" /> {locale === 'ta' ? 'நிர்வாகியை பதிவு செய்' : 'Register Administrator'}
-        </Button>
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            href={`/cadres/import?level=KILAI&unionId=${kilaiData.unionId || kilaiData.union?.id || ''}&kilaiId=${kilaiData.id}${
+              kilaiData.panchayatRel?.name || kilaiData.panchayat
+                ? `&panchayat=${encodeURIComponent(kilaiData.panchayatRel?.name || kilaiData.panchayat)}`
+                : ''
+            }${
+              kilaiData.villages?.[0]
+                ? `&village=${encodeURIComponent(kilaiData.villages[0])}`
+                : ''
+            }`}
+          >
+            <Button
+              variant="outline"
+              className="border-primary/20 text-primary hover:bg-primary/5 font-semibold shadow-sm h-11 px-4 rounded-lg"
+            >
+              <Upload className="mr-2 h-4 w-4" /> {locale === 'ta' ? 'நிர்வாகிகளை இறக்குமதி செய்' : 'Import Administrators'}
+            </Button>
+          </Link>
+          <Button onClick={() => setIsModalOpen(true)} className="bg-primary hover:bg-primary/90 text-white font-semibold shadow-md h-11 px-6 rounded-lg transition-transform active:scale-95">
+            <Plus className="mr-2 h-5 w-5" /> {locale === 'ta' ? 'நிர்வாகியை பதிவு செய்' : 'Register Administrator'}
+          </Button>
+        </div>
       </div>
 
       {/* Kilai Info */}
@@ -203,6 +255,8 @@ export default function KilaiDetailsPage() {
         defaultKilaiId={kilaiData.id}
         defaultUnionId={kilaiData.unionId}
         defaultBoothNo={kilaiData.booths?.[0]?.boothNo}
+        defaultPanchayat={kilaiData.panchayatRel?.name || kilaiData.panchayat || ''}
+        defaultVillage={kilaiData.villages?.[0] || ''}
         defaultArea={kilaiData.villages?.[0]}
         onSuccess={() => {
           queryClient.invalidateQueries({ queryKey: ['kilais'] });

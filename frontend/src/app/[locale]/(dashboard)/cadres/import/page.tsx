@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useMemo, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Link } from '@/i18n/routing';
 import {
   Table,
@@ -20,9 +20,11 @@ import { useCreateBulkCadres } from '@/hooks/use-cadres';
 import { useUnions } from '@/hooks/use-unions';
 import { useKilais } from '@/hooks/use-kilais';
 import { useBooths, useBoothAreas } from '@/hooks/use-booths';
-import { AreaMultiSelect } from "@/components/shared/area-multi-select";
+import { usePanchayats } from '@/hooks/use-panchayats';
+import { useVillages } from '@/hooks/use-villages';
 import { BoothMultiSelect } from "@/components/shared/booth-multi-select";
 import { cleanRomanize } from "@/lib/utils";
+import { getKilaiSlug } from '@/lib/org-unit-translations';
 import * as XLSX from 'xlsx';
 import { CreateCadreDto } from '@/services/api/cadres';
 import {
@@ -35,19 +37,32 @@ import {
 
 interface ParsedCadre extends CreateCadreDto {
   fatherName?: string;
+  panchayat?: string;
+  village?: string;
+  dateOfBirth?: string;
+  dob?: string;
+  remarks?: string;
 }
 
 export default function ImportCadresPage() {
   const router = useRouter();
-  const [importLevel, setImportLevel] = useState<string>('KILAI');
-  const [importUnionId, setImportUnionId] = useState<string>('');
-  const [importKilaiId, setImportKilaiId] = useState<string>('');
+  const searchParams = useSearchParams();
+  const paramLevel = searchParams.get('level');
+  const paramUnionId = searchParams.get('unionId');
+  const paramKilaiId = searchParams.get('kilaiId');
+  const paramPanchayat = searchParams.get('panchayat');
+  const paramVillage = searchParams.get('village');
+
+  const [importLevel, setImportLevel] = useState<string>(paramLevel || 'KILAI');
+  const [importUnionId, setImportUnionId] = useState<string>(paramUnionId || '');
+  const [importKilaiId, setImportKilaiId] = useState<string>(paramKilaiId || '');
   const [parsedCadres, setParsedCadres] = useState<ParsedCadre[]>([]);
   const [importError, setImportError] = useState<string | null>(null);
   const [duplicateErrors, setDuplicateErrors] = useState<any[]>([]);
 
   // Bulk Overrides
-  const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
+  const [selectedPanchayat, setSelectedPanchayat] = useState<string>(paramPanchayat || '');
+  const [selectedVillage, setSelectedVillage] = useState<string>(paramVillage || '');
   const [selectedBooths, setSelectedBooths] = useState<string[]>([]);
   
   // Dialog Edit State
@@ -57,9 +72,142 @@ export default function ImportCadresPage() {
   const { data: kilais = [] } = useKilais();
   const { data: booths = [] } = useBooths();
   const { data: allAreas = [] } = useBoothAreas();
+  const { data: dbPanchayats = [] } = usePanchayats(importUnionId || undefined);
+  const { data: allPanchayats = [] } = usePanchayats();
+  const { data: allVillages = [] } = useVillages();
+
   const bulkCreateMutation = useCreateBulkCadres();
 
   const filteredKilais = importUnionId ? kilais.filter((k: any) => String(k.unionId) === importUnionId) : kilais;
+
+  // Sync state if query params change
+  useEffect(() => {
+    if (paramLevel) setImportLevel(paramLevel);
+    if (paramUnionId) setImportUnionId(paramUnionId);
+    if (paramKilaiId) setImportKilaiId(paramKilaiId);
+    if (paramPanchayat) setSelectedPanchayat(paramPanchayat);
+    if (paramVillage) setSelectedVillage(paramVillage);
+  }, [paramLevel, paramUnionId, paramKilaiId, paramPanchayat, paramVillage]);
+
+  // Pre-fill panchayat & village when kilai is selected if empty
+  useEffect(() => {
+    if (!importKilaiId) return;
+    const selectedK = kilais.find((k: any) => String(k.id) === importKilaiId);
+    if (selectedK) {
+      if (!selectedPanchayat && (selectedK.panchayatRel?.name || selectedK.panchayat)) {
+        setSelectedPanchayat(selectedK.panchayatRel?.name || selectedK.panchayat);
+      }
+      if (!selectedVillage && selectedK.villages && selectedK.villages.length > 0) {
+        setSelectedVillage(selectedK.villages[0]);
+      }
+    }
+  }, [importKilaiId, kilais]);
+
+  const availablePanchayats = useMemo(() => {
+    const list = (importUnionId ? dbPanchayats : allPanchayats) || [];
+    const map = new Map<string, { id?: string; name: string; nameTa?: string }>();
+    list.forEach((p: any) => {
+      if (p.name) {
+        map.set(p.name.trim().toLowerCase(), {
+          id: p.id,
+          name: p.name.trim(),
+          nameTa: p.nameTa?.trim() || undefined,
+        });
+      }
+    });
+
+    const currentUnion = unions.find((u: any) => String(u.id || u._id) === importUnionId);
+    (currentUnion?.areasCovered || []).forEach((a: string) => {
+      const key = a.trim().toLowerCase();
+      if (!map.has(key)) {
+        map.set(key, { name: a.trim() });
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [dbPanchayats, allPanchayats, unions, importUnionId]);
+
+  const matchedPanchayat = useMemo(() => {
+    if (!selectedPanchayat) return null;
+    const pLow = selectedPanchayat.trim().toLowerCase();
+    return availablePanchayats.find((p) => p.name.toLowerCase() === pLow);
+  }, [availablePanchayats, selectedPanchayat]);
+
+  const availableVillages = useMemo(() => {
+    const map = new Map<string, { id?: string; name: string; nameTa?: string; panchayatId?: string }>();
+    (allVillages || []).forEach((v: any) => {
+      if (matchedPanchayat?.id) {
+        if (v.panchayatId !== matchedPanchayat.id && v.panchayat?.name?.toLowerCase() !== matchedPanchayat.name.toLowerCase()) {
+          return;
+        }
+      } else if (importUnionId) {
+        if (v.panchayat?.unionId && String(v.panchayat.unionId) !== importUnionId) {
+          return;
+        }
+      }
+
+      if (v.name) {
+        map.set(v.name.trim().toLowerCase(), {
+          id: v.id,
+          name: v.name.trim(),
+          nameTa: v.nameTa?.trim() || undefined,
+          panchayatId: v.panchayatId,
+        });
+      }
+    });
+
+    const selectedKilai = kilais.find((k: any) => String(k.id) === importKilaiId);
+    if (selectedKilai?.villages && Array.isArray(selectedKilai.villages)) {
+      selectedKilai.villages.forEach((v: string) => {
+        const key = v.trim().toLowerCase();
+        if (!map.has(key)) {
+          map.set(key, { name: v.trim() });
+        }
+      });
+    }
+
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [allVillages, matchedPanchayat, importUnionId, kilais, importKilaiId]);
+
+  const editPanchayatOptions = useMemo(() => {
+    const options = [...availablePanchayats];
+    if (editingRow?.panchayat) {
+      const exists = options.some(p => p.name.toLowerCase() === editingRow.panchayat?.toLowerCase());
+      if (!exists) {
+        options.unshift({ name: editingRow.panchayat });
+      }
+    }
+    return options;
+  }, [availablePanchayats, editingRow?.panchayat]);
+
+  const editVillageOptions = useMemo(() => {
+    let list = allVillages;
+    if (editingRow?.panchayat) {
+      const pMatch = availablePanchayats.find(p => p.name.toLowerCase() === editingRow.panchayat?.toLowerCase());
+      if (pMatch?.id) {
+        list = allVillages.filter((v: any) => v.panchayatId === pMatch.id);
+      }
+    } else if (importUnionId) {
+      list = allVillages.filter((v: any) => !v.panchayat?.unionId || String(v.panchayat.unionId) === importUnionId);
+    }
+    const map = new Map<string, { id?: string; name: string; nameTa?: string }>();
+    list.forEach((v: any) => {
+      if (v.name) {
+        map.set(v.name.trim().toLowerCase(), {
+          id: v.id,
+          name: v.name.trim(),
+          nameTa: v.nameTa?.trim() || undefined,
+        });
+      }
+    });
+    if (editingRow?.village) {
+      const key = editingRow.village.trim().toLowerCase();
+      if (!map.has(key)) {
+        map.set(key, { name: editingRow.village.trim() });
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [allVillages, availablePanchayats, importUnionId, editingRow?.panchayat, editingRow?.village]);
 
   const isTableHeaderRow = (row: any[]): boolean => {
     if (!row || !Array.isArray(row)) return false;
@@ -102,27 +250,6 @@ export default function ImportCadresPage() {
     return trimmed;
   };
 
-  const mapArea = (rawArea: string) => {
-    if (!rawArea) return '';
-    const enArea = cleanRomanize(rawArea);
-    const cleanEn = enArea.toLowerCase().replace(/[^a-z0-9]/g, '');
-    
-    if (!cleanEn) return enArea;
-
-    const found = allAreas.find((a: string) => {
-       const cleanA = a.toLowerCase().replace(/[^a-z0-9]/g, '');
-       return cleanA === cleanEn;
-    });
-    if (found) return found;
-    
-    const fuzzyFound = allAreas.find((a: string) => {
-       const cleanA = a.toLowerCase().replace(/[^a-z0-9]/g, '');
-       return cleanA.includes(cleanEn) || cleanEn.includes(cleanA);
-    });
-    
-    return fuzzyFound || enArea;
-  };
-
   const processCadreData = (data: any[][], isPaste = false) => {
     try {
       if (!data || data.length === 0) return;
@@ -130,24 +257,19 @@ export default function ImportCadresPage() {
       // 1. Detect table header row
       const headerRowIndex = data.findIndex(isTableHeaderRow);
 
-      // Default column indices based on template:
-      // col 1 - S.no (0)
-      // col 2 - Name (1)
-      // col 3 - Father's Name (2)
-      // col 4 - Role (3)
-      // col 5 - Area (4)
-      // col 6 - Booth No (5)
-      // col 7 - Phone no (6)
-      // col 8 - Aadhaar (7)
-      // col 9 - Member/Voter Id (8)
       let nameIdx = 1;
       let fatherNameIdx = 2;
       let roleIdx = 3;
+      let combinedPvIdx = -1;
+      let panchayatIdx = -1;
+      let villageIdx = -1;
       let areaIdx = 4;
       let boothIdx = 5;
       let phoneIdx = 6;
       let aadhaarIdx = 7;
       let voterIdIdx = 8;
+      let dobIdx = -1;
+      let remarksIdx = -1;
 
       if (headerRowIndex !== -1) {
         const header = data[headerRowIndex];
@@ -159,7 +281,16 @@ export default function ImportCadresPage() {
             nameIdx = idx;
           } else if (text.includes('பதவி') || text.includes('role') || text.includes('designation')) {
             roleIdx = idx;
-          } else if (text.includes('பஞ்சாயத்து') || text.includes('கிராமம்') || text.includes('area') || text.includes('village') || text.includes('panchayat')) {
+          } else if (
+            (text.includes('பஞ்சாயத்து') || text.includes('panchayat') || text.includes('ஊராட்சி')) &&
+            (text.includes('கிராமம்') || text.includes('village') || text.includes('குடியிருப்பு'))
+          ) {
+            combinedPvIdx = idx;
+          } else if (text.includes('பஞ்சாயத்து') || text.includes('ஊராட்சி') || text.includes('panchayat')) {
+            panchayatIdx = idx;
+          } else if (text.includes('கிராமம்') || text.includes('குடியிருப்பு') || text.includes('village')) {
+            villageIdx = idx;
+          } else if (text.includes('area') || text.includes('பகுதி')) {
             areaIdx = idx;
           } else if (text.includes('வார்டு') || text.includes('வாக்குச்சாவடி') || text.includes('booth') || text.includes('ward')) {
             boothIdx = idx;
@@ -169,6 +300,10 @@ export default function ImportCadresPage() {
             aadhaarIdx = idx;
           } else if (text.includes('வாக்காளர்') || text.includes('உறுப்பினர்') || text.includes('voter') || text.includes('member')) {
             voterIdIdx = idx;
+          } else if (text.includes('பிறந்த') || text.includes('dob') || text.includes('birth')) {
+            dobIdx = idx;
+          } else if (text.includes('குறிப்பு') || text.includes('remark')) {
+            remarksIdx = idx;
           }
         });
 
@@ -212,6 +347,7 @@ export default function ImportCadresPage() {
             nameIdx = 0;
             fatherNameIdx = 1;
             roleIdx = 2;
+            combinedPvIdx = 3;
             areaIdx = 3;
             boothIdx = 4;
             phoneIdx = 5;
@@ -234,19 +370,46 @@ export default function ImportCadresPage() {
         const rawName = String(row[nameIdx] || '').trim();
         const rawFatherName = fatherNameIdx !== -1 && row[fatherNameIdx] != null ? String(row[fatherNameIdx]).trim() : '';
         const rawRole = roleIdx !== -1 && row[roleIdx] != null ? String(row[roleIdx]).trim() : '';
+        let rawPanchayat = panchayatIdx !== -1 && row[panchayatIdx] != null ? String(row[panchayatIdx]).trim() : '';
+        let rawVillage = villageIdx !== -1 && row[villageIdx] != null ? String(row[villageIdx]).trim() : '';
+        const rawCombinedPv = combinedPvIdx !== -1 && row[combinedPvIdx] != null ? String(row[combinedPvIdx]).trim() : '';
         const rawArea = areaIdx !== -1 && row[areaIdx] != null ? String(row[areaIdx]).trim() : '';
         const rawBoothNo = boothIdx !== -1 && row[boothIdx] != null ? String(row[boothIdx]).trim() : '';
         const rawPhone = phoneIdx !== -1 && row[phoneIdx] != null ? String(row[phoneIdx]).trim() : '';
         const rawAadhaar = aadhaarIdx !== -1 && row[aadhaarIdx] != null ? String(row[aadhaarIdx]).trim() : '';
         const rawVoterId = voterIdIdx !== -1 && row[voterIdIdx] != null ? String(row[voterIdIdx]).trim() : '';
+        const rawDob = dobIdx !== -1 && row[dobIdx] != null ? String(row[dobIdx]).trim() : '';
+        const rawRemarks = remarksIdx !== -1 && row[remarksIdx] != null ? String(row[remarksIdx]).trim() : '';
 
-        // Area: override or mapped from sheet
-        let finalArea = '';
-        if (selectedAreas.length > 0) {
-          finalArea = selectedAreas.join(', ');
-        } else if (rawArea) {
-          finalArea = mapArea(rawArea);
+        // If specific panchayat / village column not present, parse combined column or area
+        if (!rawPanchayat && !rawVillage) {
+          const fallbackSource = rawCombinedPv || rawArea;
+          if (fallbackSource) {
+            if (fallbackSource.includes('/')) {
+              const parts = fallbackSource.split('/').map(s => s.trim());
+              rawPanchayat = parts[0] || '';
+              rawVillage = parts[1] || '';
+            } else if (fallbackSource.includes(',')) {
+              const parts = fallbackSource.split(',').map(s => s.trim());
+              rawPanchayat = parts[0] || '';
+              rawVillage = parts[1] || '';
+            } else {
+              const isPanchayatMatch = availablePanchayats.some(p => 
+                p.name.toLowerCase() === fallbackSource.toLowerCase() ||
+                (p.nameTa && p.nameTa === fallbackSource)
+              );
+              if (isPanchayatMatch) {
+                rawPanchayat = fallbackSource;
+              } else {
+                rawVillage = fallbackSource;
+              }
+            }
+          }
         }
+
+        const effectivePanchayat = selectedPanchayat || rawPanchayat;
+        const effectiveVillage = selectedVillage || rawVillage;
+        const effectiveArea = [effectivePanchayat, effectiveVillage].filter(Boolean).join(', ') || rawArea;
 
         // Booth No: override or matched from sheet
         let matchedBoothNo = '';
@@ -271,12 +434,17 @@ export default function ImportCadresPage() {
           name: cleanRomanize(rawName),
           fatherName: cleanRomanize(rawFatherName),
           role: translateRole(rawRole),
-          area: finalArea,
+          panchayat: effectivePanchayat,
+          village: effectiveVillage,
+          area: effectiveArea,
           boothNo: matchedBoothNo,
           phone: cleanPhone,
           aadhaarNumber: cleanAadhaar,
           memberId: cleanMemberId,
           voterId: cleanVoterId,
+          dateOfBirth: rawDob || undefined,
+          dob: rawDob || undefined,
+          remarks: rawRemarks || undefined,
           level: importLevel as any,
           unionId: importUnionId || undefined,
           homeKilaiId: importKilaiId || undefined,
@@ -350,10 +518,16 @@ export default function ImportCadresPage() {
 
         return {
           ...rest,
+          panchayat: rest.panchayat?.trim() || undefined,
+          village: rest.village?.trim() || undefined,
+          area: rest.area?.trim() || undefined,
           phone: rest.phone?.trim() || undefined,
           aadhaarNumber: rest.aadhaarNumber?.trim() || undefined,
           voterId: voterVal || undefined,
           memberId: memberVal || `TVK-M-${Date.now().toString().slice(-6)}-${idx + 1}`,
+          dateOfBirth: rest.dateOfBirth?.trim() || rest.dob?.trim() || undefined,
+          dob: rest.dateOfBirth?.trim() || rest.dob?.trim() || undefined,
+          remarks: rest.remarks?.trim() || undefined,
           level: importLevel as any,
           unionId: importUnionId || undefined,
           homeKilaiId: importKilaiId || undefined,
@@ -361,7 +535,13 @@ export default function ImportCadresPage() {
       });
       
       await bulkCreateMutation.mutateAsync(finalPayload);
-      router.push('/cadres');
+      if (importLevel === 'KILAI' && importKilaiId) {
+        const kilaiObj = kilais.find((k: any) => String(k.id) === importKilaiId);
+        const slug = kilaiObj ? getKilaiSlug(kilaiObj.name) : importKilaiId;
+        router.push(`/kilais/${slug || importKilaiId}`);
+      } else {
+        router.push('/cadres');
+      }
     } catch (error: any) {
       const data = error.response?.data;
       if (data?.duplicates) {
@@ -382,23 +562,38 @@ export default function ImportCadresPage() {
     setEditingRow(null);
   };
 
-  const applyOverrides = (areas: string[], boothNos: string[]) => {
+  const applyOverrides = (pVal: string, vVal: string, boothNos: string[]) => {
     if (parsedCadres.length === 0) return;
-    setParsedCadres(prev => prev.map(c => ({
-      ...c,
-      area: areas.length > 0 ? areas.join(', ') : c.area,
-      boothNo: boothNos.length > 0 ? boothNos.join(', ') : c.boothNo,
-    })));
+    setParsedCadres(prev => prev.map(c => {
+      const p = pVal || c.panchayat || '';
+      const v = vVal || c.village || '';
+      const areaCombined = [p, v].filter(Boolean).join(', ');
+      return {
+        ...c,
+        panchayat: pVal ? pVal : c.panchayat,
+        village: vVal ? vVal : c.village,
+        area: areaCombined || c.area,
+        boothNo: boothNos.length > 0 ? boothNos.join(', ') : c.boothNo,
+      };
+    }));
   };
 
-  const handleAreaChange = (newAreas: string[]) => {
-    setSelectedAreas(newAreas);
-    applyOverrides(newAreas, selectedBooths);
+  const handlePanchayatChange = (val: string | null) => {
+    const cleanVal = !val || val === '__NONE__' ? '' : val;
+    setSelectedPanchayat(cleanVal);
+    setSelectedVillage('');
+    applyOverrides(cleanVal, '', selectedBooths);
+  };
+
+  const handleVillageChange = (val: string | null) => {
+    const cleanVal = !val || val === '__NONE__' ? '' : val;
+    setSelectedVillage(cleanVal);
+    applyOverrides(selectedPanchayat, cleanVal, selectedBooths);
   };
 
   const handleBoothChange = (newBooths: string[]) => {
     setSelectedBooths(newBooths);
-    applyOverrides(selectedAreas, newBooths);
+    applyOverrides(selectedPanchayat, selectedVillage, newBooths);
   };
 
   return (
@@ -482,13 +677,62 @@ export default function ImportCadresPage() {
                 </Select>
               </div>
 
-              <div className="space-y-2 animate-in fade-in zoom-in-95 duration-200 flex flex-col">
-                <Label>Area (Optional)</Label>
-                <AreaMultiSelect
-                  value={selectedAreas}
-                  onChange={handleAreaChange}
-                  displayStyle="badges"
-                />
+              <div className="space-y-2 animate-in fade-in zoom-in-95 duration-200">
+                <Label>Panchayat (Optional)</Label>
+                <Select
+                  value={selectedPanchayat || '__NONE__'}
+                  onValueChange={handlePanchayatChange}
+                >
+                  <SelectTrigger className="w-full text-base">
+                    <SelectValue placeholder="Select Panchayat">
+                      {selectedPanchayat ? (
+                        (() => {
+                          const p = availablePanchayats.find(ap => ap.name.toLowerCase() === selectedPanchayat.toLowerCase());
+                          return p ? (p.nameTa ? `${p.name} (${p.nameTa})` : p.name) : selectedPanchayat;
+                        })()
+                      ) : (
+                        'None (Optional)'
+                      )}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    <SelectItem value="__NONE__">None (Optional)</SelectItem>
+                    {availablePanchayats.map((p: any) => (
+                      <SelectItem key={p.id || p.name} value={p.name}>
+                        {p.nameTa ? `${p.name} (${p.nameTa})` : p.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2 animate-in fade-in zoom-in-95 duration-200">
+                <Label>Village (Optional)</Label>
+                <Select
+                  value={selectedVillage || '__NONE__'}
+                  onValueChange={handleVillageChange}
+                >
+                  <SelectTrigger className="w-full text-base">
+                    <SelectValue placeholder="Select Village">
+                      {selectedVillage ? (
+                        (() => {
+                          const v = availableVillages.find(av => av.name.toLowerCase() === selectedVillage.toLowerCase());
+                          return v ? (v.nameTa ? `${v.name} (${v.nameTa})` : v.name) : selectedVillage;
+                        })()
+                      ) : (
+                        'None (Optional)'
+                      )}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="max-h-60">
+                    <SelectItem value="__NONE__">None (Optional)</SelectItem>
+                    {availableVillages.map((v: any) => (
+                      <SelectItem key={v.id || v.name} value={v.name}>
+                        {v.nameTa ? `${v.name} (${v.nameTa})` : v.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2 animate-in fade-in zoom-in-95 duration-200 flex flex-col">
@@ -571,13 +815,14 @@ export default function ImportCadresPage() {
 
           <div className="rounded-lg border border-primary/20 bg-card shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
-              <Table className="w-full min-w-[850px]">
+              <Table className="w-full min-w-[950px]">
                 <TableHeader className="bg-primary/5">
                   <TableRow>
                     <TableHead className="font-semibold text-primary py-4">Name</TableHead>
                     <TableHead className="font-semibold text-primary py-4">Father&apos;s Name</TableHead>
                     <TableHead className="font-semibold text-primary py-4">Role</TableHead>
-                    <TableHead className="font-semibold text-primary py-4">Area</TableHead>
+                    <TableHead className="font-semibold text-primary py-4">Panchayat</TableHead>
+                    <TableHead className="font-semibold text-primary py-4">Village</TableHead>
                     <TableHead className="font-semibold text-primary py-4">Booth No</TableHead>
                     <TableHead className="font-semibold text-primary py-4">Phone</TableHead>
                     <TableHead className="font-semibold text-primary py-4">Aadhaar</TableHead>
@@ -591,7 +836,8 @@ export default function ImportCadresPage() {
                       <TableCell className="p-3 font-medium whitespace-nowrap">{cadre.name || <span className="text-red-500 text-xs">Required</span>}</TableCell>
                       <TableCell className="p-3 text-muted-foreground">{cadre.fatherName || '-'}</TableCell>
                       <TableCell className="p-3">{cadre.role || '-'}</TableCell>
-                      <TableCell className="p-3">{cadre.area || '-'}</TableCell>
+                      <TableCell className="p-3">{cadre.panchayat || '-'}</TableCell>
+                      <TableCell className="p-3">{cadre.village || '-'}</TableCell>
                       <TableCell className="p-3">{cadre.boothNo || '-'}</TableCell>
                       <TableCell className="p-3">{cadre.phone || '-'}</TableCell>
                       <TableCell className="p-3">{cadre.aadhaarNumber || '-'}</TableCell>
@@ -620,7 +866,7 @@ export default function ImportCadresPage() {
 
       {/* Edit Administrator Dialog */}
       <Dialog open={!!editingRow} onOpenChange={(open) => !open && setEditingRow(null)}>
-        <DialogContent className="sm:max-w-[450px]">
+        <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
             <DialogTitle>Edit Administrator</DialogTitle>
           </DialogHeader>
@@ -657,13 +903,79 @@ export default function ImportCadresPage() {
                   <Input value={editingRow.phone || ''} onChange={(e) => setEditingRow({ ...editingRow, phone: e.target.value })} />
                 </div>
               </div>
-              <div className="space-y-2 flex flex-col">
-                <Label>Area / Village</Label>
-                <AreaMultiSelect
-                  value={editingRow.area ? editingRow.area.split(',').map(s=>s.trim()).filter(Boolean) : []}
-                  onChange={(val) => setEditingRow({...editingRow, area: val.join(', ')})}
-                  displayStyle="badges"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Panchayat</Label>
+                  <Select
+                    value={editingRow.panchayat || '__NONE__'}
+                    onValueChange={(val) => {
+                      const p = !val || val === '__NONE__' ? '' : val;
+                      const v = editingRow.village || '';
+                      setEditingRow({
+                        ...editingRow,
+                        panchayat: p,
+                        area: [p, v].filter(Boolean).join(', '),
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select Panchayat">
+                        {editingRow.panchayat ? (
+                          (() => {
+                            const p = editPanchayatOptions.find(ap => ap.name.toLowerCase() === editingRow.panchayat?.toLowerCase());
+                            return p ? (p.nameTa ? `${p.name} (${p.nameTa})` : p.name) : editingRow.panchayat;
+                          })()
+                        ) : (
+                          'None (Optional)'
+                        )}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      <SelectItem value="__NONE__">None (Optional)</SelectItem>
+                      {editPanchayatOptions.map((p: any) => (
+                        <SelectItem key={p.id || p.name} value={p.name}>
+                          {p.nameTa ? `${p.name} (${p.nameTa})` : p.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Village</Label>
+                  <Select
+                    value={editingRow.village || '__NONE__'}
+                    onValueChange={(val) => {
+                      const v = !val || val === '__NONE__' ? '' : val;
+                      const p = editingRow.panchayat || '';
+                      setEditingRow({
+                        ...editingRow,
+                        village: v,
+                        area: [p, v].filter(Boolean).join(', '),
+                      });
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select Village">
+                        {editingRow.village ? (
+                          (() => {
+                            const v = editVillageOptions.find(av => av.name.toLowerCase() === editingRow.village?.toLowerCase());
+                            return v ? (v.nameTa ? `${v.name} (${v.nameTa})` : v.name) : editingRow.village;
+                          })()
+                        ) : (
+                          'None (Optional)'
+                        )}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      <SelectItem value="__NONE__">None (Optional)</SelectItem>
+                      {editVillageOptions.map((v: any) => (
+                        <SelectItem key={v.id || v.name} value={v.name}>
+                          {v.nameTa ? `${v.name} (${v.nameTa})` : v.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="space-y-2 flex flex-col">
                 <Label>Booth No</Label>
@@ -681,6 +993,24 @@ export default function ImportCadresPage() {
                 <div className="space-y-2">
                   <Label>Voter ID</Label>
                   <Input value={editingRow.voterId || ''} onChange={(e) => setEditingRow({ ...editingRow, voterId: e.target.value, memberId: e.target.value })} />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Date of Birth <span className="text-muted-foreground text-xs font-normal">(Optional)</span></Label>
+                  <Input
+                    type="date"
+                    value={editingRow.dateOfBirth || editingRow.dob || ''}
+                    onChange={(e) => setEditingRow({ ...editingRow, dateOfBirth: e.target.value, dob: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Remarks <span className="text-muted-foreground text-xs font-normal">(Optional)</span></Label>
+                  <Input
+                    value={editingRow.remarks || ''}
+                    onChange={(e) => setEditingRow({ ...editingRow, remarks: e.target.value })}
+                    placeholder="Remarks"
+                  />
                 </div>
               </div>
             </div>

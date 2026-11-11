@@ -315,6 +315,9 @@ function matchesRoleFilter(rawRole: string | undefined | null, filterId: string)
         cadre.memberId?.toLowerCase().includes(q) ||
         cadre.phone?.includes(q) ||
         cadre.area?.toLowerCase().includes(q) ||
+        cadre.panchayat?.toLowerCase().includes(q) ||
+        cadre.village?.toLowerCase().includes(q) ||
+        cadre.remarks?.toLowerCase().includes(q) ||
         cadre.aadhaarNumber?.includes(q);
 
       if (!matchesSearch) return false;
@@ -927,10 +930,10 @@ function matchesRoleFilter(rawRole: string | undefined | null, filterId: string)
                       )}
                     </TableCell>
                     <TableCell className="py-3.5 text-xs text-muted-foreground font-medium">
-                      {cadre.area ? (
+                      {(cadre.panchayat || cadre.village || cadre.area) ? (
                         <span className="inline-flex items-center gap-1 font-semibold text-zinc-700 dark:text-zinc-300">
                           <MapPin className="w-3 h-3 text-primary shrink-0" />
-                          {cadre.area}
+                          {[cadre.panchayat, cadre.village].filter(Boolean).join(', ') || cadre.area}
                         </span>
                       ) : (
                         '-'

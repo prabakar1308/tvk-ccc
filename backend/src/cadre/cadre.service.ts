@@ -50,6 +50,25 @@ export class CadreService {
       p.boothNo = p.boothNo && String(p.boothNo).trim() ? String(p.boothNo).trim() : null;
     }
 
+    if (p.panchayat !== undefined) {
+      p.panchayat = p.panchayat && String(p.panchayat).trim() ? String(p.panchayat).trim() : null;
+    }
+
+    if (p.village !== undefined) {
+      p.village = p.village && String(p.village).trim() ? String(p.village).trim() : null;
+    }
+
+    if (p.dateOfBirth !== undefined || p.dob !== undefined) {
+      const dobVal = p.dateOfBirth ?? p.dob;
+      const cleanDob = dobVal && String(dobVal).trim() ? String(dobVal).trim() : null;
+      p.dateOfBirth = cleanDob;
+      p.dob = cleanDob;
+    }
+
+    if (p.remarks !== undefined) {
+      p.remarks = p.remarks && String(p.remarks).trim() ? String(p.remarks).trim() : null;
+    }
+
     if (p.districtId !== undefined) {
       p.districtId = p.districtId && String(p.districtId).trim() ? String(p.districtId).trim() : null;
     }
@@ -239,6 +258,13 @@ export class CadreService {
       p.role = p.role && String(p.role).trim() ? String(p.role).trim() : null;
       p.area = p.area && String(p.area).trim() ? String(p.area).trim() : null;
       p.boothNo = p.boothNo && String(p.boothNo).trim() ? String(p.boothNo).trim() : null;
+      p.panchayat = p.panchayat && String(p.panchayat).trim() ? String(p.panchayat).trim() : null;
+      p.village = p.village && String(p.village).trim() ? String(p.village).trim() : null;
+      const dobVal = p.dateOfBirth ?? p.dob;
+      const cleanDob = dobVal && String(dobVal).trim() ? String(dobVal).trim() : null;
+      p.dateOfBirth = cleanDob;
+      p.dob = cleanDob;
+      p.remarks = p.remarks && String(p.remarks).trim() ? String(p.remarks).trim() : null;
 
       // Remove non-schema fields if passed
       delete p.fatherName;

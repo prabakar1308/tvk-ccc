@@ -222,8 +222,9 @@ export const CadreCard: React.FC<CadreCardProps> = ({
 
   const RoleIcon = badgeConfig.icon;
 
-  // Area / Location derivation (prioritizes cadre.area)
-  const formattedArea = formatArea(cadre.area);
+  // Area / Location derivation (prioritizes panchayat / village, falls back to cadre.area)
+  const effectiveArea = [cadre.panchayat, cadre.village].filter(Boolean).join(', ') || cadre.area;
+  const formattedArea = formatArea(effectiveArea);
   const locationLabel = formattedArea 
     ? (cadre.boothNo ? `${formattedArea} (${locale === 'ta' ? 'சாவடி' : 'Booth'} ${cadre.boothNo})` : formattedArea)
     : cadre.homeKilai?.name 

@@ -444,6 +444,7 @@ export default function PanchayatDetailsPage() {
         defaultLevel="UNION"
         lockLevel={false}
         defaultUnionId={union?.id}
+        defaultPanchayat={dbPanchayat?.name || areaParam}
         onSuccess={() => {
           if (union?.id) {
             queryClient.invalidateQueries({ queryKey: ['unions', union.id] });
