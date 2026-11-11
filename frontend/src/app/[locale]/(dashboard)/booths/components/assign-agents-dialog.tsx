@@ -21,12 +21,16 @@ import {
   Paperclip,
   Phone,
   CreditCard,
+  Building2,
+  Landmark,
+  Store,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { MultiAutocomplete } from '@/components/ui/autocomplete';
 import { cadreApi } from '@/services/api/cadres';
 import { uploadApi } from '@/services/api/upload';
 import { translatePersonNameToTamil } from '@/lib/name-translations';
+import { getCadreOrgUnitDisplay } from '@/lib/org-unit-translations';
 
 export interface AssignAgentsDialogProps {
   open: boolean;
@@ -129,6 +133,19 @@ export function AssignAgentsDialog({
                 const voterIdDisplay =
                   cadre.voterId ||
                   (!cadre.memberId?.startsWith('TVK-') ? cadre.memberId : null);
+                const orgUnit = getCadreOrgUnitDisplay(cadre, locale);
+                const OrgIcon =
+                  orgUnit.level === 'DISTRICT' || orgUnit.level === 'GROUP'
+                    ? Landmark
+                    : orgUnit.level === 'UNION'
+                    ? Store
+                    : Building2;
+                const iconColor =
+                  orgUnit.level === 'DISTRICT' || orgUnit.level === 'GROUP'
+                    ? 'text-purple-600 dark:text-purple-400'
+                    : orgUnit.level === 'UNION'
+                    ? 'text-indigo-600 dark:text-indigo-400'
+                    : 'text-amber-600 dark:text-amber-400';
 
                 return (
                   <div className="flex items-center gap-3 py-1.5 min-w-0 w-full">
@@ -163,6 +180,20 @@ export function AssignAgentsDialog({
                               <span>{locale === 'ta' ? 'வாக்காளர் எண்: ' : 'Voter ID: '}{voterIdDisplay}</span>
                             ) : (
                               <span className="italic opacity-70">{locale === 'ta' ? 'வாக்காளர் எண் இல்லை' : 'No voter ID'}</span>
+                            )}
+                          </span>
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <OrgIcon className={`w-3 h-3 ${iconColor} shrink-0`} />
+                          <span>
+                            {orgUnit.name ? (
+                              <span>{orgUnit.typeLabel}: {orgUnit.name}</span>
+                            ) : (
+                              <span className="italic opacity-70">
+                                {locale === 'ta'
+                                  ? `${orgUnit.typeLabel} இல்லை`
+                                  : `No ${orgUnit.typeLabel}`}
+                              </span>
                             )}
                           </span>
                         </span>
@@ -218,6 +249,28 @@ export function AssignAgentsDialog({
                                 <span>{cadre.voterId || cadre.memberId}</span>
                               </span>
                             )}
+                            {(() => {
+                              const orgUnit = getCadreOrgUnitDisplay(cadre, locale);
+                              if (!orgUnit.name) return null;
+                              const OrgIcon =
+                                orgUnit.level === 'DISTRICT' || orgUnit.level === 'GROUP'
+                                  ? Landmark
+                                  : orgUnit.level === 'UNION'
+                                  ? Store
+                                  : Building2;
+                              const iconColor =
+                                orgUnit.level === 'DISTRICT' || orgUnit.level === 'GROUP'
+                                  ? 'text-purple-600 dark:text-purple-400'
+                                  : orgUnit.level === 'UNION'
+                                  ? 'text-indigo-600 dark:text-indigo-400'
+                                  : 'text-amber-600 dark:text-amber-400';
+                              return (
+                                <span className="inline-flex items-center gap-1 font-sans">
+                                  <OrgIcon className={`w-2.5 h-2.5 ${iconColor}`} />
+                                  <span>{orgUnit.typeLabel}: {orgUnit.name}</span>
+                                </span>
+                              );
+                            })()}
                           </div>
                         </div>
                       </div>

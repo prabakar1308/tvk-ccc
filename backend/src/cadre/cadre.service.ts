@@ -436,6 +436,9 @@ export class CadreService {
         { phone: { contains: cleanSearch, mode: 'insensitive' } },
         { voterId: { contains: cleanSearch, mode: 'insensitive' } },
         { memberId: { contains: cleanSearch, mode: 'insensitive' } },
+        { homeKilai: { name: { contains: cleanSearch, mode: 'insensitive' } } },
+        { union: { name: { contains: cleanSearch, mode: 'insensitive' } } },
+        { district: { name: { contains: cleanSearch, mode: 'insensitive' } } },
       ];
       if (digitsOnly && digitsOnly !== cleanSearch) {
         searchOr.push({ phone: { contains: digitsOnly, mode: 'insensitive' } });
@@ -473,6 +476,7 @@ export class CadreService {
         },
         union: true,
         homeKilai: true,
+        district: true,
       },
       orderBy: { createdAt: 'desc' },
     });

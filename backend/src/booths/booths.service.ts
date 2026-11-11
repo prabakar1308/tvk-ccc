@@ -105,7 +105,13 @@ export class BoothsService {
       },
       include: {
         kilais: true,
-        agents: true,
+        agents: {
+          include: {
+            homeKilai: true,
+            union: true,
+            district: true,
+          },
+        },
         panchayatRel: true,
         villages: true,
         electionResults: {
@@ -113,7 +119,13 @@ export class BoothsService {
         },
         agentAssignments: {
           include: {
-            cadre: true,
+            cadre: {
+              include: {
+                homeKilai: true,
+                union: true,
+                district: true,
+              },
+            },
             election: true,
           },
         },
@@ -139,13 +151,25 @@ export class BoothsService {
           panchayatRel: true,
           villages: true,
           kilais: true,
-          agents: true,
+          agents: {
+            include: {
+              homeKilai: true,
+              union: true,
+              district: true,
+            },
+          },
           electionResults: {
             orderBy: { electionYear: 'desc' },
           },
           agentAssignments: {
             include: {
-              cadre: true,
+              cadre: {
+                include: {
+                  homeKilai: true,
+                  union: true,
+                  district: true,
+                },
+              },
               election: true,
             },
           },
@@ -204,13 +228,25 @@ export class BoothsService {
           panchayatRel: true,
           villages: true,
           kilais: true,
-          agents: true,
+          agents: {
+            include: {
+              homeKilai: true,
+              union: true,
+              district: true,
+            },
+          },
           electionResults: {
             orderBy: { electionYear: 'desc' },
           },
           agentAssignments: {
             include: {
-              cadre: true,
+              cadre: {
+                include: {
+                  homeKilai: true,
+                  union: true,
+                  district: true,
+                },
+              },
               election: true,
             },
           },
@@ -289,7 +325,13 @@ export class BoothsService {
         panchayatRel: true,
         villages: true,
         kilais: true,
-        agents: true,
+        agents: {
+          include: {
+            homeKilai: true,
+            union: true,
+            district: true,
+          },
+        },
         electionResults: {
           orderBy: { electionYear: 'desc' },
         },
@@ -453,7 +495,13 @@ export class BoothsService {
     return this.prisma.boothAgentAssignment.findMany({
       where: { boothId, electionId },
       include: {
-        cadre: true,
+        cadre: {
+          include: {
+            homeKilai: true,
+            union: true,
+            district: true,
+          },
+        },
         election: true,
       },
       orderBy: { createdAt: 'asc' },
@@ -544,7 +592,13 @@ export class BoothsService {
         notes: notes || null,
       },
       include: {
-        cadre: true,
+        cadre: {
+          include: {
+            homeKilai: true,
+            union: true,
+            district: true,
+          },
+        },
         election: true,
       },
     });
@@ -592,7 +646,13 @@ export class BoothsService {
           notes: data.notes ?? existing.notes,
         },
         include: {
-          cadre: true,
+          cadre: {
+            include: {
+              homeKilai: true,
+              union: true,
+              district: true,
+            },
+          },
           election: true,
         },
       });
@@ -606,7 +666,13 @@ export class BoothsService {
         ...(data.notes !== undefined ? { notes: data.notes } : {}),
       },
       include: {
-        cadre: true,
+        cadre: {
+          include: {
+            homeKilai: true,
+            union: true,
+            district: true,
+          },
+        },
         election: true,
       },
     });

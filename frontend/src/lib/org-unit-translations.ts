@@ -254,3 +254,128 @@ export function getKilaiSlug(name?: string | null): string {
 
   return slug || encodeURIComponent(trimmed);
 }
+
+export interface CadreOrgUnitDisplay {
+  level: 'DISTRICT' | 'GROUP' | 'UNION' | 'KILAI' | 'UNKNOWN';
+  typeLabel: string;
+  name: string;
+}
+
+/**
+ * Returns organizational unit display information based on cadre.level:
+ * - If cadre is DISTRICT / GROUP cadre: District name
+ * - If cadre is UNION cadre: Union name
+ * - If cadre is KILAI cadre: Kilai name
+ */
+export function getCadreOrgUnitDisplay(
+  cadre: any,
+  locale: string = 'en'
+): CadreOrgUnitDisplay {
+  if (!cadre) {
+    return {
+      level: 'UNKNOWN',
+      typeLabel: locale === 'ta' ? 'கிளை' : 'Kilai',
+      name: '',
+    };
+  }
+
+  const rawLevel = String(cadre.level || '').toUpperCase();
+
+  if (rawLevel === 'DISTRICT' || rawLevel === 'GROUP') {
+    const rawDistName =
+      cadre.district?.name ||
+      cadre.districtName ||
+      (cadre.districtGroup ? String(cadre.districtGroup) : '');
+    const localizedDist =
+      locale === 'ta'
+        ? cadre.district?.translations?.ta?.name ||
+          (rawDistName ? translateOrgUnitNameToTamil(rawDistName) : '')
+        : rawDistName;
+    return {
+      level: rawLevel === 'GROUP' ? 'GROUP' : 'DISTRICT',
+      typeLabel: locale === 'ta' ? 'மாவட்டம்' : 'District',
+      name: localizedDist || '',
+    };
+  }
+
+  if (rawLevel === 'UNION') {
+    const rawUnionName = cadre.union?.name || cadre.unionName || '';
+    const localizedUnion =
+      getOrgUnitName(cadre.union, locale) ||
+      (locale === 'ta' ? translateOrgUnitNameToTamil(rawUnionName) : rawUnionName);
+    return {
+      level: 'UNION',
+      typeLabel: locale === 'ta' ? 'ஒன்றியம்' : 'Union',
+      name: localizedUnion || '',
+    };
+  }
+
+  if (rawLevel === 'KILAI') {
+    const rawKilaiName =
+      cadre.homeKilai?.name ||
+      cadre.kilai?.name ||
+      cadre.kilaiName ||
+      (typeof cadre.homeKilai === 'string' ? cadre.homeKilai : '');
+    const localizedKilai =
+      locale === 'ta' && (cadre.homeKilai?.translations?.ta?.name || cadre.homeKilai?.tamilName)
+        ? cadre.homeKilai.translations?.ta?.name || cadre.homeKilai.tamilName
+        : rawKilaiName;
+    return {
+      level: 'KILAI',
+      typeLabel: locale === 'ta' ? 'கிளை' : 'Kilai',
+      name: localizedKilai || '',
+    };
+  }
+
+  // Fallback: check homeKilai -> union -> district
+  if (cadre.homeKilai?.name || cadre.kilai?.name || cadre.kilaiName) {
+    const rawKilaiName =
+      cadre.homeKilai?.name ||
+      cadre.kilai?.name ||
+      cadre.kilaiName;
+    const localizedKilai =
+      locale === 'ta' && (cadre.homeKilai?.translations?.ta?.name || cadre.homeKilai?.tamilName)
+        ? cadre.homeKilai.translations?.ta?.name || cadre.homeKilai.tamilName
+        : rawKilaiName;
+    return {
+      level: 'KILAI',
+      typeLabel: locale === 'ta' ? 'கிளை' : 'Kilai',
+      name: localizedKilai || '',
+    };
+  }
+
+  if (cadre.union?.name || cadre.unionName) {
+    const rawUnionName = cadre.union?.name || cadre.unionName || '';
+    const localizedUnion =
+      getOrgUnitName(cadre.union, locale) ||
+      (locale === 'ta' ? translateOrgUnitNameToTamil(rawUnionName) : rawUnionName);
+    return {
+      level: 'UNION',
+      typeLabel: locale === 'ta' ? 'ஒன்றியம்' : 'Union',
+      name: localizedUnion || '',
+    };
+  }
+
+  if (cadre.district?.name || cadre.districtGroup || cadre.districtName) {
+    const rawDistName =
+      cadre.district?.name ||
+      cadre.districtName ||
+      (cadre.districtGroup ? String(cadre.districtGroup) : '');
+    const localizedDist =
+      locale === 'ta'
+        ? cadre.district?.translations?.ta?.name ||
+          (rawDistName ? translateOrgUnitNameToTamil(rawDistName) : '')
+        : rawDistName;
+    return {
+      level: 'DISTRICT',
+      typeLabel: locale === 'ta' ? 'மாவட்டம்' : 'District',
+      name: localizedDist || '',
+    };
+  }
+
+  return {
+    level: 'UNKNOWN',
+    typeLabel: locale === 'ta' ? 'கிளை' : 'Kilai',
+    name: '',
+  };
+}
