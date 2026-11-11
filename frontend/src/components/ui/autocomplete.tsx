@@ -7,6 +7,7 @@ export interface AutocompleteProps<T> {
   fetchOptions: (search: string) => Promise<T[]>;
   getOptionLabel: (option: T) => string;
   getOptionValue: (option: T) => string | number;
+  renderOption?: (option: T, isSelected: boolean) => React.ReactNode;
   placeholder?: string;
   debounceTime?: number;
   minChars?: number;
@@ -19,6 +20,7 @@ export function Autocomplete<T>({
   fetchOptions,
   getOptionLabel,
   getOptionValue,
+  renderOption,
   placeholder = 'Search...',
   debounceTime = 300,
   minChars = 3,
@@ -136,10 +138,12 @@ export function Autocomplete<T>({
                   }`}
                   onClick={() => handleSelect(option)}
                 >
-                  <div className="mr-2 flex h-4 w-4 items-center justify-center">
+                  <div className="mr-2 flex h-4 w-4 items-center justify-center shrink-0">
                     {isSelected && <Check className="h-4 w-4" />}
                   </div>
-                  {getOptionLabel(option)}
+                  <div className="flex-1 min-w-0">
+                    {renderOption ? renderOption(option, isSelected) : getOptionLabel(option)}
+                  </div>
                 </div>
               );
             })
@@ -162,6 +166,7 @@ export interface MultiAutocompleteProps<T> {
   fetchOptions: (search: string) => Promise<T[]>;
   getOptionLabel: (option: T) => string;
   getOptionValue: (option: T) => string | number;
+  renderOption?: (option: T, isSelected: boolean) => React.ReactNode;
   placeholder?: string;
   debounceTime?: number;
   minChars?: number;
@@ -174,6 +179,7 @@ export function MultiAutocomplete<T>({
   fetchOptions,
   getOptionLabel,
   getOptionValue,
+  renderOption,
   placeholder = 'Search...',
   debounceTime = 300,
   minChars = 3,
@@ -299,18 +305,20 @@ export function MultiAutocomplete<T>({
               return (
                 <div
                   key={`${getOptionValue(option)}-${index}`}
-                  className={`relative flex cursor-default select-none items-center rounded-lg mx-1 px-3 py-2 text-sm sm:text-base outline-none transition-colors hover:bg-accent hover:text-accent-foreground ${
-                    isSelected ? 'bg-accent/50 font-bold' : ''
+                  className={`relative flex cursor-default select-none items-center rounded-lg mx-1 px-3 py-2 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground ${
+                    isSelected ? 'bg-accent/50 font-semibold' : ''
                   }`}
                   onClick={(e) => {
                     e.stopPropagation();
                     handleSelect(option);
                   }}
                 >
-                  <div className="mr-2.5 flex h-4 w-4 items-center justify-center shrink-0">
+                  <div className="mr-2.5 flex h-4 w-4 items-center justify-center shrink-0 text-primary">
                     {isSelected && <Check className="h-4 w-4" />}
                   </div>
-                  {getOptionLabel(option)}
+                  <div className="flex-1 min-w-0">
+                    {renderOption ? renderOption(option, isSelected) : getOptionLabel(option)}
+                  </div>
                 </div>
               );
             })

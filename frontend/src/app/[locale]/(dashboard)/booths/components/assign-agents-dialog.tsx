@@ -19,6 +19,8 @@ import {
   Upload,
   Loader2,
   Paperclip,
+  Phone,
+  CreditCard,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { MultiAutocomplete } from '@/components/ui/autocomplete';
@@ -109,15 +111,66 @@ export function AssignAgentsDialog({
               value={selectedCadres}
               onChange={(val) => onSelectedCadresChange(val)}
               fetchOptions={async (search) => {
-                return await cadreApi.getAll({ search, limit: '10' });
+                return await cadreApi.getAll({ search, limit: '20' }, locale);
               }}
               getOptionLabel={(option) => option.name}
               getOptionValue={(option) => option.id}
+              minChars={2}
               placeholder={
                 locale === 'ta'
-                  ? 'முகவர்களைத் தேடித் தேர்ந்தெடுக்கவும் (குறைந்தது 3 எழுத்துக்கள்)...'
-                  : 'Search and select cadres by name, phone or member ID...'
+                  ? 'பெயர், மொபைல் அல்லது வாக்காளர் அட்டை எண் மூலம் தேடவும்...'
+                  : 'Search by name, mobile, or voter ID...'
               }
+              renderOption={(cadre: any) => {
+                const cName =
+                  locale === 'ta'
+                    ? translatePersonNameToTamil(cadre.name) || cadre.name
+                    : cadre.name;
+                const voterIdDisplay =
+                  cadre.voterId ||
+                  (!cadre.memberId?.startsWith('TVK-') ? cadre.memberId : null);
+
+                return (
+                  <div className="flex items-center gap-3 py-1.5 min-w-0 w-full">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center shrink-0">
+                      {cadre.name?.charAt(0)?.toUpperCase() || 'A'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-xs sm:text-sm text-foreground truncate">
+                          {cName}
+                        </span>
+                        {cadre.name && cName !== cadre.name && (
+                          <span className="text-[11px] text-muted-foreground font-normal">
+                            ({cadre.name})
+                          </span>
+                        )}
+                        {cadre.level && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-muted text-muted-foreground uppercase">
+                            {cadre.level}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground flex-wrap">
+                        <span className="inline-flex items-center gap-1 font-mono">
+                          <Phone className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                          <span>{cadre.phone || (locale === 'ta' ? 'மொபைல் இல்லை' : 'No mobile')}</span>
+                        </span>
+                        <span className="inline-flex items-center gap-1 font-mono">
+                          <CreditCard className="w-3 h-3 text-blue-600 dark:text-blue-400 shrink-0" />
+                          <span>
+                            {voterIdDisplay ? (
+                              <span>{locale === 'ta' ? 'வாக்காளர் எண்: ' : 'Voter ID: '}{voterIdDisplay}</span>
+                            ) : (
+                              <span className="italic opacity-70">{locale === 'ta' ? 'வாக்காளர் எண் இல்லை' : 'No voter ID'}</span>
+                            )}
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }}
             />
             <p className="text-xs text-muted-foreground leading-relaxed">
               {locale === 'ta'
@@ -152,11 +205,20 @@ export function AssignAgentsDialog({
                           <p className="text-xs font-bold text-gray-900 dark:text-white truncate">
                             {cName}
                           </p>
-                          {cadre.phone && (
-                            <p className="text-[11px] font-mono text-muted-foreground">
-                              {cadre.phone}
-                            </p>
-                          )}
+                          <div className="flex items-center gap-2.5 text-[11px] font-mono text-muted-foreground flex-wrap">
+                            {cadre.phone && (
+                              <span className="inline-flex items-center gap-1">
+                                <Phone className="w-2.5 h-2.5 text-emerald-600 dark:text-emerald-400" />
+                                <span>{cadre.phone}</span>
+                              </span>
+                            )}
+                            {(cadre.voterId || (!cadre.memberId?.startsWith('TVK-') ? cadre.memberId : null)) && (
+                              <span className="inline-flex items-center gap-1">
+                                <CreditCard className="w-2.5 h-2.5 text-blue-600 dark:text-blue-400" />
+                                <span>{cadre.voterId || cadre.memberId}</span>
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
 

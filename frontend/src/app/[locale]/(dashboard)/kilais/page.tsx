@@ -41,12 +41,46 @@ import { useUnions } from '@/hooks/use-unions';
 import { useBooths, useBoothAreas } from '@/hooks/use-booths';
 import { usePanchayats } from '@/hooks/use-panchayats';
 import { useVillages } from '@/hooks/use-villages';
+import { useSessionStorage } from '@/hooks/use-session-storage';
 import { CreateKilaiDto } from '@/services/api/kilais';
 import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
 import { VillageMultiSelect } from '@/components/shared/village-multi-select';
 import { getOrgUnitName, getUnionSlug, getKilaiSlug } from '@/lib/org-unit-translations';
 import { translatePersonNameToTamil } from '@/lib/name-translations';
 import { KilaisFilters } from './components/kilais-filters';
+
+export function getKilaiCadreStatus(count: number, locale: string) {
+  if (count >= 15) {
+    return {
+      key: 'ACTIVE',
+      label: locale === 'ta' ? 'செயல்படும்' : 'Active',
+      bg: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-900/40',
+      dot: 'bg-emerald-500',
+    };
+  }
+  if (count >= 7) {
+    return {
+      key: 'PENDING',
+      label: locale === 'ta' ? 'நிலுவையில்' : 'Pending',
+      bg: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200/60 dark:border-amber-900/40',
+      dot: 'bg-amber-500',
+    };
+  }
+  if (count >= 1) {
+    return {
+      key: 'INACTIVE',
+      label: locale === 'ta' ? 'செயல்படாத' : 'Inactive',
+      bg: 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-200/60 dark:border-red-900/40',
+      dot: 'bg-red-500',
+    };
+  }
+  return {
+    key: 'EMPTY',
+    label: locale === 'ta' ? 'காலியாக' : 'Empty',
+    bg: 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800/80 dark:text-zinc-300 border-zinc-200/80 dark:border-zinc-700/80',
+    dot: 'bg-zinc-400 dark:bg-zinc-500',
+  };
+}
 
 export default function KilaisPage() {
   const locale = useLocale();
@@ -65,17 +99,48 @@ export default function KilaisPage() {
   const deleteMutation = useDeleteKilai();
 
   const { user, activeUnionId } = useUser();
-  const [searchQuery, setSearchQuery] = useState('');
   const searchParams = useSearchParams();
   const queryUnion = searchParams.get('union') || searchParams.get('unionId');
   const queryPanchayat = searchParams.get('panchayat') || searchParams.get('panchayatId');
   const queryVillage = searchParams.get('village') || searchParams.get('villageId');
 
-  const [selectedUnion, setSelectedUnion] = useState<string>(queryUnion || '');
-  const [selectedPanchayat, setSelectedPanchayat] = useState<string>(queryPanchayat || 'all');
-  const [selectedVillage, setSelectedVillage] = useState<string>(queryVillage || 'all');
-  const [isAdvancedOpen, setIsAdvancedOpen] = useState<boolean>(Boolean(queryPanchayat || queryVillage));
-  const [isUserInteracted, setIsUserInteracted] = useState(Boolean(queryUnion || queryPanchayat || queryVillage));
+  const [selectedUnion, setSelectedUnion, isMountedUnion] = useSessionStorage<string>(
+    'kilais_filter_union',
+    queryUnion || ''
+  );
+  const [selectedPanchayat, setSelectedPanchayat, isMountedPanchayat] = useSessionStorage<string>(
+    'kilais_filter_panchayat',
+    queryPanchayat || 'all'
+  );
+  const [selectedVillage, setSelectedVillage, isMountedVillage] = useSessionStorage<string>(
+    'kilais_filter_village',
+    queryVillage || 'all'
+  );
+  const [isAdvancedOpen, setIsAdvancedOpen, isMountedAdvanced] = useSessionStorage<boolean>(
+    'kilais_filter_advanced_open',
+    Boolean(queryPanchayat || queryVillage)
+  );
+  const [isUserInteracted, setIsUserInteracted, isMountedInteracted] = useSessionStorage<boolean>(
+    'kilais_filter_interacted',
+    Boolean(queryUnion || queryPanchayat || queryVillage)
+  );
+  const [searchQuery, setSearchQuery, isMountedSearch] = useSessionStorage<string>(
+    'kilais_filter_search',
+    ''
+  );
+  const [viewMode, setViewMode, isMountedView] = useSessionStorage<'table' | 'tile'>(
+    'kilais_view_mode',
+    'tile'
+  );
+
+  const isStorageMounted =
+    isMountedUnion &&
+    isMountedPanchayat &&
+    isMountedVillage &&
+    isMountedAdvanced &&
+    isMountedInteracted &&
+    isMountedSearch &&
+    isMountedView;
 
   const userRole = (user?.role || '').toUpperCase();
   const userLevel = (user?.level || user?.cadre?.level || '').toUpperCase();
@@ -107,7 +172,28 @@ export default function KilaisPage() {
     );
   }, [user?.unionId, user?.cadre, isKilaiOrUnion, activeUnionId]);
 
+  // Priority: URL query parameters override SessionStorage
   useEffect(() => {
+    if (!isStorageMounted) return;
+
+    if (queryUnion) {
+      setSelectedUnion(queryUnion);
+      setIsUserInteracted(true);
+    }
+    if (queryPanchayat) {
+      setSelectedPanchayat(queryPanchayat);
+      setIsAdvancedOpen(true);
+      setIsUserInteracted(true);
+    }
+    if (queryVillage) {
+      setSelectedVillage(queryVillage);
+      setIsAdvancedOpen(true);
+      setIsUserInteracted(true);
+    }
+  }, [queryUnion, queryPanchayat, queryVillage, isStorageMounted]);
+
+  useEffect(() => {
+    if (!isStorageMounted) return;
     if (isUserInteracted) return;
 
     if (queryUnion || queryPanchayat || queryVillage) return;
@@ -129,7 +215,7 @@ export default function KilaisPage() {
     if (unions.length > 0) {
       setSelectedUnion(String(unions[0].id));
     }
-  }, [unions, queryUnion, queryPanchayat, queryVillage, isUserInteracted, isKilaiOrUnion, personUnionId]);
+  }, [unions, queryUnion, queryPanchayat, queryVillage, isUserInteracted, isKilaiOrUnion, personUnionId, isStorageMounted]);
 
   // Resolve URL query parameters once master lists are loaded
   useEffect(() => {
@@ -142,6 +228,7 @@ export default function KilaisPage() {
       );
       if (match) {
         setSelectedUnion(String(match.id || (match as any)._id));
+        setIsUserInteracted(true);
       }
     }
   }, [queryUnion, unions]);
@@ -158,6 +245,7 @@ export default function KilaisPage() {
       if (match) {
         setSelectedPanchayat(String(match.id));
         setIsAdvancedOpen(true);
+        setIsUserInteracted(true);
         if (!queryUnion && match.unionId) {
           setSelectedUnion(String(match.unionId));
         }
@@ -177,6 +265,7 @@ export default function KilaisPage() {
       if (match) {
         setSelectedVillage(String(match.id));
         setIsAdvancedOpen(true);
+        setIsUserInteracted(true);
         if (!queryPanchayat && match.panchayatId) {
           setSelectedPanchayat(String(match.panchayatId));
           const parentP = allPanchayats?.find(
@@ -275,7 +364,6 @@ export default function KilaisPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [callConfirmation, setCallConfirmation] = useState<{name: string, phone: string} | null>(null);
-  const [viewMode, setViewMode] = useState<'table' | 'tile'>('tile');
   const [isPanchayatOpen, setIsPanchayatOpen] = useState(false);
 
   const initialFormData: CreateKilaiDto = {
@@ -450,6 +538,14 @@ export default function KilaisPage() {
     allPanchayats,
     allVillages,
   ]);
+
+  if (!isStorageMounted) {
+    return (
+      <div className="flex items-center justify-center p-12 min-h-[50vh]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-both">
@@ -760,6 +856,14 @@ export default function KilaisPage() {
                   <TableBody>
                     {filteredKilais.map((kilai) => {
                       const kilaiUnion = unions?.find((u: any) => String(u.id || u._id) === kilai.unionId);
+                      const cadresCount = typeof kilai._count?.cadres === 'number'
+                        ? kilai._count.cadres
+                        : typeof (kilai as any).cadresCount === 'number'
+                        ? (kilai as any).cadresCount
+                        : Array.isArray((kilai as any).cadres)
+                        ? (kilai as any).cadres.length
+                        : 0;
+                      const statusConfig = getKilaiCadreStatus(cadresCount, locale);
                       
                       return (
                         <TableRow key={kilai.id} className="hover:bg-primary/5 transition-colors group border-b-primary/10">
@@ -809,12 +913,9 @@ export default function KilaisPage() {
                             </span>
                           </TableCell>
                           <TableCell className="py-4">
-                            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                              kilai.status === 'ACTIVE' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
-                              kilai.status === 'INACTIVE' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                              'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'
-                            }`}>
-                              {kilai.status ? t(kilai.status.toLowerCase()) : t('pending')}
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border shadow-2xs ${statusConfig.bg}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dot}`} />
+                              {statusConfig.label}
                             </span>
                           </TableCell>
                           <TableCell className="text-right py-4">
@@ -840,6 +941,15 @@ export default function KilaisPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-5">
                 {filteredKilais.map((kilai) => {
                   const kilaiUnion = unions?.find((u: any) => String(u.id || u._id) === kilai.unionId);
+                  const cadresCount = typeof kilai._count?.cadres === 'number'
+                    ? kilai._count.cadres
+                    : typeof (kilai as any).cadresCount === 'number'
+                    ? (kilai as any).cadresCount
+                    : Array.isArray((kilai as any).cadres)
+                    ? (kilai as any).cadres.length
+                    : 0;
+                  const statusConfig = getKilaiCadreStatus(cadresCount, locale);
+
                   const secretary = kilai.secretary;
                   const rawSecretaryName = secretary?.name || kilai.secretaryName;
                   const secretaryName = locale === 'ta' && rawSecretaryName 
@@ -847,13 +957,6 @@ export default function KilaisPage() {
                     : rawSecretaryName;
                   const secretaryPhone = secretary?.phone || kilai.phone;
                   const secretaryPhoto = secretary?.photoUrl || kilai.secretaryPhoto;
-
-                  const statusConfig = 
-                    kilai.status === 'ACTIVE' 
-                      ? { bg: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-900/40', dot: 'bg-emerald-500', label: locale === 'ta' ? 'செயல்படும்' : 'Active' }
-                      : kilai.status === 'INACTIVE'
-                      ? { bg: 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-200/60 dark:border-red-900/40', dot: 'bg-red-500', label: locale === 'ta' ? 'செயல்படாத' : 'Inactive' }
-                      : { bg: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200/60 dark:border-amber-900/40', dot: 'bg-amber-500', label: locale === 'ta' ? 'நிலுவையில்' : 'Pending' };
 
                   return (
                     <div 
@@ -886,15 +989,26 @@ export default function KilaisPage() {
 
                       <Link href={`/kilais/${getKilaiSlug(kilai.name) || kilai.id}`} className="flex-1 flex flex-col cursor-pointer p-5 pb-4 md:pb-5">
                         {/* Header Section */}
-                        <div className="flex items-center gap-3 mb-3.5 pr-0 md:pr-16">
+                        <div className="flex items-start gap-3 mb-3.5 pr-0 md:pr-18">
                           <div className="w-11 h-11 rounded-xl shadow-xs shrink-0 flex items-center justify-center border bg-red-50 text-[#8F0A1B] border-red-100 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/40 transition-transform group-hover:scale-105 duration-300 mt-0.5">
                             <Building2 className="h-5 w-5" />
                           </div>
                           
                           <div className="flex-1 min-w-0">
-                            <h3 className="font-extrabold text-[16px] sm:text-[17px] text-zinc-900 dark:text-zinc-50 leading-tight group-hover:text-[#8F0A1B] dark:group-hover:text-red-400 transition-colors line-clamp-2 md:line-clamp-1 mb-1 break-words">
-                              {kilai.name}
-                            </h3>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="font-extrabold text-[16px] sm:text-[17px] text-zinc-900 dark:text-zinc-50 leading-tight group-hover:text-[#8F0A1B] dark:group-hover:text-red-400 transition-colors break-words">
+                                {kilai.name}
+                              </h3>
+                              {kilai.tamilName && (
+                                <span className="text-xs font-normal text-muted-foreground">
+                                  ({kilai.tamilName})
+                                </span>
+                              )}
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold border shadow-2xs shrink-0 ${statusConfig.bg}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dot}`} />
+                                {statusConfig.label}
+                              </span>
+                            </div>
                           </div>
                         </div>
 

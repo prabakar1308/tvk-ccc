@@ -319,7 +319,7 @@ export function CadreRosterTable({
             <TableBody className="divide-y divide-zinc-100 dark:divide-zinc-800">
               {filteredCadres.map((cadre: any, idx: number) => {
                 const rawRole = cadre.officeBearerRoles?.[0]?.role || cadre.role || 'Member';
-                const isSecretary = rawRole.toUpperCase().includes('SECRETARY');
+                const isSecretary = rawRole.toUpperCase().includes('SECRETARY') || rawRole.toUpperCase().includes('TREASURER');
                 const isPresident = rawRole.toUpperCase().includes('PRESIDENT');
                 const roleDesignation = formatDesignation(rawRole, locale);
 

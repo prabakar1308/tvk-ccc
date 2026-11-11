@@ -8,7 +8,7 @@ export function useSessionStorage<T>(key: string, initialValue: T) {
     setIsMounted(true);
     try {
       const item = window.sessionStorage.getItem(key);
-      if (item) {
+      if (item && item !== 'undefined') {
         setStoredValue(JSON.parse(item));
       }
     } catch (error) {
@@ -18,11 +18,13 @@ export function useSessionStorage<T>(key: string, initialValue: T) {
 
   const setValue = (value: T | ((val: T) => T)) => {
     try {
-      const valueToStore = value instanceof Function ? value(storedValue) : value;
-      setStoredValue(valueToStore);
-      if (typeof window !== 'undefined') {
-        window.sessionStorage.setItem(key, JSON.stringify(valueToStore));
-      }
+      setStoredValue((prev) => {
+        const valueToStore = value instanceof Function ? value(prev) : value;
+        if (typeof window !== 'undefined') {
+          window.sessionStorage.setItem(key, JSON.stringify(valueToStore));
+        }
+        return valueToStore;
+      });
     } catch (error) {
       console.warn(`Error setting sessionStorage key "${key}":`, error);
     }

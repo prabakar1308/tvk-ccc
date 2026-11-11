@@ -70,7 +70,16 @@ export default function KilaiDetailsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="flex items-center gap-4">
-          <Link href="/kilais" className="p-2 bg-white rounded-full border shadow-sm hover:bg-gray-50 transition-colors">
+          <Link
+            href="/kilais"
+            onClick={(e) => {
+              if (typeof window !== 'undefined' && window.history.length > 1) {
+                e.preventDefault();
+                router.back();
+              }
+            }}
+            className="p-2 bg-white rounded-full border shadow-sm hover:bg-gray-50 transition-colors"
+          >
             <ArrowLeft className="w-5 h-5 text-gray-700" />
           </Link>
           <div>

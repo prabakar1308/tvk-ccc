@@ -420,24 +420,43 @@ export class CadreService {
       wingId,
     } = query;
     const where: any = {};
+    const andConditions: any[] = [];
 
     if (level) where.level = level;
     if (districtId) where.districtId = districtId;
     if (districtGroup) where.districtGroup = districtGroup;
     if (unionId) where.unionId = unionId;
     if (kilaiId) where.kilaiId = kilaiId;
-    if (search) {
-      where.name = { contains: search, mode: 'insensitive' };
+
+    if (search && search.trim()) {
+      const cleanSearch = search.trim();
+      const digitsOnly = cleanSearch.replace(/\s+/g, '');
+      const searchOr: any[] = [
+        { name: { contains: cleanSearch, mode: 'insensitive' } },
+        { phone: { contains: cleanSearch, mode: 'insensitive' } },
+        { voterId: { contains: cleanSearch, mode: 'insensitive' } },
+        { memberId: { contains: cleanSearch, mode: 'insensitive' } },
+      ];
+      if (digitsOnly && digitsOnly !== cleanSearch) {
+        searchOr.push({ phone: { contains: digitsOnly, mode: 'insensitive' } });
+      }
+      andConditions.push({ OR: searchOr });
     }
 
     if (isWing === 'true') {
       where.role = { in: ['COORDINATOR', 'CO_COORDINATOR'] };
       if (wingId) where.wingId = wingId;
     } else {
-      where.OR = [
-        { role: null },
-        { role: { notIn: ['COORDINATOR', 'CO_COORDINATOR'] } }
-      ];
+      andConditions.push({
+        OR: [
+          { role: null },
+          { role: { notIn: ['COORDINATOR', 'CO_COORDINATOR'] } }
+        ],
+      });
+    }
+
+    if (andConditions.length > 0) {
+      where.AND = andConditions;
     }
 
     const limitNum = limit ? parseInt(limit, 10) : undefined;

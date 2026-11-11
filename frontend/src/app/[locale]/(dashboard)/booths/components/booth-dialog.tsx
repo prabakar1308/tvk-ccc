@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Building2, MapPin, Check, Trophy } from 'lucide-react';
+import { Building2, MapPin, Check, Trophy, Phone, CreditCard } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { MultiAutocomplete } from '@/components/ui/autocomplete';
 import { MultiSelectDropdown } from './multi-select-dropdown';
@@ -277,11 +277,57 @@ export function BoothDialog({
                 })
               }
               fetchOptions={async (search) => {
-                return await cadreApi.getAll({ search, limit: '10' });
+                return await cadreApi.getAll({ search, limit: '20' });
               }}
               getOptionLabel={(option) => option.name}
               getOptionValue={(option) => option.id}
-              placeholder="Search agents (min 3 chars)..."
+              minChars={2}
+              placeholder={
+                locale === 'ta'
+                  ? 'பெயர், மொபைல் அல்லது வாக்காளர் அட்டை எண் மூலம் தேடவும்...'
+                  : 'Search by name, mobile, or voter ID...'
+              }
+              renderOption={(cadre: any) => {
+                const voterIdDisplay =
+                  cadre.voterId ||
+                  (!cadre.memberId?.startsWith('TVK-') ? cadre.memberId : null);
+
+                return (
+                  <div className="flex items-center gap-3 py-1.5 min-w-0 w-full">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 text-primary font-bold text-xs flex items-center justify-center shrink-0">
+                      {cadre.name?.charAt(0)?.toUpperCase() || 'A'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-xs sm:text-sm text-foreground truncate">
+                          {cadre.name}
+                        </span>
+                        {cadre.level && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-muted text-muted-foreground uppercase">
+                            {cadre.level}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-3 mt-1 text-[11px] text-muted-foreground flex-wrap">
+                        <span className="inline-flex items-center gap-1 font-mono">
+                          <Phone className="w-3 h-3 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                          <span>{cadre.phone || (locale === 'ta' ? 'மொபைல் இல்லை' : 'No mobile')}</span>
+                        </span>
+                        <span className="inline-flex items-center gap-1 font-mono">
+                          <CreditCard className="w-3 h-3 text-blue-600 dark:text-blue-400 shrink-0" />
+                          <span>
+                            {voterIdDisplay ? (
+                              <span>{locale === 'ta' ? 'வாக்காளர் எண்: ' : 'Voter ID: '}{voterIdDisplay}</span>
+                            ) : (
+                              <span className="italic opacity-70">{locale === 'ta' ? 'வாக்காளர் எண் இல்லை' : 'No voter ID'}</span>
+                            )}
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }}
             />
           </div>
 
