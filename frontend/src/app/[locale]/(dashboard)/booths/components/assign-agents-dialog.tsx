@@ -24,6 +24,7 @@ import {
   Building2,
   Landmark,
   Store,
+  Trash2,
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { MultiAutocomplete } from '@/components/ui/autocomplete';
@@ -106,9 +107,21 @@ export function AssignAgentsDialog({
               <Label className="text-xs font-bold text-gray-800 dark:text-zinc-200 uppercase tracking-wider">
                 {t('boothAgents')}
               </Label>
-              <span className="text-xs font-bold font-mono px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                {selectedCadres.length} selected
-              </span>
+              <div className="flex items-center gap-2">
+                {selectedCadres.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => onSelectedCadresChange([])}
+                    className="text-[11px] font-bold text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors flex items-center gap-1 cursor-pointer hover:underline"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    <span>{locale === 'ta' ? 'அனைத்தையும் நீக்கு' : 'Clear All'}</span>
+                  </button>
+                )}
+                <span className="text-xs font-bold font-mono px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                  {selectedCadres.length} selected
+                </span>
+              </div>
             </div>
 
             <MultiAutocomplete
@@ -213,9 +226,19 @@ export function AssignAgentsDialog({
           {/* Show chips/list of selected cadres with phone & BLA upload & remove button */}
           {selectedCadres.length > 0 && (
             <div className="space-y-2 p-3 rounded-xl bg-zinc-50 dark:bg-zinc-900 border border-primary/10">
-              <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
-                {locale === 'ta' ? 'நியமிக்கப்பட்ட முகவர்கள் பட்டியல்' : 'Assigned Cadres List'}
-              </p>
+              <div className="flex items-center justify-between">
+                <p className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">
+                  {locale === 'ta' ? 'நியமிக்கப்பட்ட முகவர்கள் பட்டியல்' : 'Assigned Cadres List'}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => onSelectedCadresChange([])}
+                  className="text-[11px] font-bold text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors flex items-center gap-1 cursor-pointer hover:underline"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span>{locale === 'ta' ? 'அனைத்தையும் நீக்கு' : 'Clear All'}</span>
+                </button>
+              </div>
               <div className="divide-y divide-gray-100 dark:divide-zinc-800 max-h-56 overflow-y-auto pr-1">
                 {selectedCadres.map((cadre: any, idx: number) => {
                   const cName =

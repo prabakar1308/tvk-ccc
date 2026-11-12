@@ -4,13 +4,6 @@ import React from 'react';
 import { TableRow, TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   Building2,
   Users,
   ChevronUp,
@@ -28,6 +21,7 @@ import {
 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { getOrgUnitName } from '@/lib/org-unit-translations';
+import { ElectionSelect } from '@/components/shared/election-select';
 import { translatePersonNameToTamil } from '@/lib/name-translations';
 import { cn } from '@/lib/utils';
 
@@ -328,54 +322,23 @@ export function BoothInlineDrawerComponent({
                 </h4>
 
                 {/* Election Filter Switcher */}
-                {dbElections.length > 0 && (
-                  <div className="flex items-center gap-1.5 ml-0 sm:ml-2">
-                    <span className="text-[11px] text-muted-foreground font-semibold hidden sm:inline">
-                      {t('forElection')}:
-                    </span>
-                    <Select
-                      value={drawerElectionId}
-                      onValueChange={(val) => {
-                        if (val) {
-                          setLocalElectionId(val);
-                          onSelectElectionId?.(val);
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="h-8 text-xs font-bold rounded-xl bg-white dark:bg-zinc-800 border-primary/25 hover:border-primary/50 transition-colors w-auto min-w-[220px] max-w-full sm:max-w-[480px] gap-2 px-3 shadow-2xs cursor-pointer">
-                        <Vote className="w-3.5 h-3.5 text-primary shrink-0" />
-                        <SelectValue placeholder="Select Election">
-                          {activeDrawerElection
-                            ? `${activeDrawerElection.year} - ${activeDrawerElection.name}`
-                            : 'Select Election'}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent
-                        className="!w-auto !min-w-[max-content] max-w-[90vw] sm:max-w-[600px] rounded-xl p-1 shadow-lg"
-                        align="start"
-                      >
-                        {dbElections.map((elec: any) => (
-                          <SelectItem
-                            key={elec.id}
-                            value={elec.id}
-                            label={`${elec.year} - ${elec.name}`}
-                            className="text-xs font-medium py-2 px-3 rounded-lg whitespace-nowrap cursor-pointer hover:bg-primary/10 transition-colors"
-                          >
-                            <span className="font-mono font-bold text-primary mr-1.5">
-                              {elec.year}
-                            </span>
-                            <span>- {elec.name}</span>
-                            {elec.isCurrent && (
-                              <span className="ml-2 text-[10px] font-black px-1.5 py-0.5 rounded bg-[#FFC72C] text-[#8F0A1B] shadow-2xs shrink-0">
-                                ★ Active
-                              </span>
-                            )}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
+                <div className="flex items-center gap-1.5 ml-0 sm:ml-2">
+                  <span className="text-[11px] text-muted-foreground font-semibold hidden sm:inline">
+                    {t('forElection')}:
+                  </span>
+                  <ElectionSelect
+                    value={drawerElectionId}
+                    elections={dbElections}
+                    onValueChange={(val) => {
+                      if (val) {
+                        setLocalElectionId(val);
+                        onSelectElectionId?.(val);
+                      }
+                    }}
+                    size="sm"
+                    className="bg-white dark:bg-zinc-800 border-primary/25 hover:border-primary/50 w-auto min-w-[220px] max-w-full sm:max-w-[480px] shadow-2xs"
+                  />
+                </div>
               </div>
 
               <Button

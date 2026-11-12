@@ -91,7 +91,7 @@ const BoothTableRow = React.memo(function BoothTableRow({
         }`}
       >
         <TableCell className="py-4 w-[26%] min-w-[170px] max-w-[500px] whitespace-normal break-words">
-          <div className="flex items-start gap-2 min-w-0 max-w-[500px]">
+          <div className="flex items-center gap-2 min-w-0 max-w-[500px]">
             <button
               type="button"
               onClick={(e) => {

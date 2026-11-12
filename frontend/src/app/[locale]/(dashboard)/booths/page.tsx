@@ -3,8 +3,15 @@
 import React, { useState, useRef, useEffect, useMemo, useCallback, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Plus } from 'lucide-react';
+import { Plus, UploadCloud, ChevronDown, Users, Vote } from 'lucide-react';
 import { useTranslations, useLocale } from 'next-intl';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 import {
   useBooths,
@@ -48,6 +55,8 @@ import {
 } from './components/edit-agent-dialog';
 import { ElectionResultDialog } from './components/election-result-dialog';
 import { BlaPreviewDialog } from './components/bla-preview-dialog';
+import { ImportDemographicsDialog } from './components/import-demographics-dialog';
+import { ImportElectionResultsDialog } from './components/import-election-results-dialog';
 
 const initialBoothFormState: BoothFormState = {
   name: '',
@@ -228,6 +237,8 @@ function BoothsPageContent() {
 
   // Dialog States
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isImportDemographicsOpen, setIsImportDemographicsOpen] = useState(false);
+  const [isImportElectionResultsOpen, setIsImportElectionResultsOpen] = useState(false);
   const [editingBooth, setEditingBooth] = useState<any | null>(null);
   const [viewingBooth, setViewingBooth] = useState<any | null>(null);
   const [formData, setFormData] = useState<BoothFormState>(initialBoothFormState);
@@ -786,12 +797,15 @@ function BoothsPageContent() {
   const handleOpenAddElectionDialog = useCallback((booth: any) => {
     setElectionDialogBooth(booth);
     setEditingElectionResult(null);
+    const active = currentElection || dbElections.find((e: any) => e.isCurrent) || dbElections[0];
     setElectionFormData({
       ...initialElectionFormState,
+      electionYear: active ? active.year : '2024',
+      electionName: active ? active.name : '2024 Parliamentary Election',
       totalVotesPolled: booth.totalCount ? Math.round(booth.totalCount * 0.75) : 0,
     });
     setIsElectionDialogOpen(true);
-  }, []);
+  }, [currentElection, dbElections]);
 
   const handleOpenEditElectionDialog = useCallback((booth: any, result: BoothElectionResult) => {
     setElectionDialogBooth(booth);
@@ -962,12 +976,60 @@ function BoothsPageContent() {
             {t('description')}
           </p>
         </div>
-        <Button
-          onClick={() => handleOpenBoothDialog()}
-          className="bg-primary hover:bg-primary/90 text-white font-semibold shadow-md h-11 px-6 rounded-lg transition-transform active:scale-95"
-        >
-          <Plus className="mr-2 h-5 w-5" /> {t('addBooth')}
-        </Button>
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          {/* Single Import Control with 2 options */}
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger className="font-semibold shadow-xs h-11 px-4 rounded-lg border border-primary/20 hover:bg-primary/5 hover:border-primary/40 transition-colors flex items-center gap-2 cursor-pointer flex-1 sm:flex-none justify-center bg-background text-foreground">
+              <UploadCloud className="h-4 w-4 text-primary" />
+              <span>{locale === 'ta' ? 'இறக்குமதி' : 'Import'}</span>
+              <ChevronDown className="h-3.5 w-3.5 text-muted-foreground ml-0.5" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" sideOffset={6} className="w-72 p-2 shadow-xl rounded-xl border border-border bg-popover z-50">
+              <DropdownMenuItem
+                onClick={() => setIsImportDemographicsOpen(true)}
+                className="flex items-start gap-3 p-2.5 rounded-lg cursor-pointer hover:bg-accent focus:bg-accent transition-colors"
+              >
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 mt-0.5">
+                  <Users className="w-4 h-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-xs sm:text-sm text-foreground">
+                    {locale === 'ta' ? 'வாக்காளர் விவரங்கள்' : 'Update Vote Demographics'}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5 leading-tight font-mono">
+                    Booth No, Male, Female, 3rd, Total
+                  </div>
+                </div>
+              </DropdownMenuItem>
+
+              <DropdownMenuSeparator className="my-1.5" />
+
+              <DropdownMenuItem
+                onClick={() => setIsImportElectionResultsOpen(true)}
+                className="flex items-start gap-3 p-2.5 rounded-lg cursor-pointer hover:bg-accent focus:bg-accent transition-colors"
+              >
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 mt-0.5">
+                  <Vote className="w-4 h-4" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold text-xs sm:text-sm text-foreground">
+                    {locale === 'ta' ? 'தேர்தல் முடிவுகள்' : 'Update Election Results'}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-0.5 leading-tight font-mono">
+                    Booth No, DMK, AIADMK, TVK, Total
+                  </div>
+                </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Button
+            onClick={() => handleOpenBoothDialog()}
+            className="bg-primary hover:bg-primary/90 text-white font-semibold shadow-md h-11 px-6 rounded-lg transition-transform active:scale-95 flex-1 sm:flex-none justify-center"
+          >
+            <Plus className="mr-2 h-5 w-5" /> {t('addBooth')}
+          </Button>
+        </div>
       </div>
 
       {/* Top Metrics Cards */}
@@ -1115,6 +1177,21 @@ function BoothsPageContent() {
       <CallConfirmationDialog
         person={callingCadre}
         onOpenChange={(open) => !open && setCallingCadre(null)}
+      />
+
+      {/* Vote Demographics Import / Copy-Paste Dialog */}
+      <ImportDemographicsDialog
+        open={isImportDemographicsOpen}
+        onOpenChange={setIsImportDemographicsOpen}
+        booths={booths || []}
+      />
+
+      {/* TN Election Results Import / Copy-Paste Dialog */}
+      <ImportElectionResultsDialog
+        open={isImportElectionResultsOpen}
+        onOpenChange={setIsImportElectionResultsOpen}
+        booths={booths || []}
+        dbElections={dbElections}
       />
     </div>
   );

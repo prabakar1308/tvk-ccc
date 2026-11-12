@@ -286,6 +286,21 @@ export function MultiAutocomplete<T>({
             setIsOpen(true);
           }}
         />
+
+        {value.length > 0 && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onChange([]);
+              setSearchTerm('');
+            }}
+            className="text-xs font-semibold text-muted-foreground hover:text-red-600 dark:hover:text-red-400 p-1 rounded-md hover:bg-muted/80 transition-colors shrink-0 cursor-pointer ml-auto flex items-center gap-1"
+            title="Clear all"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
       </div>
 
       {isOpen && searchTerm.length >= minChars && (

@@ -78,6 +78,67 @@ export interface Booth {
   updatedAt: string;
 }
 
+export interface BoothDemographicsItem {
+  boothNo: string;
+  maleCount?: number;
+  femaleCount?: number;
+  thirdGenderCount?: number;
+  totalCount?: number;
+}
+
+export interface UpdateDemographicsResult {
+  success: boolean;
+  updatedCount: number;
+  notFound: string[];
+  updatedBooths?: Array<{
+    id: string;
+    boothNo: string;
+    name: string;
+    oldMale: number;
+    newMale: number;
+    oldFemale: number;
+    newFemale: number;
+    oldThird: number;
+    newThird: number;
+    oldTotal: number;
+    newTotal: number;
+  }>;
+  totalProcessed: number;
+}
+
+export interface BulkElectionResultItem {
+  boothNo: string;
+  dmkVotes?: number;
+  aiadmkVotes?: number;
+  tvkVotes?: number;
+  totalVotesPolled?: number;
+}
+
+export interface BulkUpdateBoothElectionResultsDto {
+  electionId?: string;
+  electionYear: string;
+  electionName: string;
+  results: BulkElectionResultItem[];
+}
+
+export interface UpdateElectionResultsBulkResult {
+  success: boolean;
+  updatedCount: number;
+  notFound: string[];
+  updatedBooths?: Array<{
+    boothId: string;
+    boothNo: string;
+    name: string;
+    tvkVotes: number;
+    dmkVotes: number;
+    aiadmkVotes: number;
+    totalVotes: number;
+    winner: string | null;
+    margin: number | null;
+  }>;
+  totalProcessed: number;
+}
+
 export interface CreateBoothDto {
   name: string;
   boothNo: string;
@@ -134,6 +195,26 @@ export const boothApi = {
     await fetchWithAuth(`/api/v1/booths/${id}`, {
       method: 'DELETE',
     });
+  },
+
+  updateDemographicsBulk: async (
+    items: BoothDemographicsItem[]
+  ): Promise<UpdateDemographicsResult> => {
+    const res = await fetchWithAuth('/api/v1/booths/bulk-demographics', {
+      method: 'POST',
+      body: JSON.stringify({ demographics: items }),
+    });
+    return res.json();
+  },
+
+  updateElectionResultsBulk: async (
+    dto: BulkUpdateBoothElectionResultsDto
+  ): Promise<UpdateElectionResultsBulkResult> => {
+    const res = await fetchWithAuth('/api/v1/booths/bulk-election-results', {
+      method: 'POST',
+      body: JSON.stringify(dto),
+    });
+    return res.json();
   },
 
   addElectionResult: async (boothId: string, data: CreateBoothElectionResultDto): Promise<BoothElectionResult> => {

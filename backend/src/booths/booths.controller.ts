@@ -13,6 +13,8 @@ import { BoothsService } from './booths.service';
 import { CreateBoothDto } from './dto/create-booth.dto';
 import { UpdateBoothDto } from './dto/update-booth.dto';
 import { CreateBoothElectionResultDto } from './dto/create-booth-election-result.dto';
+import { BulkUpdateBoothDemographicsDto } from './dto/update-demographics.dto';
+import { BulkUpdateBoothElectionResultsDto } from './dto/update-election-results.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('booths')
@@ -23,6 +25,16 @@ export class BoothsController {
   @Post()
   create(@Body() createBoothDto: CreateBoothDto) {
     return this.boothsService.create(createBoothDto);
+  }
+
+  @Post('bulk-demographics')
+  updateDemographicsBulk(@Body() dto: BulkUpdateBoothDemographicsDto) {
+    return this.boothsService.updateDemographicsBulk(dto);
+  }
+
+  @Post('bulk-election-results')
+  updateElectionResultsBulk(@Body() dto: BulkUpdateBoothElectionResultsDto) {
+    return this.boothsService.updateElectionResultsBulk(dto);
   }
 
   @Get()

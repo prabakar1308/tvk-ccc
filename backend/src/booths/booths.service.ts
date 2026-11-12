@@ -1,8 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateBoothDto } from './dto/create-booth.dto';
 import { UpdateBoothDto } from './dto/update-booth.dto';
 import { CreateBoothElectionResultDto } from './dto/create-booth-election-result.dto';
+import { BulkUpdateBoothDemographicsDto } from './dto/update-demographics.dto';
+import { BulkUpdateBoothElectionResultsDto } from './dto/update-election-results.dto';
 
 @Injectable()
 export class BoothsService {
@@ -24,6 +26,320 @@ export class BoothsService {
     return booths
       .map((b) => b.area)
       .filter((a) => a && a.trim() !== '') as string[];
+  }
+
+  async updateDemographicsBulk(dto: BulkUpdateBoothDemographicsDto) {
+    const list = dto?.demographics || [];
+    if (!Array.isArray(list) || list.length === 0) {
+      throw new BadRequestException('No demographics data provided');
+    }
+
+    // Clean and normalize booth numbers
+    const normalized = list
+      .map((item) => {
+        const rawNo = String(item.boothNo ?? '').trim();
+        const cleanNo = rawNo.replace(/^#/, '').trim();
+        const male = Math.max(0, parseInt(String(item.maleCount ?? 0), 10) || 0);
+        const female = Math.max(0, parseInt(String(item.femaleCount ?? 0), 10) || 0);
+        const third = Math.max(0, parseInt(String(item.thirdGenderCount ?? 0), 10) || 0);
+        const providedTotal =
+          item.totalCount !== undefined &&
+          item.totalCount !== null &&
+          String(item.totalCount).trim() !== ''
+            ? parseInt(String(item.totalCount), 10)
+            : null;
+        const total =
+          providedTotal !== null && !isNaN(providedTotal) && providedTotal > 0
+            ? providedTotal
+            : male + female + third;
+
+        return {
+          boothNo: cleanNo,
+          maleCount: male,
+          femaleCount: female,
+          thirdGenderCount: third,
+          totalCount: total,
+        };
+      })
+      .filter((item) => item.boothNo.length > 0);
+
+    if (normalized.length === 0) {
+      throw new BadRequestException('No valid booth numbers found in the provided payload');
+    }
+
+    // Fetch existing booths
+    const existingBooths = await this.prisma.booth.findMany({
+      select: {
+        id: true,
+        boothNo: true,
+        name: true,
+        maleCount: true,
+        femaleCount: true,
+        thirdGenderCount: true,
+        totalCount: true,
+      },
+    });
+
+    // Map by exact boothNo, lowercase, and without leading zeroes
+    const existingMap = new Map<string, typeof existingBooths[0]>();
+    for (const b of existingBooths) {
+      const bNo = (b.boothNo || '').trim();
+      existingMap.set(bNo, b);
+      existingMap.set(bNo.toLowerCase(), b);
+      const noLeadingZeros = bNo.replace(/^0+/, '');
+      if (noLeadingZeros) existingMap.set(noLeadingZeros, b);
+    }
+
+    const updates: any[] = [];
+    const notFound: string[] = [];
+    const updatedBooths: Array<{
+      id: string;
+      boothNo: string;
+      name: string;
+      oldMale: number;
+      newMale: number;
+      oldFemale: number;
+      newFemale: number;
+      oldThird: number;
+      newThird: number;
+      oldTotal: number;
+      newTotal: number;
+    }> = [];
+
+    const seenIds = new Set<string>();
+
+    for (const item of normalized) {
+      const match =
+        existingMap.get(item.boothNo) ||
+        existingMap.get(item.boothNo.toLowerCase()) ||
+        existingMap.get(item.boothNo.replace(/^0+/, ''));
+
+      if (match) {
+        if (!seenIds.has(match.id)) {
+          seenIds.add(match.id);
+          updatedBooths.push({
+            id: match.id,
+            boothNo: match.boothNo,
+            name: match.name,
+            oldMale: match.maleCount,
+            newMale: item.maleCount,
+            oldFemale: match.femaleCount,
+            newFemale: item.femaleCount,
+            oldThird: match.thirdGenderCount,
+            newThird: item.thirdGenderCount,
+            oldTotal: match.totalCount,
+            newTotal: item.totalCount,
+          });
+
+          updates.push(
+            this.prisma.booth.update({
+              where: { id: match.id },
+              data: {
+                maleCount: item.maleCount,
+                femaleCount: item.femaleCount,
+                thirdGenderCount: item.thirdGenderCount,
+                totalCount: item.totalCount,
+              },
+            }),
+          );
+        }
+      } else {
+        notFound.push(item.boothNo);
+      }
+    }
+
+    if (updates.length > 0) {
+      await this.prisma.$transaction(updates);
+    }
+
+    return {
+      success: true,
+      updatedCount: updates.length,
+      notFound,
+      updatedBooths,
+      totalProcessed: normalized.length,
+    };
+  }
+
+  async updateElectionResultsBulk(dto: BulkUpdateBoothElectionResultsDto) {
+    const list = dto?.results || [];
+    if (!Array.isArray(list) || list.length === 0) {
+      throw new BadRequestException('No election results data provided');
+    }
+
+    const electionYear = String(dto.electionYear || '').trim();
+    const electionName = String(dto.electionName || '').trim();
+
+    if (!electionYear || !electionName) {
+      throw new BadRequestException('Election year and election name are required');
+    }
+
+    // Clean and normalize results
+    const normalized = list
+      .map((item) => {
+        const rawNo = String(item.boothNo ?? '').trim();
+        const cleanNo = rawNo.replace(/^#/, '').trim();
+        const dmkVotes = Math.max(0, parseInt(String(item.dmkVotes ?? 0), 10) || 0);
+        const aiadmkVotes = Math.max(0, parseInt(String(item.aiadmkVotes ?? 0), 10) || 0);
+        const tvkVotes = Math.max(0, parseInt(String(item.tvkVotes ?? 0), 10) || 0);
+        const providedTotal =
+          item.totalVotesPolled !== undefined &&
+          item.totalVotesPolled !== null &&
+          String(item.totalVotesPolled).trim() !== ''
+            ? parseInt(String(item.totalVotesPolled), 10)
+            : null;
+
+        const sumVotes = dmkVotes + aiadmkVotes + tvkVotes;
+        const totalVotesPolled =
+          providedTotal !== null && !isNaN(providedTotal) && providedTotal > 0
+            ? providedTotal
+            : sumVotes;
+
+        const tvkPercentage =
+          totalVotesPolled > 0
+            ? Math.round((tvkVotes / totalVotesPolled) * 10000) / 100
+            : 0;
+
+        // Determine winner and margin
+        const candidates = [
+          { name: 'TVK', votes: tvkVotes },
+          { name: 'DMK', votes: dmkVotes },
+          { name: 'AIADMK', votes: aiadmkVotes },
+        ].sort((a, b) => b.votes - a.votes);
+
+        const winnerPartyName = candidates[0].votes > 0 ? candidates[0].name : null;
+        const margin =
+          candidates[0].votes > 0
+            ? candidates[0].votes - (candidates[1]?.votes || 0)
+            : null;
+
+        return {
+          boothNo: cleanNo,
+          dmkVotes,
+          aiadmkVotes,
+          tvkVotes,
+          totalVotesPolled,
+          tvkPercentage,
+          winnerPartyName,
+          margin,
+        };
+      })
+      .filter((item) => item.boothNo.length > 0);
+
+    if (normalized.length === 0) {
+      throw new BadRequestException('No valid booth records found in the payload');
+    }
+
+    // Fetch existing booths
+    const existingBooths = await this.prisma.booth.findMany({
+      select: {
+        id: true,
+        boothNo: true,
+        name: true,
+      },
+    });
+
+    const existingMap = new Map<string, typeof existingBooths[0]>();
+    for (const b of existingBooths) {
+      const bNo = (b.boothNo || '').trim();
+      existingMap.set(bNo, b);
+      existingMap.set(bNo.toLowerCase(), b);
+      const noLeadingZeros = bNo.replace(/^0+/, '');
+      if (noLeadingZeros) existingMap.set(noLeadingZeros, b);
+    }
+
+    const upserts: any[] = [];
+    const notFound: string[] = [];
+    const updatedBooths: Array<{
+      boothId: string;
+      boothNo: string;
+      name: string;
+      tvkVotes: number;
+      dmkVotes: number;
+      aiadmkVotes: number;
+      totalVotes: number;
+      winner: string | null;
+      margin: number | null;
+    }> = [];
+
+    const seenIds = new Set<string>();
+
+    for (const item of normalized) {
+      const match =
+        existingMap.get(item.boothNo) ||
+        existingMap.get(item.boothNo.toLowerCase()) ||
+        existingMap.get(item.boothNo.replace(/^0+/, ''));
+
+      if (match) {
+        if (!seenIds.has(match.id)) {
+          seenIds.add(match.id);
+          updatedBooths.push({
+            boothId: match.id,
+            boothNo: match.boothNo,
+            name: match.name,
+            tvkVotes: item.tvkVotes,
+            dmkVotes: item.dmkVotes,
+            aiadmkVotes: item.aiadmkVotes,
+            totalVotes: item.totalVotesPolled,
+            winner: item.winnerPartyName,
+            margin: item.margin,
+          });
+
+          upserts.push(
+            this.prisma.boothElectionResult.upsert({
+              where: {
+                boothId_electionYear_electionName: {
+                  boothId: match.id,
+                  electionYear,
+                  electionName,
+                },
+              },
+              update: {
+                electionId: dto.electionId || undefined,
+                totalVotesPolled: item.totalVotesPolled,
+                tvkVotes: item.tvkVotes,
+                tvkPercentage: item.tvkPercentage,
+                topParty1Name: 'DMK',
+                topParty1Votes: item.dmkVotes,
+                topParty2Name: 'AIADMK',
+                topParty2Votes: item.aiadmkVotes,
+                winnerPartyName: item.winnerPartyName,
+                margin: item.margin,
+              },
+              create: {
+                boothId: match.id,
+                electionId: dto.electionId || undefined,
+                electionYear,
+                electionName,
+                totalVotesPolled: item.totalVotesPolled,
+                tvkVotes: item.tvkVotes,
+                tvkPercentage: item.tvkPercentage,
+                topParty1Name: 'DMK',
+                topParty1Votes: item.dmkVotes,
+                topParty2Name: 'AIADMK',
+                topParty2Votes: item.aiadmkVotes,
+                winnerPartyName: item.winnerPartyName,
+                margin: item.margin,
+              },
+            }),
+          );
+        }
+      } else {
+        notFound.push(item.boothNo);
+      }
+    }
+
+    if (upserts.length > 0) {
+      await this.prisma.$transaction(upserts);
+    }
+
+    return {
+      success: true,
+      updatedCount: upserts.length,
+      notFound,
+      updatedBooths,
+      totalProcessed: normalized.length,
+    };
   }
 
   private async sanitizeBoothData(dto: any) {

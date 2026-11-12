@@ -4,6 +4,8 @@ import {
   CreateBoothDto,
   CreateBoothElectionResultDto,
   AgentAssignmentPayload,
+  BoothDemographicsItem,
+  BulkUpdateBoothElectionResultsDto,
 } from '@/services/api/booths';
 
 export function useBooths(params?: {
@@ -62,6 +64,30 @@ export function useDeleteBooth() {
 
   return useMutation({
     mutationFn: (id: string) => boothApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['booths'] });
+    },
+  });
+}
+
+export function useUpdateBoothDemographicsBulk() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (items: BoothDemographicsItem[]) =>
+      boothApi.updateDemographicsBulk(items),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['booths'] });
+    },
+  });
+}
+
+export function useUpdateBoothElectionResultsBulk() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (dto: BulkUpdateBoothElectionResultsDto) =>
+      boothApi.updateElectionResultsBulk(dto),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['booths'] });
     },

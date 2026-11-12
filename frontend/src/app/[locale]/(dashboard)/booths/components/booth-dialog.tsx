@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Building2, MapPin, Check, Trophy, Phone, CreditCard, Landmark, Store } from 'lucide-react';
+import { Building2, MapPin, Check, Trophy, Phone, CreditCard, Landmark, Store, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { MultiAutocomplete } from '@/components/ui/autocomplete';
 import { MultiSelectDropdown } from './multi-select-dropdown';
@@ -266,7 +266,25 @@ export function BoothDialog({
           </div>
 
           <div className="space-y-2">
-            <Label>{t('boothAgents')}</Label>
+            <div className="flex items-center justify-between">
+              <Label>{t('boothAgents')}</Label>
+              {formData.agents && formData.agents.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFormData({
+                      ...formData,
+                      agents: [],
+                      agentIds: [],
+                    })
+                  }
+                  className="text-[11px] font-bold text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors flex items-center gap-1 cursor-pointer hover:underline"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  <span>{locale === 'ta' ? 'அனைத்தையும் நீக்கு' : 'Clear All'}</span>
+                </button>
+              )}
+            </div>
             <MultiAutocomplete
               value={formData.agents}
               onChange={(val) =>

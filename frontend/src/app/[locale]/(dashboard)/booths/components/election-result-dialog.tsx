@@ -10,19 +10,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Trophy, BarChart3 } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import {
   BoothElectionResult,
   CreateBoothElectionResultDto,
 } from '@/services/api/booths';
+import { ElectionSelect } from '@/components/shared/election-select';
 
 export interface ElectionResultDialogProps {
   open: boolean;
@@ -47,7 +41,63 @@ export function ElectionResultDialog({
   isPending,
   dbElections,
 }: ElectionResultDialogProps) {
+  const locale = useLocale();
   const t = useTranslations('Booths');
+  const [isCustomYear, setIsCustomYear] = React.useState(false);
+
+  // Active / current master election
+  const activeMasterElection = React.useMemo(() => {
+    return (
+      dbElections.find((e: any) => e.isCurrent) ||
+      (dbElections.length > 0 ? dbElections[0] : null)
+    );
+  }, [dbElections]);
+
+  // Match existing formData against dbElections
+  const matchedMasterElection = React.useMemo(() => {
+    if (!formData.electionYear) return null;
+    return (
+      dbElections.find(
+        (e: any) =>
+          e.year === formData.electionYear &&
+          (!formData.electionName || e.name === formData.electionName || e.nameTa === formData.electionName)
+      ) ||
+      dbElections.find((e: any) => e.year === formData.electionYear) ||
+      null
+    );
+  }, [dbElections, formData.electionYear, formData.electionName]);
+
+  // Determine current value for ElectionSelect - defaults to active election if not custom or editing
+  const selectedElectionValue = React.useMemo(() => {
+    if (isCustomYear) return 'Other';
+    if (matchedMasterElection) return matchedMasterElection.id;
+    if (editingResult && formData.electionYear) return 'Other';
+    // Default to the active master election
+    return activeMasterElection?.id || '';
+  }, [isCustomYear, matchedMasterElection, editingResult, formData.electionYear, activeMasterElection]);
+
+  // Sync active election to formData when opening to add a new result
+  React.useEffect(() => {
+    if (open && !editingResult && activeMasterElection) {
+      if (!formData.electionYear || (!matchedMasterElection && !isCustomYear)) {
+        setIsCustomYear(false);
+        onFormDataChange((prev) => ({
+          ...prev,
+          electionYear: activeMasterElection.year,
+          electionName:
+            locale === 'ta' && activeMasterElection.nameTa
+              ? activeMasterElection.nameTa
+              : activeMasterElection.name,
+        }));
+      }
+    } else if (open && editingResult) {
+      if (formData.electionYear && !matchedMasterElection) {
+        setIsCustomYear(true);
+      } else {
+        setIsCustomYear(false);
+      }
+    }
+  }, [open, editingResult, activeMasterElection, matchedMasterElection, isCustomYear, formData.electionYear, locale, onFormDataChange]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -70,70 +120,70 @@ export function ElectionResultDialog({
 
         <form onSubmit={onSubmit} className="space-y-4 mt-2">
           {/* Election Selection */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold">{t('electionYear')} *</Label>
-              <Select
-                value={formData.electionYear || '2024'}
-                onValueChange={(val) => {
-                  const yearStr = val || '2024';
-                  const matchedElec = dbElections.find((e: any) => e.year === yearStr);
-                  const defaultName = matchedElec
-                    ? matchedElec.name
-                    : yearStr === '2026'
-                    ? '2026 Assembly Election'
-                    : yearStr === '2024'
-                    ? '2024 Parliamentary Election'
-                    : yearStr === '2021'
-                    ? '2021 Assembly Election'
-                    : yearStr === '2019'
-                    ? '2019 Parliamentary Election'
-                    : yearStr === '2016'
-                    ? '2016 Assembly Election'
-                    : `${yearStr} Election`;
-                  onFormDataChange((prev) => ({
-                    ...prev,
-                    electionYear: yearStr,
-                    electionName: defaultName,
-                  }));
-                }}
-              >
-                <SelectTrigger className="h-10 rounded-xl">
-                  <SelectValue placeholder="Select Year" />
-                </SelectTrigger>
-                <SelectContent>
-                  {dbElections.length > 0 ? (
-                    dbElections.map((elec: any) => (
-                      <SelectItem key={elec.id} value={elec.year}>
-                        {elec.year} - {elec.name} {elec.isCurrent ? '★ (Active)' : ''}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <>
-                      <SelectItem value="2026">2026 Assembly Election</SelectItem>
-                      <SelectItem value="2024">2024 Parliamentary Election</SelectItem>
-                      <SelectItem value="2021">2021 Assembly Election</SelectItem>
-                      <SelectItem value="2019">2019 Parliamentary Election</SelectItem>
-                      <SelectItem value="2016">2016 Assembly Election</SelectItem>
-                    </>
-                  )}
-                  <SelectItem value="Other">Other / Custom Year</SelectItem>
-                </SelectContent>
-              </Select>
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold">{t('forElection') || 'Election'} *</Label>
+                <ElectionSelect
+                  value={selectedElectionValue}
+                  elections={dbElections}
+                  allowCustom
+                  autoSelectActive
+                  customLabel={locale === 'ta' ? 'பிற / தனிப்பயன் தேர்தல்' : 'Other / Custom Election'}
+                  onSelectElection={(elec) => {
+                    if (elec) {
+                      setIsCustomYear(false);
+                      onFormDataChange((prev) => ({
+                        ...prev,
+                        electionYear: elec.year,
+                        electionName:
+                          locale === 'ta' && elec.nameTa ? elec.nameTa : elec.name,
+                      }));
+                    }
+                  }}
+                  onValueChange={(val) => {
+                    if (val === 'Other') {
+                      setIsCustomYear(true);
+                    } else {
+                      setIsCustomYear(false);
+                    }
+                  }}
+                  size="default"
+                  className="w-full h-10 rounded-xl bg-background"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold">{t('electionName')} *</Label>
+                <Input
+                  value={formData.electionName}
+                  onChange={(e) =>
+                    onFormDataChange((prev) => ({ ...prev, electionName: e.target.value }))
+                  }
+                  placeholder="e.g. 2024 Parliamentary Election"
+                  required
+                  className="h-10 rounded-xl"
+                />
+              </div>
             </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold">{t('electionName')} *</Label>
-              <Input
-                value={formData.electionName}
-                onChange={(e) =>
-                  onFormDataChange((prev) => ({ ...prev, electionName: e.target.value }))
-                }
-                placeholder="e.g. 2024 Parliamentary Election"
-                required
-                className="h-10 rounded-xl"
-              />
-            </div>
+            {/* Custom Election Year Input (if 'Other / Custom Election' is chosen) */}
+            {isCustomYear && (
+              <div className="space-y-1.5 p-3 rounded-xl bg-amber-500/5 border border-amber-500/20 animate-in fade-in slide-in-from-top-1">
+                <Label className="text-xs font-bold text-amber-800 dark:text-amber-300">
+                  {t('electionYear')} ({locale === 'ta' ? 'தனிப்பயன் ஆண்டு' : 'Custom Year'}) *
+                </Label>
+                <Input
+                  value={formData.electionYear}
+                  onChange={(e) =>
+                    onFormDataChange((prev) => ({ ...prev, electionYear: e.target.value }))
+                  }
+                  placeholder="e.g. 2014, 2011, 2006"
+                  required
+                  className="h-10 rounded-xl font-mono bg-background"
+                />
+              </div>
+            )}
           </div>
 
           {/* Votes Polled & TVK Votes Highlight */}
