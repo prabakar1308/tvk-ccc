@@ -104,7 +104,7 @@ export function BoothInlineDrawerComponent({
           assignmentRole: a.role,
           assignmentId: a.id,
           electionId: a.electionId,
-          blaFormUrl: a.blaFormUrl,
+          blaFormUrl: a.blaFormUrl || a.cadre?.blaFormUrl || a.cadre?.attachments?.blaForm || a.cadre?.attachments?.blaFormUrl || null,
           assignmentNotes: a.notes,
         }))
       : activeDrawerElection?.isCurrent && booth.agents?.length
@@ -382,12 +382,12 @@ export function BoothInlineDrawerComponent({
                                 agent.role ||
                                 (locale === 'ta' ? 'சாவடி முகவர்' : 'Booth Agent')}
                             </span>
-                            {agent.blaFormUrl && (
+                            {(agent.blaFormUrl || agent.attachments?.blaForm || agent.attachments?.blaFormUrl) && (
                               <button
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  onPreviewImage(agent.blaFormUrl);
+                                  onPreviewImage(agent.blaFormUrl || agent.attachments?.blaForm || agent.attachments?.blaFormUrl);
                                 }}
                                 className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-bold bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 transition-colors cursor-pointer"
                                 title="View BLA Form"

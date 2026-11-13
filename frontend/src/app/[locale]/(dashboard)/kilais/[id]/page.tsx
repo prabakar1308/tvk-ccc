@@ -4,6 +4,7 @@ import { useParams } from 'next/navigation';
 import { useLocale } from 'next-intl';
 import { useKilai } from '@/hooks/use-kilais';
 import { getOrgUnitName, getUnitTypeLabel, getUnionSlug, getKilaiSlug } from '@/lib/org-unit-translations';
+import { createAreaSlug } from '@/lib/area-translations';
 import { ArrowLeft, MapPin, Building2, Users, Tent, Phone, Upload, Plus } from 'lucide-react';
 import { Link, useRouter } from '@/i18n/routing';
 import { useState, useEffect } from 'react';
@@ -28,19 +29,21 @@ export default function KilaiDetailsPage() {
   const { id } = useParams();
   const locale = useLocale();
   const router = useRouter();
+  const rawId = decodeURIComponent((id as string) || '');
   const { data: kilai, isLoading } = useKilai(id as string);
 
-  // Canonicalize URL: redirect UUID to clean slug /kilais/[kilaiSlug]
+  // Canonicalize URL: redirect UUID or Tamil slug to clean English slug /kilais/[kilaiSlug]
   useEffect(() => {
-    if (!kilai?.name) return;
-    const cleanSlug = getKilaiSlug(kilai.name);
+    if (!kilai) return;
+    const cleanSlug = getKilaiSlug(kilai);
     if (!cleanSlug) return;
 
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id as string);
-    if (isUuid) {
+    const isTamil = /[\u0B80-\u0BFF]/.test(rawId);
+    if (isUuid || isTamil) {
       router.replace(`/kilais/${cleanSlug}`);
     }
-  }, [kilai, id, router]);
+  }, [kilai, id, rawId, router]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null);
@@ -87,7 +90,7 @@ export default function KilaiDetailsPage() {
             <p className="text-muted-foreground font-medium mt-1 flex flex-wrap items-center gap-2">
               {kilaiData.union ? (
                 <Link
-                  href={`/unions/${getUnionSlug(kilaiData.union?.name) || kilaiData.union?.id}`}
+                  href={`/unions/${getUnionSlug(kilaiData.union) || kilaiData.union?.id}`}
                   className="flex items-center gap-1.5 hover:text-primary transition-colors"
                 >
                   <Building2 className="w-4 h-4" />
@@ -103,7 +106,7 @@ export default function KilaiDetailsPage() {
               )}
               {(kilaiData.panchayatRel || kilaiData.panchayat) && (
                 <Link
-                  href={`/panchayats/${kilaiData.panchayatRel?.code || kilaiData.panchayatRel?.id || encodeURIComponent(kilaiData.panchayat)}`}
+                  href={`/panchayats/${kilaiData.panchayatRel?.code || createAreaSlug(kilaiData.panchayatRel?.nameEn || kilaiData.panchayatRel?.englishName || kilaiData.panchayatRel?.name || kilaiData.panchayat) || kilaiData.panchayatRel?.id || 'all'}`}
                   className="flex items-center gap-1 text-primary font-semibold hover:underline"
                 >
                   • <MapPin className="w-3.5 h-3.5" />

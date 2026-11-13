@@ -38,11 +38,26 @@ export class TranslationInterceptor implements NestInterceptor {
       return data.map((item) => this.translateData(item, lang));
     }
 
-    // Keep original English areasCovered before translations payload might overwrite it
+    // Keep original English areasCovered and name before translations payload might overwrite it
     const originalAreasCovered = Array.isArray(data.areasCovered) ? [...data.areasCovered] : null;
+    const originalName = typeof data.name === 'string' ? data.name : undefined;
 
     // Handle Objects (e.g., single records or nested relations)
     const translatedData = { ...data };
+
+    if (originalName) {
+      translatedData.nameEn = originalName;
+      translatedData.englishName = originalName;
+      const cleanSlug = originalName
+        .toLowerCase()
+        .replace(/[\s\-_.]+/g, '-')
+        .replace(/[^a-z0-9\-]/g, '')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+      if (cleanSlug) {
+        translatedData.slug = cleanSlug;
+      }
+    }
 
     // If the object has a 'translations' property
     if (translatedData.translations) {
@@ -52,6 +67,10 @@ export class TranslationInterceptor implements NestInterceptor {
       if (langData && typeof langData === 'object') {
         // Override the base properties with the translated properties
         Object.keys(langData).forEach((key) => {
+          if (key === 'name') {
+            translatedData.tamilName = langData[key];
+            translatedData.nameTa = langData[key];
+          }
           // Only override if the original object has that property, or you can allow new ones too
           translatedData[key] = langData[key];
         });
@@ -77,7 +96,10 @@ export class TranslationInterceptor implements NestInterceptor {
           translatedData.areasCovered !== undefined ||
           translatedData.group !== undefined)
       ) {
-        translatedData.name = translateOrgUnitNameToTamil(translatedData.name);
+        const taUnion = translateOrgUnitNameToTamil(originalName || translatedData.name);
+        translatedData.tamilName = taUnion;
+        translatedData.nameTa = taUnion;
+        translatedData.name = taUnion;
       }
 
       // Translate union contactName
@@ -100,7 +122,33 @@ export class TranslationInterceptor implements NestInterceptor {
         typeof translatedData.name === 'string' &&
         (translatedData.panchayat !== undefined || translatedData.unionId !== undefined)
       ) {
-        translatedData.name = translateAreaToTamil(translatedData.name);
+        const taKilai = translatedData.tamilName || translateAreaToTamil(originalName || translatedData.name);
+        translatedData.tamilName = taKilai;
+        translatedData.nameTa = taKilai;
+        translatedData.name = taKilai;
+      }
+
+      // Translate Panchayat name if this is a Panchayat object
+      if (
+        typeof translatedData.name === 'string' &&
+        translatedData.type !== undefined &&
+        translatedData.unionId !== undefined
+      ) {
+        const taPanchayat = translatedData.nameTa || translatedData.tamilName || translateAreaToTamil(originalName || translatedData.name);
+        translatedData.tamilName = taPanchayat;
+        translatedData.nameTa = taPanchayat;
+        translatedData.name = taPanchayat;
+      }
+
+      // Translate Village name if this is a Village object
+      if (
+        typeof translatedData.name === 'string' &&
+        translatedData.panchayatId !== undefined
+      ) {
+        const taVillage = translatedData.nameTa || translatedData.tamilName || translateAreaToTamil(originalName || translatedData.name);
+        translatedData.tamilName = taVillage;
+        translatedData.nameTa = taVillage;
+        translatedData.name = taVillage;
       }
 
       // Translate Kilai secretaryName

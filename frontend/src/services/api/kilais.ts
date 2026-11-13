@@ -1,10 +1,15 @@
 import { fetchWithAuth } from './client';
+import { translateAreaToEnglish } from '@/lib/area-translations';
 
 export interface Kilai {
   id: string;
   code: string;
   name: string;
   tamilName?: string;
+  nameTa?: string;
+  nameEn?: string;
+  englishName?: string;
+  slug?: string;
   secretaryName?: string;
   secretaryPhoto?: string;
   secretary?: {
@@ -72,7 +77,11 @@ export const kilaiApi = {
   },
 
   getById: async (id: string, locale?: string): Promise<Kilai> => {
-    const url = locale ? `/api/v1/kilais/${id}?lang=${locale}` : `/api/v1/kilais/${id}`;
+    const decoded = decodeURIComponent(id);
+    const cleanId = /[\u0B80-\u0BFF]/.test(decoded)
+      ? translateAreaToEnglish(decoded) || decoded
+      : decoded;
+    const url = locale ? `/api/v1/kilais/${encodeURIComponent(cleanId)}?lang=${locale}` : `/api/v1/kilais/${encodeURIComponent(cleanId)}`;
     const res = await fetchWithAuth(url);
     return res.json();
   },

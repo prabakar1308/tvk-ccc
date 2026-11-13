@@ -28,7 +28,7 @@ export function PanchayatHeader({
   onRegisterCadre,
 }: PanchayatHeaderProps) {
   const router = useRouter();
-  const unionBackUrl = union ? `/unions/${getUnionSlug(union.name) || union.id}` : '/unions';
+  const unionBackUrl = union ? `/unions/${getUnionSlug(union) || union.id}` : '/unions';
 
   return (
     <div className="flex flex-col gap-3">

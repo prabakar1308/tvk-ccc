@@ -1,7 +1,8 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useUnion } from '@/hooks/use-unions';
+import { useUnion, useUnions } from '@/hooks/use-unions';
+import { useUser } from '@/contexts/user-context';
 import { ArrowLeft, Store, Building2, Users, Phone, Edit2, Trash2, Landmark, MapPin, ArrowUpRight, Search, LayoutGrid, ListFilter, Plus, ChevronRight } from 'lucide-react';
 import { Link, useRouter } from '@/i18n/routing';
 import { useLocale } from 'next-intl';
@@ -15,7 +16,7 @@ import { CadreCard } from '@/components/cadre-card';
 import { CadreRosterTable } from '@/components/cadres/cadre-roster-table';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { useQueryClient } from '@tanstack/react-query';
-import { getOrgUnitName, getUnitTypeLabel, getAreasCoveredLabel, getUnionSlug } from '@/lib/org-unit-translations';
+import { getOrgUnitName, getUnitTypeLabel, getAreasCoveredLabel, getUnionSlug, translateOrgUnitNameToEnglish } from '@/lib/org-unit-translations';
 import { getAreaBilingualNames, isAreaNameMatch, createAreaSlug } from '@/lib/area-translations';
 import { Input } from '@/components/ui/input';
 import {
@@ -31,19 +32,48 @@ export default function UnionDetailsPage() {
   const locale = useLocale();
   const router = useRouter();
   const { id } = useParams();
-  const { data: union, isLoading } = useUnion(id as string);
+  const { activeUnionId } = useUser();
+  const { data: allUnions } = useUnions();
 
-  // Canonicalize URL: redirect UUID to clean slug /unions/[unionSlug]
+  const rawId = decodeURIComponent((id as string) || '').trim();
+
+  // If id is '-' or empty or Tamil name, resolve the effective query id
+  const effectiveId = useMemo(() => {
+    if (!rawId || rawId === '-') {
+      if (activeUnionId) return activeUnionId;
+      if (allUnions && allUnions.length > 0) {
+        return getUnionSlug(allUnions[0]) || allUnions[0].id;
+      }
+      return '';
+    }
+    if (/[\u0B80-\u0BFF]/.test(rawId)) {
+      return translateOrgUnitNameToEnglish(rawId) || rawId;
+    }
+    return rawId;
+  }, [rawId, activeUnionId, allUnions]);
+
+  const { data: union, isLoading } = useUnion(effectiveId);
+
+  // Canonicalize URL: redirect '-' or UUID or Tamil slug to clean slug /unions/[unionSlug]
   useEffect(() => {
-    if (!union?.name) return;
-    const cleanSlug = getUnionSlug(union.name);
+    if (rawId === '-' || !rawId) {
+      const fallback = activeUnionId || (allUnions && allUnions.length > 0 ? (getUnionSlug(allUnions[0]) || allUnions[0].id) : null);
+      if (fallback) {
+        router.replace(`/unions/${fallback}`);
+      }
+      return;
+    }
+
+    if (!union) return;
+    const cleanSlug = getUnionSlug(union);
     if (!cleanSlug) return;
 
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id as string);
-    if (isUuid) {
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawId);
+    const isTamil = /[\u0B80-\u0BFF]/.test(rawId);
+    if (isUuid || isTamil) {
       router.replace(`/unions/${cleanSlug}`);
     }
-  }, [union, id, router]);
+  }, [union, rawId, activeUnionId, allUnions, router]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null);
@@ -249,7 +279,7 @@ export default function UnionDetailsPage() {
                     return (
                       <Link
                         key={p.id}
-                        href={`/panchayats/${p.code || p.id}`}
+                        href={`/panchayats/${p.code || createAreaSlug(p.nameEn || p.englishName || p.name) || p.id}`}
                         className="group relative flex flex-col justify-between rounded-2xl border border-zinc-200/90 dark:border-zinc-800 bg-gradient-to-b from-white via-white to-zinc-50/60 dark:from-zinc-900 dark:via-zinc-900/95 dark:to-zinc-950 p-5 shadow-xs hover:shadow-xl hover:shadow-primary/5 dark:hover:shadow-[0_8px_30px_rgba(0,0,0,0.5)] hover:border-primary/50 dark:hover:border-primary/50 hover:-translate-y-1 transition-all duration-300 overflow-hidden"
                       >
                         {/* Ambient Glow & Accent Bar */}
@@ -560,7 +590,7 @@ export default function UnionDetailsPage() {
                     return (
                       <Link
                         key={p.id}
-                        href={`/panchayats/${p.code || p.id}`}
+                        href={`/panchayats/${p.code || createAreaSlug(p.nameEn || p.englishName || p.name) || p.id}`}
                         className="group inline-flex items-center gap-2.5 text-xs font-bold bg-white dark:bg-zinc-800/90 text-zinc-800 dark:text-zinc-200 border border-zinc-200/90 dark:border-zinc-700/80 rounded-xl px-3.5 py-2.5 shadow-2xs hover:border-primary/50 hover:bg-primary/5 hover:text-primary transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
                       >
                         <div className="w-5 h-5 rounded-md bg-primary/10 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-colors shrink-0">

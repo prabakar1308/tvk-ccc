@@ -487,7 +487,7 @@ export function KilaisSection({
                       </TableCell>
                       <TableCell className="py-3 text-right">
                         <Link
-                          href={`/kilais/${getKilaiSlug(kilai.name) || kilai.id}`}
+                          href={`/kilais/${getKilaiSlug(kilai) || kilai.id}`}
                           onClick={(e) => e.stopPropagation()}
                           className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline"
                         >
@@ -853,7 +853,7 @@ export function KilaisSection({
                   </div>
 
                   <Link
-                    href={`/kilais/${getKilaiSlug(kilai.name) || kilai.id}`}
+                    href={`/kilais/${getKilaiSlug(kilai) || kilai.id}`}
                     className="inline-flex items-center gap-1.5 text-xs font-bold text-primary group-hover:text-primary hover:underline transition-colors"
                   >
                     <span>{locale === 'ta' ? 'கிளை விவரம்' : 'View Kilai'}</span>

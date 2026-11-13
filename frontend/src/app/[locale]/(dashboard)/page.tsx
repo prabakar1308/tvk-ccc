@@ -252,14 +252,14 @@ export default function DashboardPage() {
               </div>
 
               {/* Bottom Quick Stats Pill Bar */}
-              <div className="flex items-center justify-between pt-3 mt-4 border-t border-zinc-100 dark:border-zinc-800/80 text-xs">
-                <div 
+              <div className="flex items-center justify-center pt-3 mt-4 border-t border-zinc-100 dark:border-zinc-800/80 text-xs">
+                {/* <div 
                   className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-white font-bold text-[11px] shadow-xs"
                   style={{ backgroundColor: '#548777' }}
                 >
                   <Building className="w-3.5 h-3.5 text-white" />
                   <span>{t('orgUnitsCount', { count: stats?.totalUnions || 0 })}</span>
-                </div>
+                </div> */}
                 <span className="inline-flex items-center text-xs font-semibold text-zinc-500 group-hover:text-[#8F0A1B] dark:group-hover:text-red-400 transition-colors">
                   {t('viewUnits')} <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
                 </span>
@@ -299,14 +299,14 @@ export default function DashboardPage() {
               </div>
 
               {/* Bottom Quick Stats Pill Bar */}
-              <div className="flex items-center justify-between pt-3 mt-4 border-t border-zinc-100 dark:border-zinc-800/80 text-xs">
-                <div 
+              <div className="flex items-center justify-center pt-3 mt-4 border-t border-zinc-100 dark:border-zinc-800/80 text-xs">
+                {/* <div 
                   className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-white font-bold text-[11px] shadow-xs"
                   style={{ backgroundColor: '#548777' }}
                 >
                   <Layers className="w-3.5 h-3.5 text-white" />
                   <span>{t('kilaisCount', { count: stats?.totalKilais || 0 })}</span>
-                </div>
+                </div> */}
                 <span className="inline-flex items-center text-xs font-semibold text-zinc-500 group-hover:text-[#8F0A1B] dark:group-hover:text-red-400 transition-colors">
                   {t('exploreKilais')} <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
                 </span>
@@ -346,14 +346,14 @@ export default function DashboardPage() {
               </div>
 
               {/* Bottom Quick Stats Pill Bar */}
-              <div className="flex items-center justify-between pt-3 mt-4 border-t border-zinc-100 dark:border-zinc-800/80 text-xs">
-                <div 
+              <div className="flex items-center justify-center pt-3 mt-4 border-t border-zinc-100 dark:border-zinc-800/80 text-xs">
+                {/* <div 
                   className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-white font-bold text-[11px] shadow-xs"
                   style={{ backgroundColor: '#548777' }}
                 >
                   <Users className="w-3.5 h-3.5 text-white" />
                   <span>{t('cadresCount', { count: stats?.totalCadres || 0 })}</span>
-                </div>
+                </div> */}
                 <span className="inline-flex items-center text-xs font-semibold text-zinc-500 group-hover:text-[#8F0A1B] dark:group-hover:text-red-400 transition-colors">
                   {t('directory')} <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
                 </span>
@@ -393,14 +393,14 @@ export default function DashboardPage() {
               </div>
 
               {/* Bottom Quick Stats Pill Bar */}
-              <div className="flex items-center justify-between pt-3 mt-4 border-t border-zinc-100 dark:border-zinc-800/80 text-xs">
-                <div 
+              <div className="flex items-center justify-center pt-3 mt-4 border-t border-zinc-100 dark:border-zinc-800/80 text-xs">
+                {/* <div 
                   className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-white font-bold text-[11px] shadow-xs"
                   style={{ backgroundColor: '#548777' }}
                 >
                   <MapPin className="w-3.5 h-3.5 text-white" />
                   <span>{t('boothsCount', { count: stats?.totalBooths || 0 })}</span>
-                </div>
+                </div> */}
                 <span className="inline-flex items-center text-xs font-semibold text-zinc-500 group-hover:text-[#8F0A1B] dark:group-hover:text-red-400 transition-colors">
                   {t('coverage')} <ArrowRight className="w-3.5 h-3.5 ml-1 group-hover:translate-x-1 transition-transform" />
                 </span>
@@ -467,12 +467,16 @@ export default function DashboardPage() {
                 <div className="absolute -top-16 -right-16 w-36 h-36 bg-gradient-to-br from-[#8F0A1B]/15 via-[#FFC72C]/15 to-transparent rounded-full blur-2xl group-hover:scale-150 transition-all duration-500 pointer-events-none" />
                 <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#8F0A1B] via-[#D97706] to-[#FFC72C]" />
 
-                <div className="w-full flex justify-between items-center mb-3">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-[#8F0A1B]/10 text-[#8F0A1B] border border-[#8F0A1B]/20 shadow-xs">
+                <div className="w-full flex justify-center items-center mb-3">
+                  {/* <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-[#8F0A1B]/10 text-[#8F0A1B] border border-[#8F0A1B]/20 shadow-xs">
                     <ShieldCheck className="w-3.5 h-3.5 text-[#8F0A1B]" />
                     {t('roleSecretary')}
-                  </span>
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                  </span> */}
+                  {/* <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                    {t('districtHead')}
+                  </span> */}
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-[#8F0A1B]/10 text-[#8F0A1B] border border-[#8F0A1B]/20 shadow-xs">
+                    <ShieldCheck className="w-3.5 h-3.5 text-[#8F0A1B]" />
                     {t('districtHead')}
                   </span>
                 </div>

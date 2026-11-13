@@ -1,11 +1,15 @@
 import { fetchWithAuth } from './client';
 import { District } from './districts';
 import { Cadre } from './cadres';
+import { translateOrgUnitNameToEnglish } from '@/lib/org-unit-translations';
 
 export interface Union {
   id: string;
   name: string;
   nameTa?: string;
+  nameEn?: string;
+  englishName?: string;
+  slug?: string;
   translations?: any;
   districtId?: string;
   group: string;
@@ -48,7 +52,11 @@ export const unionApi = {
   },
 
   getById: async (id: string, locale?: string): Promise<Union> => {
-    const url = locale ? `/api/v1/unions/${id}?lang=${locale}` : `/api/v1/unions/${id}`;
+    const decoded = decodeURIComponent(id || '').trim();
+    const cleanId = /[\u0B80-\u0BFF]/.test(decoded)
+      ? translateOrgUnitNameToEnglish(decoded) || decoded
+      : decoded;
+    const url = locale ? `/api/v1/unions/${encodeURIComponent(cleanId)}?lang=${locale}` : `/api/v1/unions/${encodeURIComponent(cleanId)}`;
     const res = await fetchWithAuth(url);
     return res.json();
   },

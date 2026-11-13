@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { I18nService } from '../i18n/i18n.service';
 import { CreateKilaiDto } from './dto/create-kilai.dto';
 import { UpdateKilaiDto } from './dto/update-kilai.dto';
+import { translateAreaToEnglish, translateAreaToTamil } from '../i18n/area-translations';
 
 @Injectable()
 export class KilaisService {
@@ -241,14 +242,22 @@ export class KilaisService {
       const decoded = decodeURIComponent(id).trim();
       const normalizedName = decoded.replace(/[-_]+/g, ' ').trim();
       const cleanSlug = decoded.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const enTranslated = translateAreaToEnglish(decoded);
+      const enSlug = enTranslated ? enTranslated.toLowerCase().replace(/[^a-z0-9]/g, '') : '';
 
-      // 1. Try exact or normalized name match
+      // 1. Try exact or normalized name match (including translated English name if Tamil was provided)
       kilai = await this.prisma.kilai.findFirst({
         where: {
           OR: [
             { id: decoded },
             { name: { equals: decoded, mode: 'insensitive' as const } },
             { name: { equals: normalizedName, mode: 'insensitive' as const } },
+            ...(enTranslated
+              ? [
+                  { name: { equals: enTranslated, mode: 'insensitive' as const } },
+                  { name: { equals: enTranslated.replace(/[-_]+/g, ' '), mode: 'insensitive' as const } },
+                ]
+              : []),
           ],
         },
         include: {
@@ -267,8 +276,8 @@ export class KilaisService {
         },
       });
 
-      // 2. Fallback: match by alphanumeric slug
-      if (!kilai && cleanSlug) {
+      // 2. Fallback: match by alphanumeric slug or translations
+      if (!kilai) {
         const allKilais = await this.prisma.kilai.findMany({
           include: {
             union: true,
@@ -289,7 +298,14 @@ export class KilaisService {
         kilai =
           allKilais.find((k) => {
             const kSlug = (k.name || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-            return kSlug === cleanSlug;
+            if (cleanSlug && kSlug === cleanSlug) return true;
+            if (enSlug && kSlug === enSlug) return true;
+
+            const trans = k.translations as any;
+            if (trans?.ta?.name && trans.ta.name.trim() === decoded) return true;
+            if (translateAreaToTamil(k.name).trim() === decoded) return true;
+
+            return false;
           }) || null;
       }
     }

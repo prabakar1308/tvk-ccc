@@ -1,3 +1,5 @@
+import { translateAreaToEnglish } from './area-translations';
+
 export const KNOWN_ORG_UNIT_TRANSLATIONS_TA: Record<string, string> = {
   // Full names
   'kurinjipadi town': 'குறிஞ்சிப்பாடி நகரம்',
@@ -148,6 +150,63 @@ export function translateOrgUnitNameToTamil(name: string): string {
 }
 
 /**
+ * Translates an Organizational Unit / Union name from Tamil back to English.
+ */
+export function translateOrgUnitNameToEnglish(name: string): string {
+  if (!name || typeof name !== 'string') return name;
+
+  const trimmed = name.trim();
+
+  // If already standard English (no Tamil script), return as is
+  if (!/[\u0B80-\u0BFF]/.test(trimmed)) {
+    return trimmed;
+  }
+
+  const cleanTa = trimmed.replace(/\s+/g, ' ');
+
+  // 1. Exact match in reverse lookup
+  for (const [enKey, taVal] of Object.entries(KNOWN_ORG_UNIT_TRANSLATIONS_TA)) {
+    if (taVal === cleanTa || taVal.replace(/\s+/g, '') === cleanTa.replace(/\s+/g, '')) {
+      return enKey.split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    }
+  }
+
+  // 2. Deconstruct: [Place?] [Direction?] [UnitType?]
+  let working = cleanTa;
+  const enParts: string[] = [];
+
+  for (const [placeEn, placeTa] of Object.entries(PLACE_MAP_TA)) {
+    if (working.startsWith(placeTa)) {
+      enParts.push(placeEn.charAt(0).toUpperCase() + placeEn.slice(1));
+      working = working.slice(placeTa.length).trim();
+      break;
+    }
+  }
+
+  for (const [dirEn, dirTa] of Object.entries(DIRECTION_MAP_TA)) {
+    if (working.startsWith(dirTa)) {
+      enParts.push(dirEn.split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '));
+      working = working.slice(dirTa.length).trim();
+      break;
+    }
+  }
+
+  for (const [typeEn, typeTa] of Object.entries(UNIT_TYPE_MAP_TA)) {
+    if (working === typeTa || working.endsWith(typeTa)) {
+      enParts.push(typeEn.split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '));
+      working = working.replace(typeTa, '').trim();
+      break;
+    }
+  }
+
+  if (enParts.length > 0) {
+    return enParts.join(' ');
+  }
+
+  return trimmed;
+}
+
+/**
  * Gets the localized Org Unit name from a Union object.
  */
 export function getOrgUnitName(union: any, locale: string = 'en'): string {
@@ -222,37 +281,84 @@ export function getGroupAreasCoveredLabel(unions?: any[], locale: string = 'en')
 }
 
 /**
- * Creates a clean, human-readable URL slug for a union name.
+ * Creates a clean, human-readable URL slug for a union name or entity object.
+ * Always resolves to English characters so URLs and APIs remain in English.
  * e.g. "South East Union" -> "south-east"
  *      "Kurinjipadi Town" -> "kurinjipadi-town"
+ *      "குறிஞ்சிப்பாடி மேற்கு" -> "kurinjipadi-west"
  */
-export function getUnionSlug(name?: string | null): string {
-  if (!name) return '';
-  return name
+export function getUnionSlug(unionOrName?: any): string {
+  if (!unionOrName) return '';
+  let nameStr = '';
+  if (typeof unionOrName === 'string') {
+    nameStr = unionOrName;
+  } else if (typeof unionOrName === 'object') {
+    nameStr =
+      unionOrName.slug ||
+      unionOrName.englishName ||
+      unionOrName.nameEn ||
+      unionOrName.name ||
+      '';
+  }
+
+  if (!nameStr) return '';
+  const trimmed = nameStr.trim();
+
+  // If in Tamil script, reverse-translate to English
+  const resolvedEnglish = /[\u0B80-\u0BFF]/.test(trimmed)
+    ? translateOrgUnitNameToEnglish(trimmed)
+    : trimmed;
+
+  const slug = resolvedEnglish
     .toLowerCase()
     .replace(/\s*union\s*$/i, '')
     .trim()
-    .replace(/[\s\-_]+/g, '-')
-    .replace(/[^a-z0-9\-]/g, '');
+    .replace(/[\s\-_.]+/g, '-')
+    .replace(/[^a-z0-9\-]/g, '')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+
+  return slug;
 }
 
 /**
- * Creates a clean, human-readable URL slug for a kilai name.
+ * Creates a clean, human-readable URL slug for a kilai name or entity object.
+ * Always resolves to English characters so URLs and APIs remain in English.
  * e.g. "Ak Karaikkadu" -> "ak-karaikkadu"
  *      "K.Pudur" -> "k-pudur"
  *      "Sothikuppam 80" -> "sothikuppam-80"
+ *      "சீதக்குப்பம்" -> "sethakuppam"
  */
-export function getKilaiSlug(name?: string | null): string {
-  if (!name) return '';
-  const trimmed = name.trim();
-  const slug = trimmed
+export function getKilaiSlug(kilaiOrName?: any): string {
+  if (!kilaiOrName) return '';
+  let nameStr = '';
+  if (typeof kilaiOrName === 'string') {
+    nameStr = kilaiOrName;
+  } else if (typeof kilaiOrName === 'object') {
+    nameStr =
+      kilaiOrName.slug ||
+      kilaiOrName.englishName ||
+      kilaiOrName.nameEn ||
+      kilaiOrName.name ||
+      '';
+  }
+
+  if (!nameStr) return '';
+  const trimmed = nameStr.trim();
+
+  // If the name is in Tamil script, translate to English first
+  const resolvedEnglish = /[\u0B80-\u0BFF]/.test(trimmed)
+    ? translateAreaToEnglish(trimmed)
+    : trimmed;
+
+  const slug = resolvedEnglish
     .toLowerCase()
     .replace(/[\s\-_.]+/g, '-')
     .replace(/[^a-z0-9\-]/g, '')
     .replace(/-+/g, '-')
     .replace(/^-|-$/g, '');
 
-  return slug || encodeURIComponent(trimmed);
+  return slug;
 }
 
 export interface CadreOrgUnitDisplay {

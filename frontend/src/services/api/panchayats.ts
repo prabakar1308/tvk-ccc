@@ -1,10 +1,14 @@
 import { fetchWithAuth } from './client';
 import { Union } from './unions';
+import { translateAreaToEnglish } from '@/lib/area-translations';
 
 export interface Panchayat {
   id: string;
   name: string;
   nameTa: string;
+  nameEn?: string;
+  englishName?: string;
+  slug?: string;
   code?: string;
   type: 'VILLAGE_PANCHAYAT' | 'TOWN_PANCHAYAT_WARD' | 'MUNICIPALITY_WARD';
   wardNumber?: number;
@@ -50,7 +54,11 @@ export const panchayatApi = {
   },
 
   getById: async (id: string): Promise<Panchayat> => {
-    const res = await fetchWithAuth(`/api/v1/panchayats/${id}`);
+    const decoded = decodeURIComponent(id);
+    const cleanId = /[\u0B80-\u0BFF]/.test(decoded)
+      ? translateAreaToEnglish(decoded) || decoded
+      : decoded;
+    const res = await fetchWithAuth(`/api/v1/panchayats/${encodeURIComponent(cleanId)}`);
     return res.json();
   },
 

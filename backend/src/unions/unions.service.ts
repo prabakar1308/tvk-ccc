@@ -4,7 +4,7 @@ import { UpdateUnionDto } from './dto/update-union.dto';
 import { PrismaService } from '../prisma/prisma.service';
 import { translateAreaToTamil, getMasterAreas } from '../i18n/area-translations';
 import { translatePersonNameToTamil } from '../i18n/name-translations';
-import { translateOrgUnitNameToTamil } from '../i18n/org-unit-translations';
+import { translateOrgUnitNameToTamil, translateOrgUnitNameToEnglish } from '../i18n/org-unit-translations';
 
 @Injectable()
 export class UnionsService {
@@ -102,19 +102,28 @@ export class UnionsService {
     const isUuid =
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
-    const normalized = id.trim().toLowerCase().replace(/-/g, ' ');
+    const decoded = decodeURIComponent(id).trim();
+    const enTranslated = translateOrgUnitNameToEnglish(decoded);
+    const targetName = enTranslated || decoded;
+    const normalized = targetName.toLowerCase().replace(/-/g, ' ');
     const where: any = isUuid
       ? { id }
       : {
           OR: [
-            { name: { equals: id, mode: 'insensitive' as const } },
+            { name: { equals: decoded, mode: 'insensitive' as const } },
             { name: { equals: normalized, mode: 'insensitive' as const } },
             { name: { equals: `${normalized} union`, mode: 'insensitive' as const } },
             { name: { equals: normalized.replace(/\s*union\s*$/i, ''), mode: 'insensitive' as const } },
+            ...(enTranslated
+              ? [
+                  { name: { equals: enTranslated, mode: 'insensitive' as const } },
+                  { name: { equals: `${enTranslated} union`, mode: 'insensitive' as const } },
+                ]
+              : []),
           ],
         };
 
-    const union = await this.prisma.union.findFirst({
+    let union = await this.prisma.union.findFirst({
       where,
       include: {
         district: true,
@@ -154,6 +163,63 @@ export class UnionsService {
         },
       },
     });
+
+    if (!union && !isUuid) {
+      const allUnions = await this.prisma.union.findMany({
+        include: {
+          district: true,
+          kilais: {
+            include: {
+              booths: true,
+              _count: {
+                select: {
+                  cadres: true,
+                },
+              },
+            },
+            orderBy: { name: 'asc' },
+          },
+          _count: {
+            select: {
+              kilais: true,
+              cadres: true,
+              panchayats: true,
+            },
+          },
+          panchayats: {
+            include: {
+              villages: true,
+              _count: {
+                select: {
+                  villages: true,
+                  kilais: true,
+                  booths: true,
+                },
+              },
+            },
+            orderBy: [
+              { wardNumber: 'asc' },
+              { name: 'asc' },
+            ],
+          },
+        },
+      });
+
+      union =
+        allUnions.find((u) => {
+          const uSlug = u.name.toLowerCase().replace(/\s*union\s*$/i, '').trim().replace(/[\s\-_.]+/g, '-').replace(/[^a-z0-9\-]/g, '');
+          const targetSlug = targetName.toLowerCase().replace(/\s*union\s*$/i, '').trim().replace(/[\s\-_.]+/g, '-').replace(/[^a-z0-9\-]/g, '');
+          if (uSlug && targetSlug && uSlug === targetSlug) return true;
+          const trans = u.translations as any;
+          if (trans?.ta?.name && trans.ta.name.trim() === decoded) return true;
+          if (translateOrgUnitNameToTamil(u.name).trim() === decoded) return true;
+          return false;
+        }) || null;
+
+      if (!union && (decoded === '-' || !decoded || decoded === 'undefined')) {
+        union = allUnions[0] || null;
+      }
+    }
 
     if (!union) {
       return null;

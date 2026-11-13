@@ -10,6 +10,8 @@ import {
   getAreaBilingualNames,
   isAreaNameMatch,
   generateDynamicAreaBoundary,
+  translateAreaToEnglish,
+  createAreaSlug,
 } from '@/lib/area-translations';
 import { usePanchayat, useUpdatePanchayatGeo } from '@/hooks/use-panchayats';
 import { useBooths } from '@/hooks/use-booths';
@@ -43,9 +45,12 @@ export default function PanchayatDetailsPage() {
   const rawId = params?.id as string | undefined;
   const rawAreaParam = params?.area as string;
   const areaParam = decodeURIComponent(rawAreaParam || '');
+  const resolvedAreaParam = /[\u0B80-\u0BFF]/.test(areaParam)
+    ? translateAreaToEnglish(areaParam) || areaParam
+    : areaParam;
 
-  const { data: dbPanchayat, isLoading: isPanchayatLoading } = usePanchayat(areaParam);
-  const targetPanchayatId = dbPanchayat?.id || (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(areaParam) ? areaParam : undefined);
+  const { data: dbPanchayat, isLoading: isPanchayatLoading } = usePanchayat(resolvedAreaParam);
+  const targetPanchayatId = dbPanchayat?.id || (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(resolvedAreaParam) ? resolvedAreaParam : undefined);
   const { data: dedicatedBooths } = useBooths(targetPanchayatId ? { panchayatId: targetPanchayatId } : undefined);
   const updateGeoMutation = useUpdatePanchayatGeo();
   const { data: directUnion, isLoading: isUnionLoading } = useUnion(rawId || '');
@@ -55,25 +60,26 @@ export default function PanchayatDetailsPage() {
   const union = useMemo(() => {
     if (dbPanchayat?.union) return dbPanchayat.union;
     if (directUnion) return directUnion;
-    if (!allUnions || !areaParam) return null;
+    if (!allUnions || !resolvedAreaParam) return null;
     return (
       allUnions.find((u: any) =>
-        (u.areasCovered || []).some((a: string) => isAreaNameMatch(a, areaParam))
+        (u.areasCovered || []).some((a: string) => isAreaNameMatch(a, resolvedAreaParam) || isAreaNameMatch(a, areaParam))
       ) || null
     );
-  }, [dbPanchayat, directUnion, allUnions, areaParam]);
+  }, [dbPanchayat, directUnion, allUnions, resolvedAreaParam, areaParam]);
 
   const router = useRouter();
 
   // Canonicalize URL to Option 1 clean slug: /panchayats/[code]
   useEffect(() => {
     if (!dbPanchayat) return;
-    const cleanSlug = dbPanchayat.code || dbPanchayat.name?.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const cleanSlug = dbPanchayat.code || createAreaSlug(dbPanchayat.nameEn || dbPanchayat.englishName || dbPanchayat.name);
     if (!cleanSlug) return;
 
     const isCurrentUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(areaParam);
-    // If accessed via /unions/[id]/panchayats/[area] or with a UUID, replace with clean /panchayats/[code]
-    if (rawId || isCurrentUuid) {
+    const isTamil = /[\u0B80-\u0BFF]/.test(areaParam);
+    // If accessed via /unions/[id]/panchayats/[area], with a UUID, or with Tamil, replace with clean English /panchayats/[code]
+    if (rawId || isCurrentUuid || isTamil) {
       router.replace(`/panchayats/${cleanSlug}`);
     }
   }, [dbPanchayat, rawId, areaParam, router]);
@@ -304,8 +310,8 @@ export default function PanchayatDetailsPage() {
         });
       })();
 
-      const activePanchayatSlug = dbPanchayat?.code || areaParam;
-      const activeVillageSlug = village.code || village.id;
+      const activePanchayatSlug = dbPanchayat?.code || createAreaSlug(dbPanchayat?.nameEn || dbPanchayat?.englishName || dbPanchayat?.name) || resolvedAreaParam;
+      const activeVillageSlug = village.code || createAreaSlug(village.nameEn || village.englishName || village.name) || village.id;
       const villageDetailUrl = `/panchayats/${encodeURIComponent(activePanchayatSlug)}/villages/${encodeURIComponent(activeVillageSlug)}`;
 
       const displayName = locale === 'ta' && village.nameTa ? village.nameTa : village.name;

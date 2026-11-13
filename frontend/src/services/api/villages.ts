@@ -1,10 +1,14 @@
 import { fetchWithAuth } from './client';
 import { Panchayat } from './panchayats';
+import { translateAreaToEnglish } from '@/lib/area-translations';
 
 export interface Village {
   id: string;
   name: string;
   nameTa: string;
+  nameEn?: string;
+  englishName?: string;
+  slug?: string;
   code?: string;
   centerLat?: number;
   centerLng?: number;
@@ -43,7 +47,11 @@ export const villageApi = {
   },
 
   getById: async (id: string): Promise<Village> => {
-    const res = await fetchWithAuth(`/api/v1/villages/${id}`);
+    const decoded = decodeURIComponent(id);
+    const cleanId = /[\u0B80-\u0BFF]/.test(decoded)
+      ? translateAreaToEnglish(decoded) || decoded
+      : decoded;
+    const res = await fetchWithAuth(`/api/v1/villages/${encodeURIComponent(cleanId)}`);
     return res.json();
   },
 

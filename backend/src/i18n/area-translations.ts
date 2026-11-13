@@ -62,6 +62,8 @@ export const MASTER_AREAS_DATA: MasterAreaItem[] = [
   { english: 'Varadharajanpettai', tamil: 'வரதராஜன்பேட்டை' },
   { english: 'Nainarkuppam', tamil: 'நைனார்குப்பம்' },
   { english: 'Melaputhupettai', tamil: 'மேலபுதுப்பேட்டை' },
+  { english: 'Sethakuppam', tamil: 'சீதக்குப்பம்' },
+  { english: 'Seethakuppam', tamil: 'சீதக்குப்பம்' },
   { english: 'Ward', tamil: 'வார்டு' },
 ];
 
@@ -143,6 +145,9 @@ export const KNOWN_AREA_TRANSLATIONS_TA: Record<string, string> = {
   kumarappanayakkanpettai: 'குமரப்பநாயக்கன்பேட்டை',
   thotti: 'தொட்டி',
   otteri: 'ஓட்டேரி',
+  sethakuppam: 'சீதக்குப்பம்',
+  seethakuppam: 'சீதக்குப்பம்',
+  sothikuppam: 'சோதிக்குப்பம்',
 };
 
 // Add standard wards (1 to 30) to master areas list
@@ -254,6 +259,40 @@ export function translateAreaToTamil(area: string): string {
   }
 
   return area;
+}
+
+/**
+ * Translates a Tamil or normalized area name to its English canonical name.
+ */
+export function translateAreaToEnglish(area: string): string {
+  if (!area || typeof area !== 'string') return area;
+  const trimmed = area.trim();
+
+  // If already standard English (no Tamil script)
+  if (!/[\u0B80-\u0BFF]/.test(trimmed)) {
+    return trimmed;
+  }
+
+  const norm = normalizeAreaKey(trimmed);
+
+  // 1. Direct match in MASTER_AREAS_DATA
+  const match = MASTER_AREAS_DATA.find(
+    (item) => normalizeAreaKey(item.tamil) === norm || normalizeAreaKey(item.english) === norm,
+  );
+  if (match) return match.english;
+
+  // 2. Reverse match in KNOWN_AREA_TRANSLATIONS_TA
+  for (const [enKey, taVal] of Object.entries(KNOWN_AREA_TRANSLATIONS_TA)) {
+    if (normalizeAreaKey(taVal) === norm) {
+      return enKey.charAt(0).toUpperCase() + enKey.slice(1);
+    }
+  }
+
+  // 3. Ward match
+  const wardMatch = trimmed.match(/^(?:வார்டு|ward)[\s\-_.]*([0-9]+)$/i);
+  if (wardMatch) return `Ward ${wardMatch[1]}`;
+
+  return trimmed;
 }
 
 

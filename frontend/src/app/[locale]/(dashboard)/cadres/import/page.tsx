@@ -537,7 +537,7 @@ export default function ImportCadresPage() {
       await bulkCreateMutation.mutateAsync(finalPayload);
       if (importLevel === 'KILAI' && importKilaiId) {
         const kilaiObj = kilais.find((k: any) => String(k.id) === importKilaiId);
-        const slug = kilaiObj ? getKilaiSlug(kilaiObj.name) : importKilaiId;
+        const slug = kilaiObj ? getKilaiSlug(kilaiObj) : importKilaiId;
         router.push(`/kilais/${slug || importKilaiId}`);
       } else {
         router.push('/cadres');

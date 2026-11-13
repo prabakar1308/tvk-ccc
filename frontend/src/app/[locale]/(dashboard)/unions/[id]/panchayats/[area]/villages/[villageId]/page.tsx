@@ -27,7 +27,7 @@ import { Badge } from '@/components/ui/badge';
 import PanchayatMapDynamic from '@/components/maps/panchayat-map-dynamic';
 import MapCoordinatePickerModal from '@/components/maps/map-coordinate-picker-modal';
 import { getUnionSlug } from '@/lib/org-unit-translations';
-import { getAreaGeoData, generateDynamicAreaBoundary } from '@/lib/area-translations';
+import { getAreaGeoData, generateDynamicAreaBoundary, translateAreaToEnglish, createAreaSlug } from '@/lib/area-translations';
 import { KilaisSection } from '../../components/kilais-section';
 import { BoothsSection } from '../../components/booths-section';
 
@@ -40,8 +40,12 @@ export default function VillageDetailsPage() {
   const rawAreaParam = params?.area as string | undefined;
   const areaParam = decodeURIComponent(rawAreaParam || '');
   const villageId = params?.villageId as string;
+  const decodedVillageId = decodeURIComponent(villageId || '');
+  const resolvedVillageId = /[\u0B80-\u0BFF]/.test(decodedVillageId)
+    ? translateAreaToEnglish(decodedVillageId) || decodedVillageId
+    : villageId;
 
-  const { data: village, isLoading, error } = useVillage(villageId);
+  const { data: village, isLoading, error } = useVillage(resolvedVillageId);
   const updateVillage = useUpdateVillage();
   const [isPickerOpen, setIsPickerOpen] = useState(false);
 
@@ -57,18 +61,19 @@ export default function VillageDetailsPage() {
     }
   };
 
-  // Canonicalize URL: redirect UUIDs or nested union paths to clean /panchayats/[panchayatSlug]/villages/[villageSlug]
+  // Canonicalize URL: redirect UUIDs, Tamil slugs, or nested union paths to clean English /panchayats/[panchayatSlug]/villages/[villageSlug]
   React.useEffect(() => {
     if (!village) return;
-    const cleanVillageSlug = village.code || village.name?.toLowerCase().replace(/[^a-z0-9]/g, '');
-    const cleanPanchayatSlug = village.panchayat?.code || areaParam;
+    const cleanVillageSlug = village.code || createAreaSlug(village.nameEn || village.englishName || village.name);
+    const cleanPanchayatSlug = village.panchayat?.code || createAreaSlug(village.panchayat?.nameEn || village.panchayat?.englishName || village.panchayat?.name) || areaParam;
     if (!cleanVillageSlug) return;
 
     const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(villageId);
-    if (unionId || isUuid) {
+    const isTamil = /[\u0B80-\u0BFF]/.test(decodedVillageId) || /[\u0B80-\u0BFF]/.test(areaParam);
+    if (unionId || isUuid || isTamil) {
       router.replace(`/panchayats/${encodeURIComponent(cleanPanchayatSlug)}/villages/${cleanVillageSlug}`);
     }
-  }, [village, unionId, villageId, areaParam, router]);
+  }, [village, unionId, villageId, decodedVillageId, areaParam, router]);
 
   // Compute total voters across all booths of this village
   const voterStats = useMemo(() => {
@@ -151,7 +156,7 @@ export default function VillageDetailsPage() {
   }, [village, areaParam]);
 
   const effectiveUnion = village?.panchayat?.union;
-  const effectiveUnionSlug = getUnionSlug(effectiveUnion?.name) || (unionId && unionId !== 'all' ? unionId : effectiveUnion?.id);
+  const effectiveUnionSlug = getUnionSlug(effectiveUnion) || (unionId && unionId !== 'all' ? unionId : effectiveUnion?.id);
   const effectiveUnionName = effectiveUnion?.name || (locale === 'ta' ? 'ஒன்றியம்' : 'Union');
   const panchayatSlug = village?.panchayat?.code || areaParam;
   const panchayatBackUrl = `/panchayats/${encodeURIComponent(panchayatSlug)}`;

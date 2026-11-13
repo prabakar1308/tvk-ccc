@@ -64,6 +64,8 @@ export const MASTER_AREAS_DATA: MasterAreaItem[] = [
   { english: 'Varadharajanpettai', tamil: 'வரதராஜன்பேட்டை', center: [11.620, 79.525] },
   { english: 'Nainarkuppam', tamil: 'நைனார்குப்பம்', center: [11.630, 79.515] },
   { english: 'Melaputhupettai', tamil: 'மேலபுதுப்பேட்டை', center: [11.640, 79.505] },
+  { english: 'Sethakuppam', tamil: 'சீதக்குப்பம்', center: [11.6815, 79.7375] },
+  { english: 'Seethakuppam', tamil: 'சீதக்குப்பம்', center: [11.6815, 79.7375] },
 ];
 
 // Append Ward entries (Ward 1 to 50)
@@ -98,6 +100,10 @@ export const AREA_ALIASES: Record<string, string> = {
   sedapalayam: 'sedapalayam',
   sedappalayam: 'sedapalayam',
   kudikadu: 'kudikadu',
+  'சீதக்குப்பம்': 'sethakuppam',
+  sethakuppam: 'sethakuppam',
+  seethakuppam: 'sethakuppam',
+  sothikuppam: 'sethakuppam',
 };
 
 /**
@@ -444,7 +450,8 @@ export function isAreaNameMatch(areaA?: string, areaB?: string): boolean {
 /**
  * Creates a URL-safe slug for an area.
  */
-export function createAreaSlug(area: string): string {
+export function createAreaSlug(area?: string | null): string {
+  if (!area) return '';
   const en = translateAreaToEnglish(area);
-  return en.toLowerCase().replace(/[\s\-_]+/g, '-').replace(/[^a-z0-9\-]/g, '');
+  return en.toLowerCase().replace(/[\s\-_.]+/g, '-').replace(/[^a-z0-9\-]/g, '').replace(/-+/g, '-').replace(/^-|-$/g, '');
 }

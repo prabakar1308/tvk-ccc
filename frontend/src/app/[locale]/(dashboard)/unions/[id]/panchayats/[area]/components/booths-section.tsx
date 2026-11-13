@@ -15,6 +15,8 @@ import {
   ShieldCheck,
   Phone,
   Trophy,
+  Eye,
+  FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +29,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
+import { BlaPreviewDialog } from '@/app/[locale]/(dashboard)/booths/components/bla-preview-dialog';
 import { translatePersonNameToTamil } from '@/lib/name-translations';
 import { getKilaiSlug } from '@/lib/org-unit-translations';
 import { cn } from '@/lib/utils';
@@ -62,6 +65,18 @@ export function BoothsSection({
   const [viewMode, setViewMode] = useState<'table' | 'tile'>('table');
   const [expandedBoothIds, setExpandedBoothIds] = useState<Record<string, boolean>>({});
   const [callConfirmation, setCallConfirmation] = useState<{ name: string; phone: string } | null>(null);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+
+  const getAgentBlaUrl = (agent: any): string | null => {
+    return (
+      agent?.blaFormUrl ||
+      agent?.attachments?.blaForm ||
+      agent?.attachments?.blaFormUrl ||
+      agent?.attachments?.bla ||
+      agent?.attachments?.appointmentLetter ||
+      null
+    );
+  };
 
   const handleGoToBooths = () => {
     const params = new URLSearchParams();
@@ -356,7 +371,7 @@ export function BoothsSection({
                   const femalePct = totalCount > 0 ? Math.round((femaleCount / totalCount) * 100) : 0;
                   const thirdPct = totalCount > 0 && thirdCount > 0 ? Math.round((thirdCount / totalCount) * 100) : 0;
 
-                  const agentsList = booth.agents || [];
+                  const agentsList = (booth.agents && booth.agents.length > 0 ? booth.agents : booth.latestAgents) || [];
                   const agentsCount = agentsList.length > 0 ? agentsList.length : (booth._count?.agents || 0);
                   const recentElection =
                     booth.electionResults && booth.electionResults.length > 0
@@ -442,7 +457,7 @@ export function BoothsSection({
                                 {kilaisList.map((k, kIdx) => (
                                   <Link
                                     key={k.id || `${k.name}-${kIdx}`}
-                                    href={`/kilais/${getKilaiSlug(k.name) || k.id}`}
+                                    href={`/kilais/${getKilaiSlug(k) || k.id}`}
                                     onClick={(e) => e.stopPropagation()}
                                     className="inline-flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded-md text-[11px] font-medium transition-colors"
                                   >
@@ -465,6 +480,7 @@ export function BoothsSection({
                                   locale === 'ta'
                                     ? translatePersonNameToTamil(agent.name) || agent.name
                                     : agent.name;
+                                const blaUrl = getAgentBlaUrl(agent);
                                 return (
                                   <span
                                     key={agent.id || agent.name}
@@ -472,6 +488,19 @@ export function BoothsSection({
                                   >
                                     <Users className="w-2.5 h-2.5 shrink-0 text-blue-600 dark:text-blue-400" />
                                     <span className="truncate max-w-[110px]">{aName}</span>
+                                    {blaUrl && (
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setPreviewImageUrl(blaUrl);
+                                        }}
+                                        title={locale === 'ta' ? 'BLA படிவத்தைக் காண்க' : 'View BLA Form'}
+                                        className="hover:opacity-80 p-0.5 rounded cursor-pointer"
+                                      >
+                                        <FileText className="w-2.5 h-2.5 text-blue-700 dark:text-blue-300" />
+                                      </button>
+                                    )}
                                   </span>
                                 );
                               })}
@@ -600,7 +629,7 @@ export function BoothsSection({
                                         {kilaisList.map((k, kIdx) => (
                                           <Link
                                             key={k.id || `${k.name}-${kIdx}`}
-                                            href={`/kilais/${getKilaiSlug(k.name) || k.id}`}
+                                            href={`/kilais/${getKilaiSlug(k) || k.id}`}
                                             onClick={(e) => e.stopPropagation()}
                                             className="text-[11px] bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-2 py-0.5 rounded font-medium shrink-0 transition-colors"
                                           >
@@ -773,11 +802,29 @@ export function BoothsSection({
                                               <p className="font-bold text-xs text-gray-900 dark:text-white truncate">
                                                 {agentName}
                                               </p>
-                                              <p className="text-[10px] text-muted-foreground truncate">
-                                                {agent.designation ||
-                                                  agent.role ||
-                                                  (locale === 'ta' ? 'சாவடி முகவர்' : 'Booth Agent')}
-                                              </p>
+                                              <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                                                <span className="text-[10px] text-muted-foreground truncate">
+                                                  {agent.assignmentRole ||
+                                                    agent.designation ||
+                                                    agent.role ||
+                                                    (locale === 'ta' ? 'சாவடி முகவர்' : 'Booth Agent')}
+                                                </span>
+                                                {getAgentBlaUrl(agent) && (
+                                                  <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      setPreviewImageUrl(getAgentBlaUrl(agent));
+                                                    }}
+                                                    className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 transition-colors cursor-pointer"
+                                                    title={locale === 'ta' ? 'BLA படிவத்தைக் காண்க' : 'View BLA Form'}
+                                                  >
+                                                    <FileText className="w-2.5 h-2.5" />
+                                                    <span>BLA Form</span>
+                                                    <Eye className="w-2.5 h-2.5 opacity-70" />
+                                                  </button>
+                                                )}
+                                              </div>
                                             </div>
                                           </div>
 
@@ -1035,7 +1082,7 @@ export function BoothsSection({
             const maleCount = booth.maleCount || 0;
             const femaleCount = booth.femaleCount || 0;
             const thirdCount = booth.thirdGenderCount || 0;
-            const agentsList = booth.agents || [];
+            const agentsList = (booth.agents && booth.agents.length > 0 ? booth.agents : booth.latestAgents) || [];
             const agentsCount = agentsList.length > 0 ? agentsList.length : (booth._count?.agents || 0);
             const recentElection =
               booth.electionResults && booth.electionResults.length > 0
@@ -1070,7 +1117,7 @@ export function BoothsSection({
                           {kilaisList.map((k, kIdx) => (
                             <Link
                               key={k.id || `${k.name}-${kIdx}`}
-                              href={`/kilais/${getKilaiSlug(k.name) || k.id}`}
+                              href={`/kilais/${getKilaiSlug(k) || k.id}`}
                               onClick={(e) => e.stopPropagation()}
                               className="text-[10px] bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:hover:bg-emerald-900/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-1.5 py-0.5 rounded font-medium truncate max-w-[140px] transition-colors"
                               title={k.name}
@@ -1208,6 +1255,12 @@ export function BoothsSection({
       <CallConfirmationDialog
         person={callConfirmation}
         onOpenChange={(open) => !open && setCallConfirmation(null)}
+      />
+
+      {/* BLA Preview Dialog */}
+      <BlaPreviewDialog
+        imageUrl={previewImageUrl}
+        onClose={() => setPreviewImageUrl(null)}
       />
     </div>
   );

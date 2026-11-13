@@ -517,15 +517,42 @@ export class BoothsService {
         }
       }
 
-      // If no assignments for current election yet, fallback to legacy booth.agents
+      // If no assignments for current election yet, fallback to any assignments
+      if (latestAgents.length === 0 && b.agentAssignments && b.agentAssignments.length > 0) {
+        latestAgents = b.agentAssignments.map((a: any) => ({
+          ...a.cadre,
+          assignmentRole: a.role,
+          assignmentId: a.id,
+          blaFormUrl: a.blaFormUrl,
+          assignmentNotes: a.notes,
+        }));
+      }
+
+      // If no assignments at all, fallback to legacy booth.agents
       if (latestAgents.length === 0 && b.agents && b.agents.length > 0) {
         latestAgents = b.agents;
       }
+
+      const agentsMap = new Map<string, any>();
+      latestAgents.forEach((a: any) => {
+        if (a?.id) agentsMap.set(a.id, a);
+      });
+      (b.agents || []).forEach((a: any) => {
+        if (a?.id && !agentsMap.has(a.id)) {
+          agentsMap.set(a.id, a);
+        }
+      });
+      const allAgents = Array.from(agentsMap.values());
 
       return {
         ...b,
         latestElection: currentElection,
         latestAgents,
+        agents: allAgents,
+        _count: {
+          ...((b as any)._count || {}),
+          agents: allAgents.length,
+        },
       };
     });
 
@@ -595,14 +622,40 @@ export class BoothsService {
         }));
       }
     }
+    if (latestAgents.length === 0 && booth.agentAssignments && booth.agentAssignments.length > 0) {
+      latestAgents = booth.agentAssignments.map((a: any) => ({
+        ...a.cadre,
+        assignmentRole: a.role,
+        assignmentId: a.id,
+        blaFormUrl: a.blaFormUrl,
+        assignmentNotes: a.notes,
+      }));
+    }
+
     if (latestAgents.length === 0 && booth.agents && booth.agents.length > 0) {
       latestAgents = booth.agents;
     }
+
+    const agentsMap = new Map<string, any>();
+    latestAgents.forEach((a: any) => {
+      if (a?.id) agentsMap.set(a.id, a);
+    });
+    (booth.agents || []).forEach((a: any) => {
+      if (a?.id && !agentsMap.has(a.id)) {
+        agentsMap.set(a.id, a);
+      }
+    });
+    const allAgents = Array.from(agentsMap.values());
 
     return {
       ...booth,
       latestElection: currentElection,
       latestAgents,
+      agents: allAgents,
+      _count: {
+        ...((booth as any)._count || {}),
+        agents: allAgents.length,
+      },
     };
   }
 

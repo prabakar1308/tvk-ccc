@@ -223,7 +223,7 @@ export default function KilaisPage() {
       const match = unions.find(
         (u: any) =>
           String(u.id || (u as any)._id) === queryUnion ||
-          getUnionSlug(u.name) === queryUnion ||
+          getUnionSlug(u) === queryUnion ||
           u.name?.toLowerCase() === queryUnion.toLowerCase()
       );
       if (match) {
@@ -868,7 +868,7 @@ export default function KilaisPage() {
                       return (
                         <TableRow key={kilai.id} className="hover:bg-primary/5 transition-colors group border-b-primary/10">
                           <TableCell className="font-bold text-base py-4 text-foreground">
-                            <Link href={`/kilais/${getKilaiSlug(kilai.name) || kilai.id}`} className="flex items-center gap-2 hover:text-[#8F0A1B] transition-colors cursor-pointer">
+                            <Link href={`/kilais/${getKilaiSlug(kilai) || kilai.id}`} className="flex items-center gap-2 hover:text-[#8F0A1B] transition-colors cursor-pointer">
                               <Building2 className="h-4 w-4 text-[#8F0A1B]" />
                               {kilai.name} {kilai.tamilName && <span className="text-sm font-normal text-muted-foreground">({kilai.tamilName})</span>}
                             </Link>
@@ -926,7 +926,7 @@ export default function KilaisPage() {
                               <Button onClick={() => handleDelete(kilai.id)} variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10 rounded-full">
                                 <Trash2 className="h-4 w-4" />
                               </Button>
-                              <Button render={<Link href={`/kilais/${getKilaiSlug(kilai.name) || kilai.id}`} />} nativeButton={false} variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10 rounded-full">
+                              <Button render={<Link href={`/kilais/${getKilaiSlug(kilai) || kilai.id}`} />} nativeButton={false} variant="ghost" size="icon" className="h-8 w-8 text-primary hover:text-primary hover:bg-primary/10 rounded-full">
                                 <Eye className="h-4 w-4" />
                               </Button>
                             </div>
@@ -987,9 +987,9 @@ export default function KilaisPage() {
                         </Button>
                       </div>
 
-                      <Link href={`/kilais/${getKilaiSlug(kilai.name) || kilai.id}`} className="flex-1 flex flex-col cursor-pointer p-5 pb-4 md:pb-5">
+                      <Link href={`/kilais/${getKilaiSlug(kilai) || kilai.id}`} className="flex-1 flex flex-col cursor-pointer p-5 pb-4 md:pb-5">
                         {/* Header Section */}
-                        <div className="flex items-start gap-3 mb-3.5 pr-0 md:pr-18">
+                        <div className="flex items-center gap-3 mb-3.5 pr-0 md:pr-18">
                           <div className="w-11 h-11 rounded-xl shadow-xs shrink-0 flex items-center justify-center border bg-red-50 text-[#8F0A1B] border-red-100 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/40 transition-transform group-hover:scale-105 duration-300 mt-0.5">
                             <Building2 className="h-5 w-5" />
                           </div>
@@ -999,11 +999,11 @@ export default function KilaisPage() {
                               <h3 className="font-extrabold text-[16px] sm:text-[17px] text-zinc-900 dark:text-zinc-50 leading-tight group-hover:text-[#8F0A1B] dark:group-hover:text-red-400 transition-colors break-words">
                                 {kilai.name}
                               </h3>
-                              {kilai.tamilName && (
+                              {/* {kilai.tamilName && (
                                 <span className="text-xs font-normal text-muted-foreground">
                                   ({kilai.tamilName})
                                 </span>
-                              )}
+                              )} */}
                               <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold border shadow-2xs shrink-0 ${statusConfig.bg}`}>
                                 <span className={`w-1.5 h-1.5 rounded-full ${statusConfig.dot}`} />
                                 {statusConfig.label}

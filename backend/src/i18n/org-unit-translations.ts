@@ -154,3 +154,60 @@ export function translateOrgUnitNameToTamil(name: string): string {
 
   return name;
 }
+
+/**
+ * Translates an Organizational Unit / Union name from Tamil back to English.
+ */
+export function translateOrgUnitNameToEnglish(name: string): string {
+  if (!name || typeof name !== 'string') return name;
+
+  const trimmed = name.trim();
+
+  // If already standard English (no Tamil script), return as is
+  if (!/[\u0B80-\u0BFF]/.test(trimmed)) {
+    return trimmed;
+  }
+
+  const cleanTa = trimmed.replace(/\s+/g, ' ');
+
+  // 1. Exact match in reverse lookup
+  for (const [enKey, taVal] of Object.entries(KNOWN_ORG_UNIT_TRANSLATIONS_TA)) {
+    if (taVal === cleanTa || taVal.replace(/\s+/g, '') === cleanTa.replace(/\s+/g, '')) {
+      return enKey.split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    }
+  }
+
+  // 2. Deconstruct: [Place?] [Direction?] [UnitType?]
+  let working = cleanTa;
+  const enParts: string[] = [];
+
+  for (const [placeEn, placeTa] of Object.entries(PLACE_MAP_TA)) {
+    if (working.startsWith(placeTa)) {
+      enParts.push(placeEn.charAt(0).toUpperCase() + placeEn.slice(1));
+      working = working.slice(placeTa.length).trim();
+      break;
+    }
+  }
+
+  for (const [dirEn, dirTa] of Object.entries(DIRECTION_MAP_TA)) {
+    if (working.startsWith(dirTa)) {
+      enParts.push(dirEn.split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '));
+      working = working.slice(dirTa.length).trim();
+      break;
+    }
+  }
+
+  for (const [typeEn, typeTa] of Object.entries(UNIT_TYPE_MAP_TA)) {
+    if (working === typeTa || working.endsWith(typeTa)) {
+      enParts.push(typeEn.split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '));
+      working = working.replace(typeTa, '').trim();
+      break;
+    }
+  }
+
+  if (enParts.length > 0) {
+    return enParts.join(' ');
+  }
+
+  return trimmed;
+}
