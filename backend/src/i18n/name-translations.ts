@@ -898,6 +898,66 @@ export function translatePersonNameToTamil(name: string): string {
   return translateSingleWord(trimmed);
 }
 
+// Lazy-built reverse map from Tamil name to English canonical name
+let reverseNameMap: Map<string, string> | null = null;
+
+function getReverseNameMap(): Map<string, string> {
+  if (reverseNameMap) return reverseNameMap;
+  reverseNameMap = new Map();
+  for (const [enKey, taVal] of Object.entries(KNOWN_NAME_TRANSLATIONS_TA)) {
+    const norm = normalizeKey(taVal);
+    if (!reverseNameMap.has(norm)) {
+      const formatted = enKey.charAt(0).toUpperCase() + enKey.slice(1);
+      reverseNameMap.set(norm, formatted);
+    }
+  }
+  return reverseNameMap;
+}
+
+export function translatePersonNameToEnglish(name: string): string {
+  if (!name || typeof name !== 'string') return '';
+  const trimmed = name.trim();
+  if (!trimmed) return '';
+
+  if (!/[\u0B80-\u0BFF]/.test(trimmed)) {
+    return trimmed;
+  }
+
+  const map = getReverseNameMap();
+  const norm = normalizeKey(trimmed);
+  if (map.has(norm)) {
+    return map.get(norm)!;
+  }
+
+  // Handle initials: e.g. "எஸ். செந்தில்" -> "S. Senthil"
+  const initialMatch = trimmed.match(/^(([அ-ஹ]\.\s*)+)(.*)$/);
+  if (initialMatch) {
+    const rawInitials = initialMatch[1];
+    const restName = initialMatch[3].trim();
+    const parts = rawInitials.split('.').map((p) => p.trim()).filter(Boolean);
+    const enInitials = parts
+      .map((p) => {
+        for (const [enLetter, taInitial] of Object.entries(INITIALS_MAP_TA)) {
+          if (taInitial.startsWith(p)) return `${enLetter.toUpperCase()}.`;
+        }
+        return `${p}.`;
+      })
+      .join(' ');
+    const translatedRest = restName ? translatePersonNameToEnglish(restName) : '';
+    return `${enInitials} ${translatedRest}`.trim();
+  }
+
+  // If contains spaces
+  if (trimmed.includes(' ')) {
+    return trimmed
+      .split(/\s+/)
+      .map((part) => translatePersonNameToEnglish(part))
+      .join(' ');
+  }
+
+  return '';
+}
+
 export function translateRoleToTamil(role: string): string {
   if (!role || typeof role !== 'string') return role;
 

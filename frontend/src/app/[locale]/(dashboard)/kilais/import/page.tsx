@@ -58,9 +58,7 @@ export default function ImportKilaisPage() {
       "Kilai Name": "",
       "Booth No": "",
       "Village/Areas": "",
-      "Panchayat": "",
-      "Secretary Name": "",
-      "Contact": ""
+      "Panchayat": ""
     }]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Template');
@@ -357,8 +355,6 @@ export default function ImportKilaisPage() {
                         <TableHead className="min-w-[120px]">Booth No</TableHead>
                         <TableHead className="min-w-[150px]">Village/Areas</TableHead>
                         <TableHead className="min-w-[150px]">Panchayat</TableHead>
-                        <TableHead className="min-w-[150px]">Secretary</TableHead>
-                        <TableHead className="min-w-[120px]">Contact</TableHead>
                         <TableHead className="w-[100px]"></TableHead>
                       </TableRow>
                     </TableHeader>
@@ -369,8 +365,6 @@ export default function ImportKilaisPage() {
                           <TableCell>{row.linkedBooths}</TableCell>
                           <TableCell>{row.villages}</TableCell>
                           <TableCell>{row.panchayat}</TableCell>
-                          <TableCell>{row.secretaryName}</TableCell>
-                          <TableCell>{row.phone}</TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-2">
                               <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground" onClick={() => setEditingRow({ ...row, index })}>
@@ -478,14 +472,6 @@ export default function ImportKilaisPage() {
                   onChange={(val) => setEditingRow({...editingRow, panchayat: val.join(', ')})}
                   displayStyle="badges"
                 />
-              </div>
-              <div className="grid gap-2">
-                <Label>Secretary Name</Label>
-                <Input value={editingRow.secretaryName} onChange={(e) => setEditingRow({...editingRow, secretaryName: e.target.value})} />
-              </div>
-              <div className="grid gap-2">
-                <Label>Contact</Label>
-                <Input value={editingRow.phone} onChange={(e) => setEditingRow({...editingRow, phone: e.target.value})} />
               </div>
             </div>
           )}

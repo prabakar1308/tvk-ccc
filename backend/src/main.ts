@@ -1,9 +1,10 @@
 import { NestFactory } from '@nestjs/core';
 try {
   process.loadEnvFile();
-} catch {
-  // Ignore error if env file is not found
-}
+} catch {}
+try {
+  process.loadEnvFile('backend/.env');
+} catch {}
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { TranslationInterceptor } from './i18n/interceptors/translation.interceptor';

@@ -1,3 +1,5 @@
+import { transliterateTamilToEnglish } from './phonetic-transliteration';
+
 export interface MasterAreaItem {
   english: string;
   tamil: string;
@@ -64,6 +66,14 @@ export const MASTER_AREAS_DATA: MasterAreaItem[] = [
   { english: 'Melaputhupettai', tamil: 'மேலபுதுப்பேட்டை' },
   { english: 'Sethakuppam', tamil: 'சீதக்குப்பம்' },
   { english: 'Seethakuppam', tamil: 'சீதக்குப்பம்' },
+  { english: 'Periyakanganankuppam', tamil: 'பெரியகங்கணாங்குப்பம்' },
+  { english: 'Chinnakanganankuppam', tamil: 'சின்னக்கங்கணகுப்பம்' },
+  { english: 'Melpathi', tamil: 'மேல்பாதி' },
+  { english: 'Keezhpathi', tamil: 'கீழ்ப்பாதி' },
+  { english: 'Tholudur', tamil: 'தொழுதூர்' },
+  { english: 'Andimadam', tamil: 'ஆண்டிமடம்' },
+  { english: 'Virudhachalam', tamil: 'விருத்தாசலம்' },
+  { english: 'Pudupettai', tamil: 'புதுப்பேட்டை' },
   { english: 'Ward', tamil: 'வார்டு' },
 ];
 
@@ -85,6 +95,14 @@ export const KNOWN_AREA_TRANSLATIONS_TA: Record<string, string> = {
   cuddalore: 'கடலூர்',
   sembadankuppam: 'செம்படாங்குப்பம்',
   periyakanganankuppam: 'பெரியகங்கணாங்குப்பம்',
+  chinnakanganankuppam: 'சின்னக்கங்கணகுப்பம்',
+  melpathi: 'மேல்பாதி',
+  keezhpathi: 'கீழ்ப்பாதி',
+  keelpathi: 'கீழ்ப்பாதி',
+  tholudur: 'தொழுதூர்',
+  andimadam: 'ஆண்டிமடம்',
+  virudhachalam: 'விருத்தாசலம்',
+  pudupettai: 'புதுப்பேட்டை',
   nayakkankuppam: 'நாயக்கன்குப்பம்',
   periyakuppam: 'பெரியகுப்பம்',
   chinnakuppam: 'சின்னகுப்பம்',
@@ -291,6 +309,12 @@ export function translateAreaToEnglish(area: string): string {
   // 3. Ward match
   const wardMatch = trimmed.match(/^(?:வார்டு|ward)[\s\-_.]*([0-9]+)$/i);
   if (wardMatch) return `Ward ${wardMatch[1]}`;
+
+  // 4. Phonetic transliteration for Tamil Nadu place names/villages
+  const phonetic = transliterateTamilToEnglish(trimmed);
+  if (phonetic && phonetic !== trimmed) {
+    return phonetic;
+  }
 
   return trimmed;
 }

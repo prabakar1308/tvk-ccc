@@ -86,12 +86,52 @@ export class KilaisService {
       };
     }
 
-    if (createData.name && !createData.translations) {
-      createData.translations =
-        await this.i18nService.generateTranslationsForEntity({
-          name: createData.name,
-          description: createData.description,
-        });
+    const rawName = (createData.name || '').trim();
+    const isTaScript = /[\u0B80-\u0BFF]/.test(rawName);
+    let enName = isTaScript
+      ? translateAreaToEnglish(rawName) || rawName
+      : rawName;
+
+    // If enName still contains Tamil characters, translate with Google Cloud API
+    if (/[\u0B80-\u0BFF]/.test(enName)) {
+      const cloudEn = await this.i18nService.translate(enName, 'en', 'ta');
+      if (cloudEn && !/[\u0B80-\u0BFF]/.test(cloudEn)) {
+        enName = cloudEn;
+      }
+    }
+
+    let taName =
+      createData.tamilName ||
+      createData.nameTa ||
+      (createData.translations as any)?.ta?.name ||
+      (isTaScript ? rawName : translateAreaToTamil(rawName));
+
+    // If taName is still English, translate to Tamil with Google Cloud API
+    if (!/[\u0B80-\u0BFF]/.test(taName) && enName) {
+      const cloudTa = await this.i18nService.translate(enName, 'ta', 'en');
+      if (cloudTa && /[\u0B80-\u0BFF]/.test(cloudTa)) {
+        taName = cloudTa;
+      }
+    }
+
+    createData.name = enName;
+    delete createData.tamilName;
+    delete createData.nameTa;
+
+    if (!createData.translations) {
+      createData.translations = {
+        en: { name: enName, description: createData.description },
+        ta: { name: taName, description: createData.description },
+      };
+    } else {
+      createData.translations.en = {
+        name: enName,
+        ...(createData.translations.en || {}),
+      };
+      createData.translations.ta = {
+        name: taName,
+        ...(createData.translations.ta || {}),
+      };
     }
 
     return this.prisma.kilai.create({
@@ -444,6 +484,54 @@ export class KilaisService {
       updateData.villagesRel = {
         set: Array.from(resolvedUpdateVillageIds).map((villageId: string) => ({ id: villageId })),
       };
+    }
+
+    if (updateData.name) {
+      const rawUpdateName = (updateData.name || '').trim();
+      const isTaScriptUpdate = /[\u0B80-\u0BFF]/.test(rawUpdateName);
+      let enNameUpdate = isTaScriptUpdate
+        ? translateAreaToEnglish(rawUpdateName) || rawUpdateName
+        : rawUpdateName;
+
+      if (/[\u0B80-\u0BFF]/.test(enNameUpdate)) {
+        const cloudEn = await this.i18nService.translate(enNameUpdate, 'en', 'ta');
+        if (cloudEn && !/[\u0B80-\u0BFF]/.test(cloudEn)) {
+          enNameUpdate = cloudEn;
+        }
+      }
+
+      let taNameUpdate =
+        updateData.tamilName ||
+        updateData.nameTa ||
+        (updateData.translations as any)?.ta?.name ||
+        (isTaScriptUpdate ? rawUpdateName : translateAreaToTamil(rawUpdateName));
+
+      if (!/[\u0B80-\u0BFF]/.test(taNameUpdate) && enNameUpdate) {
+        const cloudTa = await this.i18nService.translate(enNameUpdate, 'ta', 'en');
+        if (cloudTa && /[\u0B80-\u0BFF]/.test(cloudTa)) {
+          taNameUpdate = cloudTa;
+        }
+      }
+
+      updateData.name = enNameUpdate;
+      delete updateData.tamilName;
+      delete updateData.nameTa;
+
+      if (!updateData.translations) {
+        updateData.translations = {
+          en: { name: enNameUpdate },
+          ta: { name: taNameUpdate },
+        };
+      } else {
+        updateData.translations.en = {
+          name: enNameUpdate,
+          ...(updateData.translations.en || {}),
+        };
+        updateData.translations.ta = {
+          name: taNameUpdate,
+          ...(updateData.translations.ta || {}),
+        };
+      }
     }
 
     const resolvedId = await this.resolveKilaiId(id);

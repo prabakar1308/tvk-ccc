@@ -1,3 +1,5 @@
+import { transliterateTamilToEnglish } from './phonetic-transliteration';
+
 export interface MasterAreaItem {
   english: string;
   tamil: string;
@@ -66,6 +68,14 @@ export const MASTER_AREAS_DATA: MasterAreaItem[] = [
   { english: 'Melaputhupettai', tamil: 'மேலபுதுப்பேட்டை', center: [11.640, 79.505] },
   { english: 'Sethakuppam', tamil: 'சீதக்குப்பம்', center: [11.6815, 79.7375] },
   { english: 'Seethakuppam', tamil: 'சீதக்குப்பம்', center: [11.6815, 79.7375] },
+  { english: 'Periyakanganankuppam', tamil: 'பெரியகங்கணாங்குப்பம்' },
+  { english: 'Chinnakanganankuppam', tamil: 'சின்னக்கங்கணகுப்பம்' },
+  { english: 'Melpathi', tamil: 'மேல்பாதி' },
+  { english: 'Keezhpathi', tamil: 'கீழ்ப்பாதி' },
+  { english: 'Tholudur', tamil: 'தொழுதூர்' },
+  { english: 'Andimadam', tamil: 'ஆண்டிமடம்' },
+  { english: 'Virudhachalam', tamil: 'விருத்தாசலம்' },
+  { english: 'Pudupettai', tamil: 'புதுப்பேட்டை' },
 ];
 
 // Append Ward entries (Ward 1 to 50)
@@ -402,6 +412,14 @@ export function translateAreaToEnglish(area: string): string {
   // Ward match (English or Tamil)
   const wardMatch = trimmed.match(/^(?:வார்டு|ward)[\s\-_.]*([0-9]+)$/i);
   if (wardMatch) return `Ward ${wardMatch[1]}`;
+
+  // Phonetic transliteration for Tamil script
+  if (/[\u0B80-\u0BFF]/.test(trimmed)) {
+    const transliterated = transliterateTamilToEnglish(trimmed);
+    if (transliterated && transliterated !== trimmed) {
+      return transliterated;
+    }
+  }
 
   // Capitalize words as fallback
   return trimmed.replace(/\b\w/g, (c) => c.toUpperCase());

@@ -17,6 +17,16 @@ export class CreateKilaiDto {
   @ApiPropertyOptional()
   @IsString()
   @IsOptional()
+  tamilName?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
+  nameTa?: string;
+
+  @ApiPropertyOptional()
+  @IsString()
+  @IsOptional()
   secretaryName?: string;
 
   @ApiPropertyOptional()

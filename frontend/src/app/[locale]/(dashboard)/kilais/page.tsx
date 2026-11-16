@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useUser } from '@/contexts/user-context';
 import {
@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Eye, Building2, Plus, Edit2, Trash2, Check, ChevronsUpDown, X, Download, Upload, PhoneCall, LayoutGrid, List, MapPin, Store, Users, Layers, ShieldCheck } from "lucide-react";
+import { Search, Eye, Building2, Plus, Edit2, Trash2, Check, ChevronsUpDown, X, Download, Upload, PhoneCall, LayoutGrid, List, MapPin, Store, Users, Layers, ShieldCheck, Sparkles, Loader2 } from "lucide-react";
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -47,6 +47,8 @@ import { CallConfirmationDialog } from '@/components/shared/call-confirmation-di
 import { VillageMultiSelect } from '@/components/shared/village-multi-select';
 import { getOrgUnitName, getUnionSlug, getKilaiSlug } from '@/lib/org-unit-translations';
 import { translatePersonNameToTamil } from '@/lib/name-translations';
+import { translateAreaToTamil, translateAreaToEnglish } from '@/lib/area-translations';
+import { i18nApi } from '@/services/api/i18n';
 import { KilaisFilters } from './components/kilais-filters';
 
 export function getKilaiCadreStatus(count: number, locale: string) {
@@ -365,9 +367,12 @@ export default function KilaisPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [callConfirmation, setCallConfirmation] = useState<{name: string, phone: string} | null>(null);
   const [isPanchayatOpen, setIsPanchayatOpen] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
+  const translationTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const initialFormData: CreateKilaiDto = {
     name: '',
+    tamilName: '',
     secretaryName: '',
     panchayat: '',
     panchayatId: '',
@@ -389,7 +394,40 @@ export default function KilaisPage() {
 
   const handleOpenCreate = () => {
     setEditingId(null);
-    setFormData(initialFormData);
+
+    // Auto-load Org Unit from active filter/search
+    let activeUnionId = '';
+    if (selectedUnion && selectedUnion !== 'all') {
+      const matchUnion = unions?.find(
+        (u: any) =>
+          String(u.id || (u as any)._id) === String(selectedUnion) ||
+          getUnionSlug(u) === selectedUnion ||
+          u.name?.toLowerCase() === selectedUnion.toLowerCase()
+      );
+      activeUnionId = matchUnion ? String(matchUnion.id || (matchUnion as any)._id) : String(selectedUnion);
+    }
+
+    // Auto-load Panchayat if selected in search and belongs to the selected Org Unit
+    let matchedPanchayatId = '';
+    let matchedPanchayatName = '';
+    if (selectedPanchayat && selectedPanchayat !== 'all') {
+      const pMatch = allPanchayats?.find(
+        (p: any) =>
+          String(p.id) === String(selectedPanchayat) &&
+          (!activeUnionId || String(p.unionId) === String(activeUnionId))
+      );
+      if (pMatch) {
+        matchedPanchayatId = String(pMatch.id);
+        matchedPanchayatName = pMatch.name;
+      }
+    }
+
+    setFormData({
+      ...initialFormData,
+      unionId: activeUnionId,
+      panchayatId: matchedPanchayatId,
+      panchayat: matchedPanchayatName,
+    });
     setIsPanchayatOpen(false);
     setIsModalOpen(true);
   };
@@ -397,8 +435,22 @@ export default function KilaisPage() {
   const handleOpenEdit = (kilai: any) => {
     setEditingId(kilai.id);
     setIsPanchayatOpen(false);
+    const taName =
+      kilai.nameTa ||
+      kilai.tamilName ||
+      (kilai.translations as any)?.ta?.name ||
+      translateAreaToTamil(kilai.name);
+    const enName =
+      kilai.nameEn ||
+      kilai.englishName ||
+      (kilai.translations as any)?.en?.name ||
+      (/[\u0B80-\u0BFF]/.test(kilai.name)
+        ? translateAreaToEnglish(kilai.name)
+        : kilai.name);
+
     setFormData({
-      name: kilai.name || '',
+      name: enName,
+      tamilName: taName,
       secretaryName: kilai.secretaryName || '',
       panchayat: kilai.panchayat || '',
       panchayatId: kilai.panchayatId || '',
@@ -419,19 +471,130 @@ export default function KilaisPage() {
     setIsModalOpen(true);
   };
 
+  // Auto-translation handlers with Google Cloud API integration
+  const handleNameChange = (val: string) => {
+    const isTa = /[\u0B80-\u0BFF]/.test(val);
+    if (isTa) {
+      // User pasted or typed Tamil into the primary Name field
+      const localEn = translateAreaToEnglish(val);
+      const hasLocalMatch = localEn && localEn !== val;
+
+      setFormData((prev) => ({
+        ...prev,
+        name: hasLocalMatch ? localEn : prev.name,
+        tamilName: val,
+      }));
+
+      // If local master data didn't have translation, transliterate via backend
+      if (!hasLocalMatch && val.trim().length >= 2) {
+        if (translationTimerRef.current) clearTimeout(translationTimerRef.current);
+        setIsTranslating(true);
+        translationTimerRef.current = setTimeout(async () => {
+          const cloudEn = await i18nApi.transliterate(val, 'en', 'ta');
+          if (cloudEn) {
+            setFormData((prev) => ({
+              ...prev,
+              name: cloudEn,
+            }));
+          }
+          setIsTranslating(false);
+        }, 350);
+      }
+    } else {
+      // User typed or pasted English
+      const localTa = translateAreaToTamil(val);
+      const hasLocalMatch = localTa && localTa !== val;
+
+      setFormData((prev) => ({
+        ...prev,
+        name: val,
+        tamilName: hasLocalMatch ? localTa : prev.tamilName || '',
+      }));
+
+      // If local master data didn't have translation, transliterate via Google Input Tools
+      if (!hasLocalMatch && val.trim().length >= 3) {
+        if (translationTimerRef.current) clearTimeout(translationTimerRef.current);
+        setIsTranslating(true);
+        translationTimerRef.current = setTimeout(async () => {
+          const cloudTa = await i18nApi.transliterate(val, 'ta', 'en');
+          if (cloudTa) {
+            setFormData((prev) => ({
+              ...prev,
+              tamilName: cloudTa,
+            }));
+          }
+          setIsTranslating(false);
+        }, 350);
+      }
+    }
+  };
+
+  const handleTamilNameChange = (val: string) => {
+    const isTa = /[\u0B80-\u0BFF]/.test(val);
+    const localEn = isTa ? translateAreaToEnglish(val) : '';
+    const hasLocalMatch = localEn && localEn !== val;
+
+    setFormData((prev) => {
+      const isEnglishDefault =
+        !prev.name ||
+        prev.name === translateAreaToEnglish(prev.tamilName || '') ||
+        /[\u0B80-\u0BFF]/.test(prev.name);
+      return {
+        ...prev,
+        name: hasLocalMatch && isEnglishDefault ? localEn : prev.name,
+        tamilName: val,
+      };
+    });
+
+    if (isTa && !hasLocalMatch && val.trim().length >= 2) {
+      if (translationTimerRef.current) clearTimeout(translationTimerRef.current);
+      setIsTranslating(true);
+      translationTimerRef.current = setTimeout(async () => {
+        const cloudEn = await i18nApi.transliterate(val, 'en', 'ta');
+        if (cloudEn) {
+          setFormData((prev) => ({
+            ...prev,
+            name: (!prev.name || /[\u0B80-\u0BFF]/.test(prev.name)) ? cloudEn : prev.name,
+          }));
+        }
+        setIsTranslating(false);
+      }, 350);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.unionId) {
       alert(t('selectUnionAlert'));
       return;
     }
+
+    const enName = /[\u0B80-\u0BFF]/.test(formData.name)
+      ? translateAreaToEnglish(formData.name) || formData.name
+      : formData.name;
+
+    const taName =
+      formData.tamilName?.trim() ||
+      translateAreaToTamil(enName) ||
+      formData.name;
+
+    const payload: any = {
+      ...formData,
+      name: enName,
+      tamilName: taName,
+      nameTa: taName,
+      translations: {
+        en: { name: enName },
+        ta: { name: taName },
+      },
+    };
     
     if (editingId) {
-      updateMutation.mutate({ id: editingId, data: formData }, {
+      updateMutation.mutate({ id: editingId, data: payload }, {
         onSuccess: () => setIsModalOpen(false)
       });
     } else {
-      createMutation.mutate(formData, {
+      createMutation.mutate(payload, {
         onSuccess: () => setIsModalOpen(false)
       });
     }
@@ -562,7 +725,20 @@ export default function KilaisPage() {
               <Upload className="mr-2 h-4 w-4" /> Import Kilai List
             </Link>
           </Button>
-          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <Dialog
+            open={isModalOpen}
+            onOpenChange={(open) => {
+              if (open) {
+                if (!editingId) {
+                  handleOpenCreate();
+                } else {
+                  setIsModalOpen(true);
+                }
+              } else {
+                setIsModalOpen(false);
+              }
+            }}
+          >
             <DialogTrigger 
               render={
                 <Button 
@@ -578,23 +754,61 @@ export default function KilaisPage() {
               <DialogTitle>{editingId ? t('editKilai') : t('addNew')}</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">{t('kilaiName')} *</Label>
-                <Input 
-                  id="name" 
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  required 
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="secretaryName">Secretary Name</Label>
-                <Input 
-                  id="secretaryName" 
-                  value={formData.secretaryName || ''}
-                  onChange={(e) => setFormData({...formData, secretaryName: e.target.value})}
-                />
-              </div>
+              {/* Bilingual Kilai Name Inputs */}
+              {/* <div className="grid grid-cols-1 sm:grid-cols-2 gap-3"> */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="name" className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <span>{locale === 'ta' ? 'கிளையின் பெயர் (ஆங்கிலம்) *' : 'Kilai Name (English) *'}</span>
+                    </Label>
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-semibold">
+                      EN
+                    </span>
+                  </div>
+                  <Input 
+                    id="name" 
+                    value={formData.name}
+                    onChange={(e) => handleNameChange(e.target.value)}
+                    placeholder="e.g. Sethakuppam"
+                    required 
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="tamilName" className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                      <span>{locale === 'ta' ? 'கிளையின் பெயர் (தமிழ்)' : 'Kilai Name (Tamil)'}</span>
+                      <Sparkles className="w-3 h-3 text-amber-500" />
+                    </Label>
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200 border border-amber-200 dark:border-amber-800 font-semibold">
+                      TA
+                    </span>
+                  </div>
+                  <Input 
+                    id="tamilName" 
+                    value={formData.tamilName || ''}
+                    onChange={(e) => handleTamilNameChange(e.target.value)}
+                    placeholder="எ.கா. சீதக்குப்பம்"
+                  />
+                </div>
+
+                {/* Auto-translation Status Indicator */}
+                <div className="col-span-1 sm:col-span-2 -mt-1 flex items-center justify-between text-[11px] text-muted-foreground px-0.5">
+                  <span className="flex items-center gap-1.5">
+                    {isTranslating ? (
+                      <>
+                        <Loader2 className="w-3 h-3 text-primary animate-spin" />
+                        <span className="text-primary font-semibold">{locale === 'ta' ? 'Google Cloud மொழிபெயர்க்கிறது...' : 'Translating via Google Cloud...'}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-3 h-3 text-amber-500" />
+                        <span>{locale === 'ta' ? 'தானியங்கி இருமொழி மொழிபெயர்ப்பு இயக்கத்தில் உள்ளது' : 'Auto bilingual translation active'}</span>
+                      </>
+                    )}
+                  </span>
+                </div>
+              {/* </div> */}
               {/* 1. Union Selection */}
               <div className="space-y-2">
                 <Label htmlFor="unionId">{t('union')} *</Label>
@@ -611,9 +825,10 @@ export default function KilaisPage() {
                 >
                   <SelectTrigger className="w-full">
                     <SelectValue placeholder={t('selectUnion')}>
-                      {formData.unionId 
-                        ? unions?.find((u: any) => String(u.id || u._id) === formData.unionId)?.name || t('selectUnion')
-                        : t('selectUnion')}
+                      {(() => {
+                        const matched = unions?.find((u: any) => String(u.id || u._id) === formData.unionId);
+                        return matched ? getOrgUnitName(matched, locale) : t('selectUnion');
+                      })()}
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
@@ -790,14 +1005,6 @@ export default function KilaisPage() {
                     <SelectItem value="PENDING">{t('pending')}</SelectItem>
                   </SelectContent>
                 </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone">{tForms('phone')}</Label>
-                <Input 
-                  id="phone" 
-                  value={formData.phone || ''}
-                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                />
               </div>
               <DialogFooter className="pt-4">
                 <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>{tCommon('cancel')}</Button>
