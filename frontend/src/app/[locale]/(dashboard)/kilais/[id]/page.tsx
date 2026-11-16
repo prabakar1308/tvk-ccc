@@ -10,6 +10,7 @@ import { Link, useRouter } from '@/i18n/routing';
 import { useState, useEffect } from 'react';
 import { CadreFormDialog } from '@/components/cadre-form-dialog';
 import { CadreViewDialog } from '@/components/cadre-view-dialog';
+import { CadreMoveSwapDialog } from '@/components/cadre-move-swap-dialog';
 import { Button } from '@/components/ui/button';
 import { useQueryClient } from '@tanstack/react-query';
 import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
@@ -49,6 +50,13 @@ export default function KilaiDetailsPage() {
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null);
   const [callConfirmation, setCallConfirmation] = useState<{name: string, phone: string} | null>(null);
   const [viewingCadre, setViewingCadre] = useState<any | null>(null);
+  const [isMoveSwapOpen, setIsMoveSwapOpen] = useState(false);
+  const [moveSwapCadre, setMoveSwapCadre] = useState<any | null>(null);
+
+  const handleOpenMoveSwap = (cadre?: any) => {
+    setMoveSwapCadre(cadre || null);
+    setIsMoveSwapOpen(true);
+  };
   const queryClient = useQueryClient();
   const deleteMutation = useDeleteCadre();
 
@@ -251,6 +259,7 @@ export default function KilaiDetailsPage() {
         onView={(c) => setViewingCadre(c)}
         onEdit={(e, c) => handleOpenEdit(e, c)}
         onDelete={(e, cadreId) => handleDelete(e, cadreId)}
+        onMoveSwap={(c) => handleOpenMoveSwap(c)}
         onCall={(person) => setCallConfirmation(person)}
       />
 
@@ -319,6 +328,17 @@ export default function KilaiDetailsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <CadreMoveSwapDialog
+        isOpen={isMoveSwapOpen}
+        onOpenChange={setIsMoveSwapOpen}
+        initialCadre={moveSwapCadre}
+        contextScope={{ level: 'KILAI', kilaiId: kilaiData?.id, unionId: kilaiData?.unionId }}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['kilais'] });
+          queryClient.invalidateQueries({ queryKey: ['cadres'] });
+        }}
+      />
     </div>
   );
 }

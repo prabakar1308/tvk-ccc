@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Phone, Edit2, Trash2, Award, Shield, UserCheck, MapPin, Sparkles } from 'lucide-react';
+import { Phone, Edit2, Trash2, Award, Shield, UserCheck, MapPin, Sparkles, ArrowLeftRight } from 'lucide-react';
 import { useLocale } from 'next-intl';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { Button } from '@/components/ui/button';
@@ -37,6 +37,7 @@ export interface CadreCardProps {
   onView?: (cadre: CadreCardData) => void;
   onEdit?: (e: React.MouseEvent, cadre: CadreCardData) => void;
   onDelete?: (e: React.MouseEvent, id: string) => void;
+  onMoveSwap?: (e: React.MouseEvent, cadre: CadreCardData) => void;
   onCall?: (person: { name: string; phone: string }, e: React.MouseEvent) => void;
 }
 
@@ -48,7 +49,27 @@ export function formatDesignation(rawRole?: string, locale: string = 'en'): stri
   if (!rawRole) return locale === 'ta' ? 'நிர்வாகி' : 'Administrator';
 
   // If already Tamil script
-  if (/[\u0B80-\u0BFF]/.test(rawRole)) return rawRole;
+  if (/[\u0B80-\u0BFF]/.test(rawRole)) {
+    if (locale === 'ta') return rawRole;
+    if (rawRole.includes('செயற்குழு')) return 'EC Member';
+    if (rawRole.includes('மாவட்ட செயலாளர்')) return 'District Secretary';
+    if (rawRole.includes('ஒன்றிய செயலாளர்')) return 'Union Secretary';
+    if (rawRole.includes('கிளை செயலாளர்')) return 'Kilai Secretary';
+    if (rawRole.includes('செயலாளர்')) return 'Secretary';
+    if (rawRole.includes('ஒன்றிய தலைவர்')) return 'Union President';
+    if (rawRole.includes('கிளை தலைவர்')) return 'Kilai President';
+    if (rawRole.includes('தலைவர்')) return 'President';
+    if (rawRole.includes('இணைச் செயலாளர்')) return 'Joint Secretary';
+    if (rawRole.includes('துணைச் செயலாளர்')) return 'Deputy Secretary';
+    if (rawRole.includes('பொருளாளர்')) return 'Treasurer';
+    if (rawRole.includes('துணைத் தலைவர்')) return 'Vice President';
+    if (rawRole.includes('ஒருங்கிணைப்பாளர்')) {
+      if (rawRole.includes('இணை')) return 'Co-Coordinator';
+      return 'Coordinator';
+    }
+    if (rawRole.includes('உறுப்பினர்')) return 'Member';
+    return rawRole;
+  }
 
   const upper = rawRole.toUpperCase().trim();
   if (locale === 'ta') {
@@ -58,7 +79,9 @@ export function formatDesignation(rawRole?: string, locale: string = 'en'): stri
       upper.includes('EXECUTIVE') ||
       upper === 'EC' ||
       upper === 'EC MEMBER' ||
-      upper === 'EC_MEMBER'
+      upper === 'EC_MEMBER' ||
+      upper.startsWith('EC ') ||
+      upper.endsWith(' EC')
     ) {
       return 'செயற்குழு உறுப்பினர்';
     }
@@ -83,19 +106,25 @@ export function formatDesignation(rawRole?: string, locale: string = 'en'): stri
       upper.includes('EXECUTIVE') ||
       upper === 'EC' ||
       upper === 'EC MEMBER' ||
-      upper === 'EC_MEMBER'
+      upper === 'EC_MEMBER' ||
+      upper.startsWith('EC ') ||
+      upper.endsWith(' EC')
     ) {
       return 'EC Member';
     }
     if (upper === 'DISTRICT_SECRETARY') return 'District Secretary';
     if (upper === 'UNION_SECRETARY') return 'Union Secretary';
     if (upper === 'KILAI_SECRETARY') return 'Kilai Secretary';
+    if (upper === 'SECRETARY') return 'Secretary';
     if (upper === 'UNION_PRESIDENT') return 'Union President';
     if (upper === 'KILAI_PRESIDENT') return 'Kilai President';
+    if (upper === 'PRESIDENT') return 'President';
     if (upper === 'JOINT_SECRETARY') return 'Joint Secretary';
     if (upper === 'DEPUTY_SECRETARY') return 'Deputy Secretary';
     if (upper === 'TREASURER') return 'Treasurer';
     if (upper === 'VICE_PRESIDENT') return 'Vice President';
+    if (upper === 'COORDINATOR') return 'Coordinator';
+    if (upper === 'CO_COORDINATOR' || upper === 'CO-COORDINATOR') return 'Co-Coordinator';
     if (upper === 'MEMBER') return 'Member';
   }
 
@@ -180,6 +209,7 @@ export const CadreCard: React.FC<CadreCardProps> = ({
   onView,
   onEdit,
   onDelete,
+  onMoveSwap,
   onCall,
 }) => {
   const locale = useLocale();
@@ -275,11 +305,11 @@ export const CadreCard: React.FC<CadreCardProps> = ({
             </span>
           )}
 
-          {showMemberId && cadre.memberId && (
+          {/* {showMemberId && cadre.memberId && (
             <span className="inline-flex items-center text-[10px] font-mono font-semibold text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-md border border-zinc-200/60 dark:border-zinc-700/60">
               {cadre.memberId}
             </span>
-          )}
+          )} */}
 
           {showLevelBadge && cadre.level && (
             <span className="inline-flex items-center text-[9px] font-extrabold uppercase tracking-wider text-primary/80 dark:text-primary/90 bg-primary/10 px-1.5 py-0.5 rounded">
@@ -288,9 +318,24 @@ export const CadreCard: React.FC<CadreCardProps> = ({
           )}
         </div>
 
-        {/* Action Buttons (Edit / Delete) */}
-        {(onEdit || onDelete) && (
+        {/* Action Buttons (Move/Swap / Edit / Delete) */}
+        {(onEdit || onDelete || onMoveSwap) && (
           <div className="flex items-center gap-1 transition-opacity duration-200 opacity-90 sm:opacity-0 sm:group-hover:opacity-100">
+            {onMoveSwap && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onMoveSwap(e, cadre);
+                }}
+                className="h-7 w-7 rounded-full text-zinc-500 hover:text-amber-600 hover:bg-amber-500/10 dark:hover:bg-amber-500/20 transition-colors"
+                title={locale === 'ta' ? 'பணி மாறுதல் / பதவி பரிமாற்றம்' : 'Move / Swap Role'}
+              >
+                <ArrowLeftRight className="w-3.5 h-3.5" />
+              </Button>
+            )}
             {onEdit && (
               <Button
                 variant="ghost"

@@ -32,6 +32,18 @@ export class CadreController {
     return this.cadreService.createBulk(payload);
   }
 
+  @Post('swap')
+  @ApiOperation({ summary: 'Swap assignments and roles between two cadres' })
+  swap(@Body() payload: { cadreAId: string; cadreBId: string; roleA?: string; roleB?: string; swapAssignments?: boolean }) {
+    return this.cadreService.swap(payload);
+  }
+
+  @Post(':id/move')
+  @ApiOperation({ summary: 'Move a cadre to a new assignment or role' })
+  move(@Param('id') id: string, @Body() payload: any) {
+    return this.cadreService.move(id, payload);
+  }
+
   @Get()
   @ApiOperation({ summary: 'Get cadres based on filters' })
   findAll(@Query() query: any) {

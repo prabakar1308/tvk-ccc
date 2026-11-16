@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { 
-  ArrowLeft, Users as UsersIcon, UserRound, Phone, PhoneCall,
+  ArrowLeft, Users as UsersIcon, UserRound, Phone, PhoneCall, ArrowLeftRight,
   Plus, LayoutGrid, TableProperties, Edit2, Trash2, Shield, ShieldCheck,
   MapPin, Award, UserPlus, Clock,
   Monitor, Scale, Radio, Mic, GraduationCap, Users, TreePine, 
@@ -18,6 +18,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow 
 } from '@/components/ui/table';
 import { CadreFormDialog } from '@/components/cadre-form-dialog';
+import { CadreMoveSwapDialog } from '@/components/cadre-move-swap-dialog';
 import { useQueryClient } from '@tanstack/react-query';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
@@ -81,6 +82,13 @@ export default function WingDetailsPage() {
   const [editingRole, setEditingRole] = useState<string>('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [callPerson, setCallPerson] = useState<{ name: string; phone: string } | null>(null);
+  const [isMoveSwapOpen, setIsMoveSwapOpen] = useState(false);
+  const [moveSwapCadre, setMoveSwapCadre] = useState<any | null>(null);
+
+  const handleOpenMoveSwap = (cadre?: any) => {
+    setMoveSwapCadre(cadre || null);
+    setIsMoveSwapOpen(true);
+  };
 
   const handleInitiateCall = (phone: string, name: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -488,7 +496,7 @@ export default function WingDetailsPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-blue-600 rounded-lg" onClick={() => handleEdit(member)}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-lg" onClick={() => handleOpenMoveSwap(member)} title="Move or Swap"><ArrowLeftRight className="w-3.5 h-3.5" /></Button><Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-blue-600 rounded-lg" onClick={() => handleEdit(member)}>
                           <Edit2 className="w-3.5 h-3.5" />
                         </Button>
                         <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-red-600 rounded-lg" onClick={() => handleDelete(member)}>
@@ -562,8 +570,18 @@ export default function WingDetailsPage() {
           </div>
         </div>
         
-        {/* View Mode Switcher */}
-        <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800 p-1.5 rounded-2xl border border-zinc-200/60 dark:border-zinc-700 self-end sm:self-auto">
+        {/* Action Controls & View Mode Switcher */}
+        <div className="flex items-center gap-2 self-end sm:self-auto">
+          <Button
+            variant="outline"
+            onClick={() => handleOpenMoveSwap()}
+            className="h-9 px-3 text-xs font-bold border-amber-300 dark:border-amber-700 bg-amber-50/70 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 hover:bg-amber-100 rounded-xl shadow-2xs"
+          >
+            <ArrowLeftRight className="w-3.5 h-3.5 mr-1.5 text-amber-600" />
+            Move / Swap
+          </Button>
+
+          <div className="flex items-center gap-1.5 bg-zinc-100 dark:bg-zinc-800 p-1.5 rounded-2xl border border-zinc-200/60 dark:border-zinc-700">
           <button 
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${viewMode === 'tile' ? 'bg-white dark:bg-zinc-900 shadow-xs text-[#8F0A1B]' : 'text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200'}`}
             onClick={() => setViewMode('tile')}
@@ -578,6 +596,7 @@ export default function WingDetailsPage() {
             <TableProperties className="w-4 h-4" />
             <span>Table</span>
           </button>
+          </div>
         </div>
       </div>
 
@@ -619,6 +638,17 @@ export default function WingDetailsPage() {
       <CallConfirmationDialog 
         person={callPerson}
         onOpenChange={(open) => !open && setCallPerson(null)}
+      />
+
+      <CadreMoveSwapDialog
+        isOpen={isMoveSwapOpen}
+        onOpenChange={setIsMoveSwapOpen}
+        initialCadre={moveSwapCadre}
+        contextScope={{ wingId, level: level.toUpperCase() as any }}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['wings'] });
+          queryClient.invalidateQueries({ queryKey: ['cadres'] });
+        }}
       />
     </div>
   );

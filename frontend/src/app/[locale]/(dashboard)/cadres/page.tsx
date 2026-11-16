@@ -34,7 +34,8 @@ import {
   Filter,
   Check,
   Award,
-  Printer
+  Printer,
+  ArrowLeftRight
 } from "lucide-react";
 import { Link } from '@/i18n/routing';
 import { useTranslations, useLocale } from 'next-intl';
@@ -56,9 +57,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { CadreFormDialog } from '@/components/cadre-form-dialog';
 import { CadreViewDialog } from '@/components/cadre-view-dialog';
+import { CadreMoveSwapDialog } from '@/components/cadre-move-swap-dialog';
 import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
 import { UserAvatar } from '@/components/ui/user-avatar';
-import { CadreCard } from '@/components/cadre-card';
+import { CadreCard, formatDesignation } from '@/components/cadre-card';
 import { cn } from '@/lib/utils';
 
 export default function CadresPage() {
@@ -123,6 +125,13 @@ export default function CadresPage() {
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null);
   const [viewingCadre, setViewingCadre] = useState<any | null>(null);
   const [callConfirmation, setCallConfirmation] = useState<{name: string, phone: string} | null>(null);
+  const [isMoveSwapOpen, setIsMoveSwapOpen] = useState(false);
+  const [moveSwapCadre, setMoveSwapCadre] = useState<any | null>(null);
+
+  const handleOpenMoveSwap = (cadre?: any) => {
+    setMoveSwapCadre(cadre || null);
+    setIsMoveSwapOpen(true);
+  };
 
   const handleOpenCreate = () => {
     setEditingId(null);
@@ -368,10 +377,7 @@ function matchesRoleFilter(rawRole: string | undefined | null, filterId: string)
   ]);
 
   const getRoleBadge = (role: string | undefined, level: string, isShort = false) => {
-    let displayRole = role || 'Administrator';
-    if (isShort && displayRole === 'Executive Committee Member') {
-      displayRole = 'EC Member';
-    }
+    let displayRole = formatDesignation(role, locale);
     
     if (level === 'DISTRICT') {
       return <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-[#8F0A1B] text-white border border-[#8F0A1B]/20 shadow-sm">{displayRole}</span>;
@@ -430,6 +436,15 @@ function matchesRoleFilter(rawRole: string | undefined | null, filterId: string)
               {tCommon('importExcel')}
             </Button>
           </Link>
+
+          <Button
+            onClick={() => handleOpenMoveSwap()}
+            variant="outline"
+            className="w-full sm:w-auto h-11 rounded-xl px-4 sm:px-5 font-bold border-amber-300 dark:border-amber-700 bg-amber-50/70 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 hover:bg-amber-100 shadow-2xs"
+          >
+            <ArrowLeftRight className="w-4 h-4 mr-2 text-amber-600" />
+            {locale === 'ta' ? 'பணி மாறுதல் / பதவி பரிமாற்றம்' : 'Move / Swap Roles'}
+          </Button>
 
           <Button
             onClick={handleOpenCreate}
@@ -877,6 +892,7 @@ function matchesRoleFilter(rawRole: string | undefined | null, filterId: string)
                 onView={(c) => handleOpenView(c)}
                 onEdit={(e, c) => handleOpenEdit(e, c)}
                 onDelete={(e, id) => handleDelete(e, id)}
+                onMoveSwap={(e, c) => handleOpenMoveSwap(c)}
                 onCall={(person) => setCallConfirmation(person)}
               />
             ))}
@@ -961,6 +977,18 @@ function matchesRoleFilter(rawRole: string | undefined | null, filterId: string)
                     <TableCell className="text-right py-3.5">
                       <div className="flex justify-end gap-1 transition-opacity">
                         <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenMoveSwap(cadre);
+                          }}
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-full"
+                          title={locale === 'ta' ? 'பணி மாறுதல் / பதவி பரிமாற்றம்' : 'Move / Swap Role'}
+                        >
+                          <ArrowLeftRight className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
                           onClick={(e) => handleOpenEdit(e, cadre)}
                           variant="ghost"
                           size="icon"
@@ -1003,6 +1031,13 @@ function matchesRoleFilter(rawRole: string | undefined | null, filterId: string)
         isOpen={!!viewingCadre}
         onOpenChange={(open) => !open && setViewingCadre(null)}
         cadre={viewingCadre}
+      />
+
+      {/* Cadre Move / Swap Dialog */}
+      <CadreMoveSwapDialog
+        isOpen={isMoveSwapOpen}
+        onOpenChange={setIsMoveSwapOpen}
+        initialCadre={moveSwapCadre}
       />
 
       {/* Call Confirmation Dialog */}

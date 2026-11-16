@@ -15,7 +15,8 @@ import {
   ShieldCheck, 
   UserCheck, 
   Users,
-  Building2
+  Building2,
+  ArrowLeftRight
 } from 'lucide-react';
 import { useLocale } from 'next-intl';
 import { Button } from '@/components/ui/button';
@@ -51,6 +52,7 @@ export interface CadreRosterTableProps {
   onView?: (cadre: any) => void;
   onEdit?: (e: React.MouseEvent, cadre: any) => void;
   onDelete?: (e: React.MouseEvent, id: string) => void;
+  onMoveSwap?: (cadre: any) => void;
   onCall?: (person: { name: string; phone: string }, e: React.MouseEvent) => void;
 }
 
@@ -71,6 +73,7 @@ export function CadreRosterTable({
   onView,
   onEdit,
   onDelete,
+  onMoveSwap,
   onCall,
 }: CadreRosterTableProps) {
   const locale = useLocale();
@@ -463,6 +466,20 @@ export function CadreRosterTable({
                               <Eye className="w-3.5 h-3.5" />
                             </Button>
                           )}
+                          {onMoveSwap && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onMoveSwap(cadre);
+                              }}
+                              className="h-8 w-8 text-zinc-500 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-lg"
+                              title={locale === 'ta' ? 'பணி மாறுதல் / பதவி பரிமாற்றம்' : 'Move / Swap Role'}
+                            >
+                              <ArrowLeftRight className="w-3.5 h-3.5" />
+                            </Button>
+                          )}
                           {onEdit && (
                             <Button
                               variant="ghost"
@@ -512,6 +529,7 @@ export function CadreRosterTable({
                 onView={(c) => onView && onView(c)}
                 onEdit={(e, c) => onEdit && onEdit(e, c)}
                 onDelete={(e, id) => onDelete && onDelete(e, id)}
+                onMoveSwap={(e, c) => onMoveSwap && onMoveSwap(c)}
                 onCall={(person, e) => onCall && onCall(person, e)}
               />
             );

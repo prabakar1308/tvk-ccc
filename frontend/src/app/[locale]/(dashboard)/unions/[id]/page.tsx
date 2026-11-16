@@ -10,6 +10,7 @@ import { useDeleteCadre } from '@/hooks/use-cadres';
 import { useState, useMemo, useEffect } from 'react';
 import { CadreFormDialog } from '@/components/cadre-form-dialog';
 import { CadreViewDialog } from '@/components/cadre-view-dialog';
+import { CadreMoveSwapDialog } from '@/components/cadre-move-swap-dialog';
 import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
 import { Button } from '@/components/ui/button';
 import { CadreCard } from '@/components/cadre-card';
@@ -79,6 +80,13 @@ export default function UnionDetailsPage() {
   const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(null);
   const [callConfirmation, setCallConfirmation] = useState<{name: string, phone: string} | null>(null);
   const [viewingCadre, setViewingCadre] = useState<any | null>(null);
+  const [isMoveSwapOpen, setIsMoveSwapOpen] = useState(false);
+  const [moveSwapCadre, setMoveSwapCadre] = useState<any | null>(null);
+
+  const handleOpenMoveSwap = (cadre?: any) => {
+    setMoveSwapCadre(cadre || null);
+    setIsMoveSwapOpen(true);
+  };
   const [areaSearch, setAreaSearch] = useState('');
   const [areaViewMode, setAreaViewMode] = useState<'cards' | 'chips'>('cards');
   const queryClient = useQueryClient();
@@ -685,6 +693,7 @@ export default function UnionDetailsPage() {
         onView={(c) => setViewingCadre(c)}
         onEdit={(e, c) => handleOpenEdit(e, c)}
         onDelete={(e, id) => handleDelete(e, id)}
+        onMoveSwap={(c) => handleOpenMoveSwap(c)}
         onCall={(person) => setCallConfirmation(person)}
       />
 
@@ -743,6 +752,17 @@ export default function UnionDetailsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <CadreMoveSwapDialog
+        isOpen={isMoveSwapOpen}
+        onOpenChange={setIsMoveSwapOpen}
+        initialCadre={moveSwapCadre}
+        contextScope={{ level: 'UNION', unionId: union?.id }}
+        onSuccess={() => {
+          queryClient.invalidateQueries({ queryKey: ['unions'] });
+          queryClient.invalidateQueries({ queryKey: ['cadres'] });
+        }}
+      />
     </div>
   );
 }

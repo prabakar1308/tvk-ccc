@@ -96,4 +96,34 @@ export const cadreApi = {
       method: 'DELETE',
     });
   },
+
+  move: async (id: string, data: any): Promise<Cadre> => {
+    const res = await fetchWithAuth(`/api/v1/cadres/${id}/move`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to move cadre');
+    }
+    return res.json();
+  },
+
+  swap: async (data: {
+    cadreAId: string;
+    cadreBId: string;
+    roleA?: string;
+    roleB?: string;
+    swapAssignments?: boolean;
+  }): Promise<{ message: string; cadreA: Cadre; cadreB: Cadre }> => {
+    const res = await fetchWithAuth('/api/v1/cadres/swap', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to swap cadres');
+    }
+    return res.json();
+  },
 };

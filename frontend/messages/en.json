@@ -396,7 +396,10 @@
   },
   "Wings": {
     "title": "Wings",
-    "description": "Manage different wings for district and org unit levels."
+    "description": "Manage different wings for district and org unit levels.",
+    "allWings": "All Wings",
+    "selectWing": "Select Wing",
+    "noWingsFound": "No wings found"
   },
   "Auth": {
     "title": "TVK Connect",

@@ -19,6 +19,7 @@ import { useLocale } from 'next-intl';
 import { FileText, X } from "lucide-react";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { translatePersonNameToTamil } from '@/lib/name-translations';
+import { formatDesignation } from '@/components/cadre-card';
 
 export interface CadreViewDialogProps {
   isOpen: boolean;
@@ -52,7 +53,7 @@ export function CadreViewDialog({
   const booth = booths.find((b: any) => b.boothNo === cadre.boothNo);
 
   const getRoleBadge = (role: string | undefined, level: string) => {
-    const displayRole = role || 'Administrator';
+    const displayRole = formatDesignation(role, locale);
     if (level === 'DISTRICT') {
       return <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold bg-[#8F0A1B] text-white border border-[#8F0A1B]/20 shadow-sm">{displayRole}</span>;
     }

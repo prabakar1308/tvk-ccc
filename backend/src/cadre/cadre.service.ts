@@ -424,9 +424,11 @@ export class CadreService {
         { phone: { contains: cleanSearch, mode: 'insensitive' } },
         { voterId: { contains: cleanSearch, mode: 'insensitive' } },
         { memberId: { contains: cleanSearch, mode: 'insensitive' } },
+        { role: { contains: cleanSearch, mode: 'insensitive' } },
         { homeKilai: { name: { contains: cleanSearch, mode: 'insensitive' } } },
         { union: { name: { contains: cleanSearch, mode: 'insensitive' } } },
         { district: { name: { contains: cleanSearch, mode: 'insensitive' } } },
+        { wing: { name: { contains: cleanSearch, mode: 'insensitive' } } },
       ];
       if (digitsOnly && digitsOnly !== cleanSearch) {
         searchOr.push({ phone: { contains: digitsOnly, mode: 'insensitive' } });
@@ -436,6 +438,16 @@ export class CadreService {
 
     if (isWing === 'true') {
       where.role = { in: ['COORDINATOR', 'CO_COORDINATOR'] };
+      if (wingId) where.wingId = wingId;
+    } else if (isWing === 'false') {
+      andConditions.push({
+        OR: [
+          { role: null },
+          { role: { notIn: ['COORDINATOR', 'CO_COORDINATOR'] } }
+        ],
+      });
+    } else if (isWing === 'all' || (search && search.trim())) {
+      // Allow all cadres (both general and wing administrators) when searching or when isWing='all'
       if (wingId) where.wingId = wingId;
     } else {
       andConditions.push({
@@ -456,7 +468,7 @@ export class CadreService {
       where,
       ...(limitNum && { take: limitNum }),
       include: {
-        wing: isWing === 'true',
+        wing: true,
         user: {
           include: {
             role: true,
@@ -519,6 +531,7 @@ export class CadreService {
         district: true,
         union: true,
         homeKilai: true,
+        wing: true,
         officeBearerRoles: true,
       },
     });
@@ -562,5 +575,278 @@ export class CadreService {
     if (!cadre) throw new NotFoundException('Cadre not found');
 
     return this.prisma.cadre.delete({ where: { id } });
+  }
+
+  async move(id: string, payload: any) {
+    const cadre = await this.prisma.cadre.findUnique({
+      where: { id },
+      include: { officeBearerRoles: true },
+    });
+    if (!cadre) throw new NotFoundException('Cadre not found');
+
+    const {
+      role,
+      level,
+      districtId,
+      districtGroup,
+      unionId,
+      homeKilaiId,
+      wingId,
+      panchayat,
+      village,
+      area,
+      boothNo,
+    } = payload;
+
+    // Validate wing limits if moving into or within a wing
+    if (wingId) {
+      await this.validateWingLimits(
+        {
+          wingId,
+          role: role !== undefined ? role : cadre.role,
+          level: level || cadre.level,
+          districtId: districtId !== undefined ? districtId : cadre.districtId,
+          unionId: unionId !== undefined ? unionId : cadre.unionId,
+        },
+        id
+      );
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Update cadre
+      const updatedCadre = await tx.cadre.update({
+        where: { id },
+        data: {
+          role: role !== undefined ? (role ? String(role).trim() : null) : cadre.role,
+          level: level || cadre.level,
+          districtId: districtId !== undefined ? (districtId ? String(districtId).trim() : null) : cadre.districtId,
+          districtGroup: districtGroup !== undefined ? districtGroup : cadre.districtGroup,
+          unionId: unionId !== undefined ? (unionId ? String(unionId).trim() : null) : cadre.unionId,
+          homeKilaiId: homeKilaiId !== undefined ? (homeKilaiId ? String(homeKilaiId).trim() : null) : cadre.homeKilaiId,
+          wingId: wingId !== undefined ? (wingId ? String(wingId).trim() : null) : cadre.wingId,
+          panchayat: panchayat !== undefined ? (panchayat ? String(panchayat).trim() : null) : cadre.panchayat,
+          village: village !== undefined ? (village ? String(village).trim() : null) : cadre.village,
+          area: area !== undefined ? (area ? String(area).trim() : null) : cadre.area,
+          boothNo: boothNo !== undefined ? (boothNo ? String(boothNo).trim() : null) : cadre.boothNo,
+        },
+        include: {
+          district: true,
+          union: true,
+          homeKilai: true,
+          wing: true,
+          officeBearerRoles: true,
+        },
+      });
+
+      // 2. If cadre had officeBearerRoles in Kilai, sync or cleanup
+      if (cadre.officeBearerRoles && cadre.officeBearerRoles.length > 0) {
+        for (const ob of cadre.officeBearerRoles) {
+          if (level && level !== 'KILAI') {
+            await tx.officeBearer.delete({ where: { id: ob.id } }).catch(() => null);
+          } else if (homeKilaiId && homeKilaiId !== ob.kilaiId) {
+            await tx.officeBearer.update({
+              where: { id: ob.id },
+              data: { kilaiId: homeKilaiId },
+            }).catch(() => null);
+          }
+        }
+      }
+
+      return updatedCadre;
+    });
+  }
+
+  async swap(payload: {
+    cadreAId: string;
+    cadreBId: string;
+    roleA?: string;
+    roleB?: string;
+    swapAssignments?: boolean;
+  }) {
+    const { cadreAId, cadreBId, roleA, roleB, swapAssignments = true } = payload;
+    if (!cadreAId || !cadreBId) {
+      throw new BadRequestException('Both cadreAId and cadreBId are required for a swap.');
+    }
+    if (cadreAId === cadreBId) {
+      throw new BadRequestException('Cannot swap a cadre with themselves.');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const cadreA = await tx.cadre.findUnique({
+        where: { id: cadreAId },
+        include: { officeBearerRoles: true },
+      });
+      const cadreB = await tx.cadre.findUnique({
+        where: { id: cadreBId },
+        include: { officeBearerRoles: true },
+      });
+
+      if (!cadreA) throw new NotFoundException(`Cadre with ID ${cadreAId} not found.`);
+      if (!cadreB) throw new NotFoundException(`Cadre with ID ${cadreBId} not found.`);
+
+      // Target roles: Cadre A gets Cadre B's role (or explicit roleA), Cadre B gets Cadre A's role (or explicit roleB)
+      const targetRoleA = roleA !== undefined ? (roleA ? String(roleA).trim() : null) : cadreB.role;
+      const targetRoleB = roleB !== undefined ? (roleB ? String(roleB).trim() : null) : cadreA.role;
+
+      // Target assignments
+      const targetAssignmentA = swapAssignments
+        ? {
+            level: cadreB.level,
+            districtId: cadreB.districtId,
+            districtGroup: cadreB.districtGroup,
+            unionId: cadreB.unionId,
+            homeKilaiId: cadreB.homeKilaiId,
+            wingId: cadreB.wingId,
+            panchayat: cadreB.panchayat,
+            village: cadreB.village,
+            area: cadreB.area,
+            boothNo: cadreB.boothNo,
+          }
+        : {
+            level: cadreA.level,
+            districtId: cadreA.districtId,
+            districtGroup: cadreA.districtGroup,
+            unionId: cadreA.unionId,
+            homeKilaiId: cadreA.homeKilaiId,
+            wingId: cadreA.wingId,
+            panchayat: cadreA.panchayat,
+            village: cadreA.village,
+            area: cadreA.area,
+            boothNo: cadreA.boothNo,
+          };
+
+      const targetAssignmentB = swapAssignments
+        ? {
+            level: cadreA.level,
+            districtId: cadreA.districtId,
+            districtGroup: cadreA.districtGroup,
+            unionId: cadreA.unionId,
+            homeKilaiId: cadreA.homeKilaiId,
+            wingId: cadreA.wingId,
+            panchayat: cadreA.panchayat,
+            village: cadreA.village,
+            area: cadreA.area,
+            boothNo: cadreA.boothNo,
+          }
+        : {
+            level: cadreB.level,
+            districtId: cadreB.districtId,
+            districtGroup: cadreB.districtGroup,
+            unionId: cadreB.unionId,
+            homeKilaiId: cadreB.homeKilaiId,
+            wingId: cadreB.wingId,
+            panchayat: cadreB.panchayat,
+            village: cadreB.village,
+            area: cadreB.area,
+            boothNo: cadreB.boothNo,
+          };
+
+      // Validate wing limits excluding both cadres
+      if (targetAssignmentA.wingId) {
+        await this.validateWingLimitsExcluding(
+          tx,
+          {
+            wingId: targetAssignmentA.wingId,
+            role: targetRoleA,
+            level: targetAssignmentA.level,
+            districtId: targetAssignmentA.districtId,
+            unionId: targetAssignmentA.unionId,
+          },
+          [cadreAId, cadreBId]
+        );
+      }
+
+      if (targetAssignmentB.wingId) {
+        await this.validateWingLimitsExcluding(
+          tx,
+          {
+            wingId: targetAssignmentB.wingId,
+            role: targetRoleB,
+            level: targetAssignmentB.level,
+            districtId: targetAssignmentB.districtId,
+            unionId: targetAssignmentB.unionId,
+          },
+          [cadreAId, cadreBId]
+        );
+      }
+
+      // Execute updates
+      const updatedA = await tx.cadre.update({
+        where: { id: cadreAId },
+        data: {
+          role: targetRoleA,
+          ...targetAssignmentA,
+        },
+        include: {
+          district: true,
+          union: true,
+          homeKilai: true,
+          wing: true,
+        },
+      });
+
+      const updatedB = await tx.cadre.update({
+        where: { id: cadreBId },
+        data: {
+          role: targetRoleB,
+          ...targetAssignmentB,
+        },
+        include: {
+          district: true,
+          union: true,
+          homeKilai: true,
+          wing: true,
+        },
+      });
+
+      // Handle officeBearer records if any
+      if (swapAssignments) {
+        for (const obA of cadreA.officeBearerRoles || []) {
+          await tx.officeBearer.update({
+            where: { id: obA.id },
+            data: { cadreId: cadreBId },
+          }).catch(() => null);
+        }
+        for (const obB of cadreB.officeBearerRoles || []) {
+          await tx.officeBearer.update({
+            where: { id: obB.id },
+            data: { cadreId: cadreAId },
+          }).catch(() => null);
+        }
+      }
+
+      return {
+        message: 'Cadres swapped successfully',
+        cadreA: updatedA,
+        cadreB: updatedB,
+      };
+    });
+  }
+
+  private async validateWingLimitsExcluding(
+    tx: any,
+    payload: any,
+    excludeIds: string[]
+  ) {
+    const { wingId, role, level, districtId, unionId } = payload;
+    if (!wingId || !role || !level) return;
+
+    const count = await tx.cadre.count({
+      where: {
+        wingId,
+        role,
+        level,
+        ...(level === 'DISTRICT' && districtId ? { districtId } : {}),
+        ...(level === 'UNION' && unionId ? { unionId } : {}),
+        id: { notIn: excludeIds },
+      },
+    });
+
+    if (role === 'COORDINATOR' && count >= 1) {
+      throw new BadRequestException('A Coordinator already exists for this wing at this level.');
+    }
+    if (role === 'CO_COORDINATOR' && count >= 10) {
+      throw new BadRequestException('Maximum of 10 Co-coordinators are allowed for this wing at this level.');
+    }
   }
 }

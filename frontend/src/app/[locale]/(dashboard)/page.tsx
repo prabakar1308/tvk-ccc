@@ -32,6 +32,7 @@ import { CadreViewDialog } from '@/components/cadre-view-dialog';
 import { translatePersonNameToTamil, translateRoleToTamil, isSecretaryRole } from '@/lib/name-translations';
 import { WingsCoordinatorsSection } from '@/components/dashboard/wings-coordinators-section';
 import { printCadreRosterPdf } from '@/lib/cadre-print';
+import { formatDesignation } from '@/components/cadre-card';
 
 export default function DashboardPage() {
   const t = useTranslations('Dashboard');
@@ -66,8 +67,10 @@ export default function DashboardPage() {
     });
   };
   
-  const secretary = districtCadres?.find(c => isSecretaryRole(c.rawRole || c.canonicalRole || c.role)) || districtCadres?.[0];
+  const isSecretary = (c: any) => isSecretaryRole(c?.rawRole || c?.canonicalRole || c?.role);
+  const secretary = districtCadres?.find(c => isSecretary(c)) || districtCadres?.[0];
   const otherCadres = districtCadres?.filter(c => c.id !== secretary?.id) || [];
+  const isHead = secretary && isSecretary(secretary);
 
   const [cadresCarouselApi, setCadresCarouselApi] = useState<CarouselApi>();
   const isCadresDraggingRef = useRef(false);
@@ -477,7 +480,7 @@ export default function DashboardPage() {
                   </span> */}
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-[#8F0A1B]/10 text-[#8F0A1B] border border-[#8F0A1B]/20 shadow-xs">
                     <ShieldCheck className="w-3.5 h-3.5 text-[#8F0A1B]" />
-                    {t('districtHead')}
+                    {isHead ? t('districtHead') : formatDesignation(secretary?.rawRole || secretary?.role, locale)}
                   </span>
                 </div>
 
@@ -567,7 +570,7 @@ export default function DashboardPage() {
                           <div className="w-full flex justify-center items-center mb-3">
                             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-[#8F0A1B]/10 text-[#8F0A1B] border border-[#8F0A1B]/20 shadow-xs">
                               <UserCheck className="w-3.5 h-3.5 text-[#8F0A1B]" />
-                              {locale === 'ta' && cadre.role ? translateRoleToTamil(cadre.role) : (cadre.role || t('roleCadre'))}
+                              {formatDesignation(cadre.rawRole || cadre.role, locale)}
                             </span>
                             {/* <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                               {t('districtHead')}

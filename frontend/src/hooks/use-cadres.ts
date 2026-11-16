@@ -66,3 +66,42 @@ export function useDeleteCadre() {
     },
   });
 }
+
+export function useMoveCadre() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => cadreApi.move(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['cadres'] });
+      queryClient.invalidateQueries({ queryKey: ['cadre', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['unions'] });
+      queryClient.invalidateQueries({ queryKey: ['kilais'] });
+      queryClient.invalidateQueries({ queryKey: ['wings'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+    },
+  });
+}
+
+export function useSwapCadres() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: {
+      cadreAId: string;
+      cadreBId: string;
+      roleA?: string;
+      roleB?: string;
+      swapAssignments?: boolean;
+    }) => cadreApi.swap(data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['cadres'] });
+      queryClient.invalidateQueries({ queryKey: ['cadre', variables.cadreAId] });
+      queryClient.invalidateQueries({ queryKey: ['cadre', variables.cadreBId] });
+      queryClient.invalidateQueries({ queryKey: ['unions'] });
+      queryClient.invalidateQueries({ queryKey: ['kilais'] });
+      queryClient.invalidateQueries({ queryKey: ['wings'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardStats'] });
+    },
+  });
+}

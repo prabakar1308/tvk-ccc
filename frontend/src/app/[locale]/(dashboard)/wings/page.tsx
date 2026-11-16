@@ -15,7 +15,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Plus, Edit2, Users as UsersIcon, Building2, MapPin, Phone, ShieldCheck, Clock, ChevronRight } from 'lucide-react';
+import { Search, Plus, Edit2, Users as UsersIcon, Building2, MapPin, Phone, ShieldCheck, Clock, ChevronRight, Layers, X, Filter } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useDistricts } from '@/hooks/use-districts';
 import { useUnions } from '@/hooks/use-unions';
 import { useRouter } from '@/i18n/routing';
@@ -77,6 +78,7 @@ export default function WingsPage() {
   
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'priority' | 'order' | 'name'>('priority');
+  const [selectedWingId, setSelectedWingId] = useState<string>('all');
   const [activeLevel, setActiveLevel, isMounted1] = useSessionStorage('wings_level', 'district');
   const [selectedDistrictId, setSelectedDistrictId, isMounted2] = useSessionStorage<string>('wings_district', '');
   const [selectedUnionId, setSelectedUnionId, isMounted3] = useSessionStorage<string>('wings_union', '');
@@ -111,8 +113,13 @@ export default function WingsPage() {
   }, [activeLevel, unions, selectedUnionId]);
 
   const filteredWings = wingsData.filter((wing: any) => {
-    const searchLower = searchQuery.toLowerCase();
-    const matchesWingName = wing.name.toLowerCase().includes(searchLower);
+    if (selectedWingId !== 'all' && wing.id !== selectedWingId) {
+      return false;
+    }
+    const searchLower = searchQuery.toLowerCase().trim();
+    if (!searchLower) return true;
+    const matchesWingName = wing.name?.toLowerCase().includes(searchLower) ||
+      (wing.translations?.ta?.name && wing.translations.ta.name.toLowerCase().includes(searchLower));
     const matchesCadreName = wing.cadres?.some((cadre: any) => 
       cadre.name?.toLowerCase().includes(searchLower)
     );
@@ -144,7 +151,7 @@ export default function WingsPage() {
   return (
     <div className="space-y-6">
       {/* Header section */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-xl md:text-2xl lg:text-3xl font-heading font-bold uppercase tracking-wide text-primary">
             {t('title', { fallback: 'Wings Management' })}
@@ -153,80 +160,227 @@ export default function WingsPage() {
             {t('description', { fallback: 'Manage different wings for district and org unit levels.' })}
           </p>
         </div>
+
+        {/* Level Toggle Switcher */}
+        <div className="inline-flex bg-zinc-100/90 dark:bg-zinc-800/80 p-1.5 rounded-2xl border border-zinc-200/70 dark:border-zinc-700/60 shadow-inner shrink-0 w-full md:w-auto">
+          <button 
+            type="button"
+            className={cn(
+              "flex-1 md:flex-initial px-4 sm:px-5 py-2.5 text-xs sm:text-sm font-extrabold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer",
+              activeLevel === 'district' 
+                ? "bg-gradient-to-r from-[#8F0A1B] to-[#B81930] text-white shadow-md shadow-[#8F0A1B]/20 scale-[1.01]" 
+                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-white/60 dark:hover:bg-zinc-700/60"
+            )}
+            onClick={() => setActiveLevel('district')}
+          >
+            <Shield className="w-3.5 h-3.5" />
+            <span>{locale === 'ta' ? 'மாவட்ட நிலை' : 'District Level'}</span>
+          </button>
+          <button 
+            type="button"
+            className={cn(
+              "flex-1 md:flex-initial px-4 sm:px-5 py-2.5 text-xs sm:text-sm font-extrabold rounded-xl transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer",
+              activeLevel === 'union' 
+                ? "bg-gradient-to-r from-[#8F0A1B] to-[#B81930] text-white shadow-md shadow-[#8F0A1B]/20 scale-[1.01]" 
+                : "text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200 hover:bg-white/60 dark:hover:bg-zinc-700/60"
+            )}
+            onClick={() => setActiveLevel('union')}
+          >
+            <Building2 className="w-3.5 h-3.5" />
+            <span>{locale === 'ta' ? 'ஒன்றிய நிலை' : 'Org Unit Level'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Action Bar */}
-      <div className="flex flex-col lg:flex-row gap-4 items-center justify-between bg-card p-4 rounded-xl shadow-sm border border-primary/10">
-        <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1.5 rounded-full w-full sm:w-[320px] shadow-inner shrink-0">
-          <button 
-            className={`flex-1 py-2 text-sm font-semibold rounded-full transition-all duration-200 ${activeLevel === 'district' ? 'bg-white dark:bg-zinc-900 shadow-md text-[#8F0A1B] dark:text-red-400' : 'text-zinc-500 hover:text-zinc-800 dark:text-zinc-400'}`}
-            onClick={() => setActiveLevel('district')}
-          >
-            District Level
-          </button>
-          <button 
-            className={`flex-1 py-2 text-sm font-semibold rounded-full transition-all duration-200 ${activeLevel === 'union' ? 'bg-white dark:bg-zinc-900 shadow-md text-[#8F0A1B] dark:text-red-400' : 'text-zinc-500 hover:text-zinc-800 dark:text-zinc-400'}`}
-            onClick={() => setActiveLevel('union')}
-          >
-            Org Unit Level
-          </button>
+      <div className="relative overflow-hidden bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md p-4 sm:p-5 rounded-2xl sm:rounded-3xl border border-zinc-200/80 dark:border-zinc-800 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.06)] flex flex-col xl:flex-row xl:items-center gap-3.5 transition-all">
+        {/* Subtle Top Accent Glow Line */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#8F0A1B] via-[#FFC72C] to-[#8F0A1B] opacity-50 pointer-events-none" />
+
+        {/* Search Bar with Clear Icon */}
+        <div className="relative w-full xl:flex-1 shrink-0">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4 pointer-events-none" />
+          <Input 
+            placeholder={tCommon('search', { fallback: 'Search wings...' })}
+            className="pl-10 pr-9 bg-zinc-50 dark:bg-zinc-800/70 hover:bg-zinc-100/90 dark:hover:bg-zinc-800 border-zinc-200/90 dark:border-zinc-700/80 rounded-xl h-11 text-xs sm:text-sm font-medium focus-visible:ring-2 focus-visible:ring-[#8F0A1B]/20 focus-visible:border-[#8F0A1B] shadow-2xs transition-all w-full"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-zinc-200/80 dark:bg-zinc-700 hover:bg-[#8F0A1B] hover:text-white text-zinc-600 dark:text-zinc-300 flex items-center justify-center transition-colors cursor-pointer"
+              title="Clear search"
+            >
+              <X className="w-3 h-3" />
+            </button>
+          )}
         </div>
 
-        <div className="flex flex-col sm:flex-row items-center w-full lg:w-auto gap-3 flex-1 justify-end">
-          <div className="w-full sm:w-[220px]">
-            {activeLevel === 'district' ? (
-              <Select value={selectedDistrictId} onValueChange={(val) => val && setSelectedDistrictId(val)}>
-                <SelectTrigger className="w-full bg-zinc-50 dark:bg-zinc-900 border-primary/20 rounded-md h-11">
-                  <MapPin className="w-4 h-4 mr-2 text-primary" />
-                  <span className="flex-1 text-left truncate">{districts.find((d: any) => d.id === selectedDistrictId)?.name || "Select District"}</span>
-                </SelectTrigger>
-                <SelectContent>
-                  {districts.map((d: any) => (
-                    <SelectItem key={d.id} value={d.id}>
-                      {d.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <Select value={selectedUnionId} onValueChange={(val) => val && setSelectedUnionId(val)}>
-                <SelectTrigger className="w-full bg-zinc-50 dark:bg-zinc-900 border-primary/20 rounded-md h-11">
-                  <Building2 className="w-4 h-4 mr-2 text-primary" />
-                  <span className="flex-1 text-left truncate">{unions.find((u: any) => u.id === selectedUnionId)?.name || "Select Org Unit"}</span>
-                </SelectTrigger>
-                <SelectContent>
-                  {unions.map((u: any) => (
-                    <SelectItem key={u.id} value={u.id}>
-                      {u.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-
-          <div className="w-full sm:w-[170px]">
-            <Select value={sortBy} onValueChange={(val: any) => setSortBy(val)}>
-              <SelectTrigger className="w-full bg-zinc-50 dark:bg-zinc-900 border-primary/20 rounded-md h-11">
-                <SelectValue placeholder="Sort By" />
+        {/* Org Unit Selector (Shown on Org Unit Level) */}
+        {activeLevel === 'union' && (
+          <div className="w-full xl:w-[240px] 2xl:w-[260px] shrink-0">
+            <Select value={selectedUnionId} onValueChange={(val) => val && setSelectedUnionId(val)}>
+              <SelectTrigger className="w-full bg-zinc-50 dark:bg-zinc-800/70 hover:bg-zinc-100/90 dark:hover:bg-zinc-800 border-zinc-200/90 dark:border-zinc-700/80 rounded-xl h-11 text-xs sm:text-sm font-semibold transition-all shadow-2xs hover:border-[#8F0A1B]/40 focus:ring-2 focus:ring-[#8F0A1B]/20 cursor-pointer">
+                <div className="flex items-center gap-2 truncate">
+                  <Building2 className="w-4 h-4 text-[#8F0A1B] shrink-0" />
+                  <span className="flex-1 text-left truncate">
+                    {unions.find((u: any) => u.id === selectedUnionId)?.name || (locale === 'ta' ? 'ஒன்றியத்தைத் தேர்ந்தெடுக்கவும்' : 'Select Org Unit')}
+                  </span>
+                </div>
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="priority">Priority (High-Low)</SelectItem>
-                <SelectItem value="order">Default (Order)</SelectItem>
-                <SelectItem value="name">Name (A-Z)</SelectItem>
+              <SelectContent className="max-h-72 w-[var(--radix-select-trigger-width)] min-w-[240px]">
+                {unions.map((u: any) => (
+                  <SelectItem key={u.id} value={u.id} className="cursor-pointer">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                      <span>{u.name}</span>
+                    </div>
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
+        )}
 
-          <div className="relative w-full sm:w-[260px] md:w-[320px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
-            <Input 
-              placeholder={tCommon('search', { fallback: 'Search wings...' })}
-              className="pl-9 bg-zinc-50 dark:bg-zinc-900 border-primary/20 focus:bg-background rounded-md h-11"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
+        {/* District Selector (If multiple districts exist) */}
+        {activeLevel === 'district' && districts.length > 1 && (
+          <div className="w-full xl:w-[210px] 2xl:w-[230px] shrink-0">
+            <Select value={selectedDistrictId} onValueChange={(val) => val && setSelectedDistrictId(val)}>
+              <SelectTrigger className="w-full bg-zinc-50 dark:bg-zinc-800/70 hover:bg-zinc-100/90 dark:hover:bg-zinc-800 border-zinc-200/90 dark:border-zinc-700/80 rounded-xl h-11 text-xs sm:text-sm font-semibold transition-all shadow-2xs hover:border-[#8F0A1B]/40 focus:ring-2 focus:ring-[#8F0A1B]/20 cursor-pointer">
+                <div className="flex items-center gap-2 truncate">
+                  <MapPin className="w-4 h-4 text-[#8F0A1B] shrink-0" />
+                  <span className="flex-1 text-left truncate">
+                    {districts.find((d: any) => d.id === selectedDistrictId)?.name || (locale === 'ta' ? 'மாவட்டத்தைத் தேர்ந்தெடுக்கவும்' : 'Select District')}
+                  </span>
+                </div>
+              </SelectTrigger>
+              <SelectContent className="max-h-72 w-[var(--radix-select-trigger-width)] min-w-[210px]">
+                {districts.map((d: any) => (
+                  <SelectItem key={d.id} value={d.id} className="cursor-pointer">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-3.5 h-3.5 text-zinc-400 shrink-0" />
+                      <span>{d.name}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
+        )}
+
+        {/* Wings Filter Dropdown (Sized up to 360px/400px on desktop to match full length of longest wing names) */}
+        <div className="relative w-full xl:w-[360px] 2xl:w-[400px] shrink-0">
+          <Select value={selectedWingId} onValueChange={(val) => val && setSelectedWingId(val)}>
+            <SelectTrigger 
+              className={cn(
+                "w-full bg-zinc-50 dark:bg-zinc-800/70 hover:bg-zinc-100/90 dark:hover:bg-zinc-800 border rounded-xl h-11 text-xs sm:text-sm font-semibold transition-all shadow-2xs focus:ring-2 focus:ring-[#8F0A1B]/20 cursor-pointer",
+                selectedWingId !== 'all' 
+                  ? "border-[#8F0A1B]/50 bg-[#8F0A1B]/[0.04] text-[#8F0A1B] dark:text-red-400 font-bold pr-8" 
+                  : "border-zinc-200/90 dark:border-zinc-700/80 text-zinc-800 dark:text-zinc-200 hover:border-[#8F0A1B]/40"
+              )}
+            >
+              <div className="flex items-center gap-2 truncate">
+                {selectedWingId === 'all' ? (
+                  <>
+                    <Layers className="w-4 h-4 text-[#8F0A1B] shrink-0" />
+                    <span className="flex-1 text-left truncate font-medium">
+                      {t('allWings', { fallback: 'All Wings' })}
+                    </span>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-zinc-200/70 dark:bg-zinc-700 text-zinc-600 dark:text-zinc-300 ml-auto mr-1">
+                      {wingsData.length}
+                    </span>
+                  </>
+                ) : (
+                  (() => {
+                    const currentWing = wingsData.find((w: any) => w.id === selectedWingId);
+                    const CurrentIcon = currentWing ? (iconMap[currentWing.iconName] || Shield) : Shield;
+                    const currentName = currentWing
+                      ? (locale === 'ta' && currentWing.translations?.ta?.name ? currentWing.translations.ta.name : currentWing.name)
+                      : t('selectWing', { fallback: 'Select Wing' });
+                    return (
+                      <>
+                        <CurrentIcon className="w-4 h-4 text-[#8F0A1B] shrink-0" />
+                        <span className="flex-1 text-left truncate font-bold text-zinc-900 dark:text-zinc-100">
+                          {currentName}
+                        </span>
+                      </>
+                    );
+                  })()
+                )}
+              </div>
+            </SelectTrigger>
+            <SelectContent className="max-h-80 w-[var(--radix-select-trigger-width)] min-w-[320px] max-w-[460px]">
+              <SelectItem value="all" className="cursor-pointer font-bold border-b border-zinc-100 dark:border-zinc-800 pb-2 mb-1">
+                <div className="flex items-center justify-between w-full gap-2">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-[#8F0A1B] shrink-0" />
+                    <span>{t('allWings', { fallback: 'All Wings' })}</span>
+                  </div>
+                  <span className="text-[10px] font-semibold text-muted-foreground bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 rounded">
+                    {wingsData.length}
+                  </span>
+                </div>
+              </SelectItem>
+              {[...wingsData]
+                .sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
+                .map((w: any) => {
+                  const WingIcon = iconMap[w.iconName] || Shield;
+                  const wingTitle = locale === 'ta' && w.translations?.ta?.name ? w.translations.ta.name : w.name;
+                  return (
+                    <SelectItem key={w.id} value={w.id} className="cursor-pointer py-2">
+                      <div className="flex items-center gap-2.5">
+                        <WingIcon className="w-4 h-4 text-[#8F0A1B] shrink-0" />
+                        <span className="truncate">{wingTitle}</span>
+                      </div>
+                    </SelectItem>
+                  );
+                })}
+            </SelectContent>
+          </Select>
+
+          {/* Quick Clear Button when wing is filtered */}
+          {selectedWingId !== 'all' && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedWingId('all');
+              }}
+              className="absolute right-8 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-zinc-200 dark:bg-zinc-700 hover:bg-[#8F0A1B] hover:text-white text-zinc-600 dark:text-zinc-300 flex items-center justify-center transition-colors cursor-pointer z-10"
+              title={locale === 'ta' ? 'அனைத்து அணிகளையும் காட்டுக' : 'Reset to All Wings'}
+            >
+              <X className="w-3 h-3" />
+            </button>
+          )}
+        </div>
+
+        {/* Wings Count Pill Badge (Inline on > 1280px) */}
+        {/* <div className="hidden xl:flex items-center gap-2 text-xs font-semibold text-muted-foreground shrink-0">
+          <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-bold border border-zinc-200/70 dark:border-zinc-700/60 shadow-2xs h-11">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#8F0A1B]" />
+            <span>{filteredWings.length} {filteredWings.length === 1 ? (locale === 'ta' ? 'அணி' : 'Wing') : (locale === 'ta' ? 'அணிகள்' : 'Wings')}</span>
+          </span>
+        </div> */}
+
+        {/* Mobile/Tablet Count & Reset Row (< 1280px) */}
+        <div className="flex xl:hidden items-center justify-between text-xs text-muted-foreground px-1 pt-1 border-t border-zinc-100 dark:border-zinc-800/80">
+          <span className="font-semibold text-zinc-600 dark:text-zinc-400">
+            {locale === 'ta' ? 'காட்டப்படும் அணிகள்:' : 'Showing Wings:'} <strong className="text-foreground">{filteredWings.length}</strong>
+          </span>
+          {(selectedWingId !== 'all' || searchQuery) && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedWingId('all');
+                setSearchQuery('');
+              }}
+              className="text-[#8F0A1B] dark:text-red-400 hover:underline font-bold text-xs cursor-pointer"
+            >
+              {locale === 'ta' ? 'வடிகட்டிகளை மீட்டமை' : 'Reset Filters'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -407,12 +561,29 @@ export default function WingsPage() {
       )}
 
       {filteredWings.length === 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center shadow-sm">
-          <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-100 dark:border-zinc-800 p-12 text-center shadow-sm">
+          <div className="w-16 h-16 bg-gray-50 dark:bg-zinc-800 rounded-full flex items-center justify-center mx-auto mb-4">
             <Search className="w-8 h-8 text-gray-400" />
           </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-1">No wings found</h3>
-          <p className="text-gray-500">Try adjusting your search query.</p>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-zinc-100 mb-1">
+            {t('noWingsFound', { fallback: 'No wings found' })}
+          </h3>
+          <p className="text-gray-500 text-sm">
+            {selectedWingId !== 'all' 
+              ? (locale === 'ta' ? 'தேர்ந்தெடுக்கப்பட்ட அணிக்கு முடிவுகள் இல்லை.' : 'No results matching the selected wing filter.') 
+              : (locale === 'ta' ? 'உங்கள் தேடலை மாற்றியமைக்கவும்.' : 'Try adjusting your search query.')}
+          </p>
+          {selectedWingId !== 'all' && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setSelectedWingId('all')}
+              className="mt-4 rounded-xl text-xs font-semibold border-primary/20 text-primary hover:bg-primary/5 cursor-pointer"
+            >
+              <Layers className="w-3.5 h-3.5 mr-1.5" />
+              {t('allWings', { fallback: 'All Wings' })}
+            </Button>
+          )}
         </div>
       )}
 
