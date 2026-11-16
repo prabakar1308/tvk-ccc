@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Upload, FileText, X, Camera, AlertCircle, Check, ChevronsUpDown } from "lucide-react";
+import { Upload, FileText, X, Camera, AlertCircle, Check, ChevronsUpDown, Trash2, CreditCard } from "lucide-react";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { cn } from "@/lib/utils";
 import { CreateCadreDto } from '@/services/api/cadres';
@@ -40,7 +40,11 @@ export interface CadreFormData {
   aadhaarNumber?: string | null;
   voterId?: string | null;
   photoUrl?: string | null;
-  attachments?: { aadhaarPhoto?: string; voterIdPhoto?: string };
+  attachments?: { 
+    aadhaarPhoto?: string; 
+    voterIdPhoto?: string; 
+    membershipCard?: string;
+  };
   panchayat?: string | null;
   village?: string | null;
   dateOfBirth?: string | null;
@@ -105,8 +109,9 @@ export function CadreFormDialog({
     unionId: defaultUnionId,
     homeKilaiId: defaultKilaiId,
     aadhaarNumber: '',
+    voterId: '',
     photoUrl: '',
-    attachments: { aadhaarPhoto: '', voterIdPhoto: '' },
+    attachments: { aadhaarPhoto: '', voterIdPhoto: '', membershipCard: '' },
     panchayat: defaultPanchayat || defaultArea || '',
     village: defaultVillage || '',
     dateOfBirth: '',
@@ -186,6 +191,7 @@ export function CadreFormDialog({
     photo?: File;
     aadhaarPhoto?: File;
     voterIdPhoto?: File;
+    membershipCard?: File;
   }>({});
   const [isUploading, setIsUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -211,7 +217,7 @@ export function CadreFormDialog({
             aadhaarNumber: cadre.aadhaarNumber || '',
             voterId: cadre.voterId || '',
             photoUrl: cadre.photoUrl || '',
-            attachments: cadre.attachments || { aadhaarPhoto: '', voterIdPhoto: '' },
+            attachments: cadre.attachments || { aadhaarPhoto: '', voterIdPhoto: '', membershipCard: '' },
             panchayat: cadre.panchayat || cadre.area || '',
             village: cadre.village || '',
             dateOfBirth: cadre.dateOfBirth || cadre.dob || '',
@@ -235,6 +241,8 @@ export function CadreFormDialog({
           area: defaultArea || '',
           wingId: defaultWingId,
           role: defaultRole || '',
+          voterId: '',
+          attachments: { aadhaarPhoto: '', voterIdPhoto: '', membershipCard: '' },
         } as any);
       }
       setPendingFiles({});
@@ -301,10 +309,16 @@ export function CadreFormDialog({
       let photoUrl = formData.photoUrl;
       let aadhaarPhoto = formData.attachments?.aadhaarPhoto;
       let voterIdPhoto = formData.attachments?.voterIdPhoto;
+      let membershipCard = formData.attachments?.membershipCard;
 
       if (pendingFiles.photo) {
         const res = await uploadApi.uploadFile(pendingFiles.photo);
         photoUrl = res.url;
+        newlyUploadedUrls.push(res.url);
+      }
+      if (pendingFiles.membershipCard) {
+        const res = await uploadApi.uploadFile(pendingFiles.membershipCard);
+        membershipCard = res.url;
         newlyUploadedUrls.push(res.url);
       }
       if (pendingFiles.aadhaarPhoto) {
@@ -319,13 +333,13 @@ export function CadreFormDialog({
       }
 
       const cleanMemberId = trimmedMemberId;
-      const cleanVoterId = formData.voterId?.trim() || (!cleanMemberId.startsWith('TVK-') ? cleanMemberId : undefined);
+      const cleanVoterId = cleanMemberId;
 
       const finalData: any = {
         ...formData,
         name: trimmedName,
         memberId: cleanMemberId,
-        voterId: cleanVoterId || undefined,
+        voterId: cleanVoterId,
         phone: trimmedPhone || undefined,
         aadhaarNumber: trimmedAadhaar || undefined,
         photoUrl: photoUrl || undefined,
@@ -341,6 +355,7 @@ export function CadreFormDialog({
         attachments: {
           aadhaarPhoto: aadhaarPhoto || undefined,
           voterIdPhoto: voterIdPhoto || undefined,
+          membershipCard: membershipCard || undefined,
         }
       };
 
@@ -353,6 +368,9 @@ export function CadreFormDialog({
 
         if (pendingFiles.photo && originalCadre?.photoUrl) {
           uploadApi.deleteFile(originalCadre.photoUrl).catch(console.error);
+        }
+        if (pendingFiles.membershipCard && originalCadre?.attachments?.membershipCard) {
+          uploadApi.deleteFile(originalCadre.attachments.membershipCard).catch(console.error);
         }
         if (pendingFiles.aadhaarPhoto && originalCadre?.attachments?.aadhaarPhoto) {
           uploadApi.deleteFile(originalCadre.attachments.aadhaarPhoto).catch(console.error);
@@ -420,17 +438,9 @@ export function CadreFormDialog({
               <Label htmlFor="name">Name *</Label>
               <Input 
                 id="name" 
+                placeholder="Full Name"
                 value={formData.name}
                 onChange={(e) => setFormData({...formData, name: e.target.value})}
-                required 
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="memberId">Member ID / Voter ID *</Label>
-              <Input 
-                id="memberId" 
-                value={formData.memberId}
-                onChange={(e) => setFormData({...formData, memberId: e.target.value})}
                 required 
               />
             </div>
@@ -438,8 +448,30 @@ export function CadreFormDialog({
               <Label htmlFor="phone">Phone No *</Label>
               <Input 
                 id="phone" 
+                placeholder="Mobile number"
                 value={formData.phone || ''}
                 onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                required
+              />
+              <p className="text-[10.5px] text-muted-foreground">Same number can be used for multiple cadres</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="memberId">Member ID / Voter ID *</Label>
+              <Input 
+                id="memberId" 
+                placeholder="e.g. ZZG-1234567"
+                value={formData.memberId}
+                onChange={(e) => setFormData({...formData, memberId: e.target.value, voterId: e.target.value})}
+                required 
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="aadhaar">Aadhaar No *</Label>
+              <Input 
+                id="aadhaar" 
+                placeholder="12-digit Aadhaar number"
+                value={formData.aadhaarNumber || ''}
+                onChange={(e) => setFormData({...formData, aadhaarNumber: e.target.value})}
                 required
               />
             </div>
@@ -579,15 +611,7 @@ export function CadreFormDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="aadhaar">Aadhaar No *</Label>
-              <Input 
-                id="aadhaar" 
-                value={formData.aadhaarNumber || ''}
-                onChange={(e) => setFormData({...formData, aadhaarNumber: e.target.value})}
-                required
-              />
-            </div>
+
             <div className="space-y-2">
               <Label htmlFor="dateOfBirth">
                 Date of Birth <span className="text-muted-foreground text-xs font-normal">(Optional)</span>
@@ -856,9 +880,9 @@ export function CadreFormDialog({
           <div className="pt-4 border-t space-y-5">
             <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Photo & Verification Documents</h3>
 
-            {/* Prominent Profile Avatar Uploader */}
+            {/* Prominent Profile Avatar Uploader with Camera & Gallery Access */}
             <div className="p-4 rounded-2xl bg-gradient-to-br from-primary/5 via-zinc-50 to-primary/10 dark:from-primary/10 dark:via-zinc-900 dark:to-primary/5 border border-primary/15 shadow-sm flex flex-col sm:flex-row items-center gap-5">
-              <label htmlFor="photo" className="relative group cursor-pointer shrink-0">
+              <div className="relative group shrink-0">
                 <UserAvatar
                   src={formData.photoUrl}
                   name={formData.name || 'Admin'}
@@ -866,10 +890,6 @@ export function CadreFormDialog({
                   ring="primary"
                   elevation="glow"
                 />
-                <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white backdrop-blur-[1px] cursor-pointer">
-                  <Camera className="w-6 h-6 mb-1" />
-                  <span className="text-[10px] font-bold">Change</span>
-                </div>
                 {formData.photoUrl && (
                   <button 
                     type="button"
@@ -878,8 +898,10 @@ export function CadreFormDialog({
                       e.stopPropagation();
                       setPendingFiles(prev => ({...prev, photo: undefined}));
                       setFormData(prev => ({...prev, photoUrl: ''}));
-                      const el = document.getElementById('photo') as HTMLInputElement;
-                      if (el) el.value = '';
+                      const elCam = document.getElementById('photo-camera') as HTMLInputElement;
+                      if (elCam) elCam.value = '';
+                      const elGal = document.getElementById('photo-gallery') as HTMLInputElement;
+                      if (elGal) elGal.value = '';
                     }}
                     className="absolute -top-1 -right-1 bg-red-600 hover:bg-red-700 text-white p-1.5 rounded-full shadow-md transition-colors z-20"
                     title="Remove Photo"
@@ -887,57 +909,209 @@ export function CadreFormDialog({
                     <X className="w-3.5 h-3.5" />
                   </button>
                 )}
-                <input 
-                  id="photo" 
-                  type="file" 
-                  accept="image/*"
-                  className="hidden" 
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      setPendingFiles({...pendingFiles, photo: file});
-                      setFormData({...formData, photoUrl: URL.createObjectURL(file)});
-                    }
-                  }}
-                />
-              </label>
+              </div>
 
-              <div className="flex-1 text-center sm:text-left space-y-1.5">
-                <Label htmlFor="photo" className="text-base font-bold text-gray-900 dark:text-zinc-100 cursor-pointer hover:text-primary transition-colors flex items-center justify-center sm:justify-start gap-2">
-                  <Camera className="w-4 h-4 text-primary" /> Administrator Profile Photo
-                </Label>
+              {/* Hidden Inputs for Camera (Mobile capture) and Gallery */}
+              <input 
+                id="photo-camera" 
+                type="file" 
+                accept="image/*"
+                capture="environment"
+                className="hidden" 
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setPendingFiles(prev => ({...prev, photo: file}));
+                    setFormData(prev => ({...prev, photoUrl: URL.createObjectURL(file)}));
+                  }
+                  e.target.value = '';
+                }}
+              />
+              <input 
+                id="photo-gallery" 
+                type="file" 
+                accept="image/*"
+                className="hidden" 
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    setPendingFiles(prev => ({...prev, photo: file}));
+                    setFormData(prev => ({...prev, photoUrl: URL.createObjectURL(file)}));
+                  }
+                  e.target.value = '';
+                }}
+              />
+
+              <div className="flex-1 text-center sm:text-left space-y-2">
+                <div className="flex items-center justify-center sm:justify-start gap-2">
+                  <Camera className="w-4 h-4 text-primary" />
+                  <span className="text-base font-bold text-gray-900 dark:text-zinc-100">
+                    Administrator Profile Photo
+                  </span>
+                </div>
                 <p className="text-xs text-muted-foreground">
-                  Upload a large, clear portrait photo. Recommended format: JPG, PNG or WebP.
+                  Use your mobile camera directly to take a portrait photo, or select from your gallery.
                 </p>
-                <label 
-                  htmlFor="photo" 
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-primary/90 bg-primary/10 hover:bg-primary/20 px-3.5 py-1.5 rounded-lg cursor-pointer transition-colors mt-1"
-                >
-                  <Upload className="w-3.5 h-3.5" />
-                  {formData.photoUrl ? 'Replace Photo' : 'Select Photo'}
-                </label>
+                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-1">
+                  <label 
+                    htmlFor="photo-camera" 
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-primary hover:bg-primary/90 px-3.5 py-1.5 rounded-lg cursor-pointer shadow-xs transition-colors"
+                    title="Take photo using mobile camera"
+                  >
+                    <Camera className="w-3.5 h-3.5" />
+                    <span>Camera</span>
+                  </label>
+                  <label 
+                    htmlFor="photo-gallery" 
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 border border-zinc-200 dark:border-zinc-700 px-3.5 py-1.5 rounded-lg cursor-pointer transition-colors"
+                    title="Choose photo from device gallery"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>Gallery</span>
+                  </label>
+                  {formData.photoUrl && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPendingFiles(prev => ({ ...prev, photo: undefined }));
+                        setFormData(prev => ({ ...prev, photoUrl: '' }));
+                        const elCam = document.getElementById('photo-camera') as HTMLInputElement;
+                        if (elCam) elCam.value = '';
+                        const elGal = document.getElementById('photo-gallery') as HTMLInputElement;
+                        if (elGal) elGal.value = '';
+                      }}
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-destructive hover:text-destructive/80 px-2 py-1.5 rounded-lg hover:bg-destructive/10 transition-colors"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Remove</span>
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
 
-            {/* Verification Documents */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Verification Documents: TVK Membership Card, Aadhaar, Voter ID */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+
+              {/* TVK Membership Card */}
+              <div className="space-y-1.5">
+                <Label className="text-center block w-full text-xs font-semibold text-gray-800 dark:text-zinc-200">
+                  TVK Membership Card
+                </Label>
+                <div className="relative flex flex-col items-center justify-center w-full aspect-square border-2 border-dashed border-gray-300 dark:border-zinc-700 rounded-xl hover:border-primary hover:bg-primary/5 transition-all group overflow-hidden bg-gray-50 dark:bg-zinc-900/50">
+                  {formData.attachments?.membershipCard ? (
+                    <>
+                      {formData.attachments.membershipCard.includes('blob:') || formData.attachments.membershipCard.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
+                        <img src={formData.attachments.membershipCard} alt="TVK Membership Card" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center w-full h-full bg-muted">
+                          <FileText className="w-8 h-8 text-primary mb-1" />
+                          <span className="text-[10px] font-bold text-muted-foreground">PDF / Document</span>
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <label htmlFor="membershipCard-camera" className="cursor-pointer p-2 bg-white/90 hover:bg-white text-primary rounded-full shadow-md transition-transform hover:scale-110" title="Retake with camera">
+                          <Camera className="w-4 h-4" />
+                        </label>
+                        <label htmlFor="membershipCard-file" className="cursor-pointer p-2 bg-white/90 hover:bg-white text-zinc-800 rounded-full shadow-md transition-transform hover:scale-110" title="Upload from files">
+                          <Upload className="w-4 h-4" />
+                        </label>
+                      </div>
+                      <button 
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setPendingFiles(prev => ({...prev, membershipCard: undefined}));
+                          setFormData(prev => ({...prev, attachments: { ...prev.attachments, membershipCard: '' } as any}));
+                          const el = document.getElementById('membershipCard-file') as HTMLInputElement;
+                          if (el) el.value = '';
+                          const elCam = document.getElementById('membershipCard-camera') as HTMLInputElement;
+                          if (elCam) elCam.value = '';
+                        }}
+                        className="absolute top-2 right-2 bg-black/60 hover:bg-red-500 text-white p-1.5 rounded-full transition-colors z-10"
+                        title="Remove Card"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-muted-foreground group-hover:text-primary p-2 text-center">
+                      <CreditCard className="w-6 h-6 mb-1.5 opacity-60 group-hover:opacity-100 transition-opacity" />
+                      <span className="text-[11px] font-semibold">TVK Membership Card</span>
+                      <div className="flex items-center gap-1.5 mt-2">
+                        <label 
+                          htmlFor="membershipCard-camera" 
+                          className="cursor-pointer inline-flex items-center gap-1 text-[10px] font-bold bg-primary/10 hover:bg-primary/20 text-primary px-2 py-1 rounded-md transition-colors"
+                          title="Capture with camera"
+                        >
+                          <Camera className="w-3 h-3" /> Camera
+                        </label>
+                        <label 
+                          htmlFor="membershipCard-file" 
+                          className="cursor-pointer inline-flex items-center gap-1 text-[10px] font-bold bg-zinc-200/80 hover:bg-zinc-300 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-2 py-1 rounded-md transition-colors"
+                          title="Choose from files"
+                        >
+                          <Upload className="w-3 h-3" /> File
+                        </label>
+                      </div>
+                    </div>
+                  )}
+                  <input 
+                    id="membershipCard-camera" 
+                    type="file" 
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden" 
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setPendingFiles(prev => ({...prev, membershipCard: file}));
+                        setFormData(prev => ({...prev, attachments: { ...prev.attachments, membershipCard: URL.createObjectURL(file) }}));
+                      }
+                      e.target.value = '';
+                    }}
+                  />
+                  <input 
+                    id="membershipCard-file" 
+                    type="file" 
+                    accept="image/*,application/pdf"
+                    className="hidden" 
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setPendingFiles(prev => ({...prev, membershipCard: file}));
+                        setFormData(prev => ({...prev, attachments: { ...prev.attachments, membershipCard: URL.createObjectURL(file) }}));
+                      }
+                      e.target.value = '';
+                    }}
+                  />
+                </div>
+              </div>
 
               {/* Aadhaar Photo */}
-              <div className="space-y-2">
-                <Label className="text-center block w-full text-xs font-semibold">Aadhaar</Label>
-                <label htmlFor="aadhaarPhoto" className="relative flex flex-col items-center justify-center w-full aspect-square border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-primary hover:bg-primary/5 transition-all group overflow-hidden bg-gray-50">
+              <div className="space-y-1.5">
+                <Label className="text-center block w-full text-xs font-semibold text-gray-800 dark:text-zinc-200">
+                  Aadhaar Card
+                </Label>
+                <div className="relative flex flex-col items-center justify-center w-full aspect-square border-2 border-dashed border-gray-300 dark:border-zinc-700 rounded-xl hover:border-primary hover:bg-primary/5 transition-all group overflow-hidden bg-gray-50 dark:bg-zinc-900/50">
                   {formData.attachments?.aadhaarPhoto ? (
                     <>
-                      {formData.attachments.aadhaarPhoto.includes('blob:') || formData.attachments.aadhaarPhoto.match(/\.(jpeg|jpg|gif|png)$/) ? (
+                      {formData.attachments.aadhaarPhoto.includes('blob:') || formData.attachments.aadhaarPhoto.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
                         <img src={formData.attachments.aadhaarPhoto} alt="Aadhaar" className="w-full h-full object-cover" />
                       ) : (
                         <div className="flex flex-col items-center justify-center w-full h-full bg-muted">
-                          <FileText className="w-8 h-8 text-muted-foreground mb-1" />
-                          <span className="text-[10px] font-bold text-muted-foreground">PDF</span>
+                          <FileText className="w-8 h-8 text-primary mb-1" />
+                          <span className="text-[10px] font-bold text-muted-foreground">PDF / Document</span>
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Upload className="w-6 h-6 text-white drop-shadow-md" />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <label htmlFor="aadhaarPhoto-camera" className="cursor-pointer p-2 bg-white/90 hover:bg-white text-primary rounded-full shadow-md transition-transform hover:scale-110" title="Retake with camera">
+                          <Camera className="w-4 h-4" />
+                        </label>
+                        <label htmlFor="aadhaarPhoto" className="cursor-pointer p-2 bg-white/90 hover:bg-white text-zinc-800 rounded-full shadow-md transition-transform hover:scale-110" title="Upload from files">
+                          <Upload className="w-4 h-4" />
+                        </label>
                       </div>
                       <button 
                         type="button"
@@ -948,18 +1122,52 @@ export function CadreFormDialog({
                           setFormData(prev => ({...prev, attachments: { ...prev.attachments, aadhaarPhoto: '' } as any}));
                           const el = document.getElementById('aadhaarPhoto') as HTMLInputElement;
                           if (el) el.value = '';
+                          const elCam = document.getElementById('aadhaarPhoto-camera') as HTMLInputElement;
+                          if (elCam) elCam.value = '';
                         }}
                         className="absolute top-2 right-2 bg-black/60 hover:bg-red-500 text-white p-1.5 rounded-full transition-colors z-10"
+                        title="Remove Aadhaar"
                       >
                         <X className="w-4 h-4" />
                       </button>
                     </>
                   ) : (
-                    <div className="flex flex-col items-center justify-center text-muted-foreground group-hover:text-primary">
-                      <Upload className="w-6 h-6 mb-2 opacity-50 group-hover:opacity-100 transition-opacity" />
-                      <span className="text-[10px] font-medium text-center">Upload Aadhaar</span>
+                    <div className="flex flex-col items-center justify-center text-muted-foreground group-hover:text-primary p-2 text-center">
+                      <CreditCard className="w-6 h-6 mb-1.5 opacity-60 group-hover:opacity-100 transition-opacity" />
+                      <span className="text-[11px] font-semibold">Aadhaar Card</span>
+                      <div className="flex items-center gap-1.5 mt-2">
+                        <label 
+                          htmlFor="aadhaarPhoto-camera" 
+                          className="cursor-pointer inline-flex items-center gap-1 text-[10px] font-bold bg-primary/10 hover:bg-primary/20 text-primary px-2 py-1 rounded-md transition-colors"
+                          title="Capture with camera"
+                        >
+                          <Camera className="w-3 h-3" /> Camera
+                        </label>
+                        <label 
+                          htmlFor="aadhaarPhoto" 
+                          className="cursor-pointer inline-flex items-center gap-1 text-[10px] font-bold bg-zinc-200/80 hover:bg-zinc-300 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-2 py-1 rounded-md transition-colors"
+                          title="Choose from files"
+                        >
+                          <Upload className="w-3 h-3" /> File
+                        </label>
+                      </div>
                     </div>
                   )}
+                  <input 
+                    id="aadhaarPhoto-camera" 
+                    type="file" 
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden" 
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setPendingFiles(prev => ({...prev, aadhaarPhoto: file}));
+                        setFormData(prev => ({...prev, attachments: { ...prev.attachments, aadhaarPhoto: URL.createObjectURL(file) }}));
+                      }
+                      e.target.value = '';
+                    }}
+                  />
                   <input 
                     id="aadhaarPhoto" 
                     type="file" 
@@ -971,27 +1179,35 @@ export function CadreFormDialog({
                         setPendingFiles({...pendingFiles, aadhaarPhoto: file});
                         setFormData({...formData, attachments: { ...formData.attachments, aadhaarPhoto: URL.createObjectURL(file) }});
                       }
+                      e.target.value = '';
                     }}
                   />
-                </label>
+                </div>
               </div>
 
               {/* Voter ID Photo */}
-              <div className="space-y-2">
-                <Label className="text-center block w-full text-xs font-semibold">Voter ID</Label>
-                <label htmlFor="voterIdPhoto" className="relative flex flex-col items-center justify-center w-full aspect-square border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-primary hover:bg-primary/5 transition-all group overflow-hidden bg-gray-50">
+              <div className="space-y-1.5">
+                <Label className="text-center block w-full text-xs font-semibold text-gray-800 dark:text-zinc-200">
+                  Voter ID Card
+                </Label>
+                <div className="relative flex flex-col items-center justify-center w-full aspect-square border-2 border-dashed border-gray-300 dark:border-zinc-700 rounded-xl hover:border-primary hover:bg-primary/5 transition-all group overflow-hidden bg-gray-50 dark:bg-zinc-900/50">
                   {formData.attachments?.voterIdPhoto ? (
                     <>
-                      {formData.attachments.voterIdPhoto.includes('blob:') || formData.attachments.voterIdPhoto.match(/\.(jpeg|jpg|gif|png)$/) ? (
+                      {formData.attachments.voterIdPhoto.includes('blob:') || formData.attachments.voterIdPhoto.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
                         <img src={formData.attachments.voterIdPhoto} alt="Voter ID" className="w-full h-full object-cover" />
                       ) : (
                         <div className="flex flex-col items-center justify-center w-full h-full bg-muted">
-                          <FileText className="w-8 h-8 text-muted-foreground mb-1" />
-                          <span className="text-[10px] font-bold text-muted-foreground">PDF</span>
+                          <FileText className="w-8 h-8 text-primary mb-1" />
+                          <span className="text-[10px] font-bold text-muted-foreground">PDF / Document</span>
                         </div>
                       )}
-                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Upload className="w-6 h-6 text-white drop-shadow-md" />
+                      <div className="absolute inset-0 bg-black/40 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <label htmlFor="voterIdPhoto-camera" className="cursor-pointer p-2 bg-white/90 hover:bg-white text-primary rounded-full shadow-md transition-transform hover:scale-110" title="Retake with camera">
+                          <Camera className="w-4 h-4" />
+                        </label>
+                        <label htmlFor="voterIdPhoto" className="cursor-pointer p-2 bg-white/90 hover:bg-white text-zinc-800 rounded-full shadow-md transition-transform hover:scale-110" title="Upload from files">
+                          <Upload className="w-4 h-4" />
+                        </label>
                       </div>
                       <button 
                         type="button"
@@ -1002,18 +1218,52 @@ export function CadreFormDialog({
                           setFormData(prev => ({...prev, attachments: { ...prev.attachments, voterIdPhoto: '' } as any}));
                           const el = document.getElementById('voterIdPhoto') as HTMLInputElement;
                           if (el) el.value = '';
+                          const elCam = document.getElementById('voterIdPhoto-camera') as HTMLInputElement;
+                          if (elCam) elCam.value = '';
                         }}
                         className="absolute top-2 right-2 bg-black/60 hover:bg-red-500 text-white p-1.5 rounded-full transition-colors z-10"
+                        title="Remove Voter ID"
                       >
                         <X className="w-4 h-4" />
                       </button>
                     </>
                   ) : (
-                    <div className="flex flex-col items-center justify-center text-muted-foreground group-hover:text-primary">
-                      <Upload className="w-6 h-6 mb-2 opacity-50 group-hover:opacity-100 transition-opacity" />
-                      <span className="text-[10px] font-medium text-center">Upload Voter ID</span>
+                    <div className="flex flex-col items-center justify-center text-muted-foreground group-hover:text-primary p-2 text-center">
+                      <CreditCard className="w-6 h-6 mb-1.5 opacity-60 group-hover:opacity-100 transition-opacity" />
+                      <span className="text-[11px] font-semibold">Voter ID Card</span>
+                      <div className="flex items-center gap-1.5 mt-2">
+                        <label 
+                          htmlFor="voterIdPhoto-camera" 
+                          className="cursor-pointer inline-flex items-center gap-1 text-[10px] font-bold bg-primary/10 hover:bg-primary/20 text-primary px-2 py-1 rounded-md transition-colors"
+                          title="Capture with camera"
+                        >
+                          <Camera className="w-3 h-3" /> Camera
+                        </label>
+                        <label 
+                          htmlFor="voterIdPhoto" 
+                          className="cursor-pointer inline-flex items-center gap-1 text-[10px] font-bold bg-zinc-200/80 hover:bg-zinc-300 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-2 py-1 rounded-md transition-colors"
+                          title="Choose from files"
+                        >
+                          <Upload className="w-3 h-3" /> File
+                        </label>
+                      </div>
                     </div>
                   )}
+                  <input 
+                    id="voterIdPhoto-camera" 
+                    type="file" 
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden" 
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        setPendingFiles(prev => ({...prev, voterIdPhoto: file}));
+                        setFormData(prev => ({...prev, attachments: { ...prev.attachments, voterIdPhoto: URL.createObjectURL(file) }}));
+                      }
+                      e.target.value = '';
+                    }}
+                  />
                   <input 
                     id="voterIdPhoto" 
                     type="file" 
@@ -1025,9 +1275,10 @@ export function CadreFormDialog({
                         setPendingFiles({...pendingFiles, voterIdPhoto: file});
                         setFormData({...formData, attachments: { ...formData.attachments, voterIdPhoto: URL.createObjectURL(file) }});
                       }
+                      e.target.value = '';
                     }}
                   />
-                </label>
+                </div>
               </div>
             </div>
           </div>

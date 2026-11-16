@@ -99,7 +99,7 @@ export function CadreViewDialog({
              <div className="flex-1 text-center sm:text-left pt-1">
                 <h3 className="text-2xl font-black text-gray-900 dark:text-zinc-100 tracking-tight">{displayName}</h3>
                 <div className="mt-1.5 flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                  <span className="text-xs font-mono font-bold text-muted-foreground bg-white dark:bg-zinc-800 px-2.5 py-0.5 rounded-full border border-gray-200 dark:border-zinc-700 shadow-2xs">{cadre.memberId}</span>
+                  <span className="text-xs font-mono font-bold text-muted-foreground bg-white dark:bg-zinc-800 px-2.5 py-0.5 rounded-full border border-gray-200 dark:border-zinc-700 shadow-2xs">{cadre.memberId || cadre.voterId}</span>
                   <span className="text-gray-300 dark:text-zinc-600">•</span>
                   {getRoleBadge(cadre.role, cadre.level)}
                 </div>
@@ -113,13 +113,18 @@ export function CadreViewDialog({
 
           <div className="grid grid-cols-2 gap-x-4 gap-y-6">
             <div className="space-y-1">
-              <Label className="text-muted-foreground text-xs uppercase tracking-wider">Phone No</Label>
-              <div className="font-medium text-gray-900 dark:text-zinc-100">{cadre.phone || '-'}</div>
+              <Label className="text-muted-foreground text-xs uppercase tracking-wider">Member ID / Voter ID</Label>
+              <div className="font-mono font-bold text-gray-900 dark:text-zinc-100">{cadre.memberId || cadre.voterId || '-'}</div>
             </div>
-            
+
             <div className="space-y-1">
               <Label className="text-muted-foreground text-xs uppercase tracking-wider">Aadhaar No</Label>
               <div className="font-medium text-gray-900 dark:text-zinc-100">{cadre.aadhaarNumber || '-'}</div>
+            </div>
+
+            <div className="space-y-1">
+              <Label className="text-muted-foreground text-xs uppercase tracking-wider">Phone No</Label>
+              <div className="font-medium text-gray-900 dark:text-zinc-100">{cadre.phone || '-'}</div>
             </div>
 
             <div className="space-y-1">
@@ -180,20 +185,35 @@ export function CadreViewDialog({
             )}
           </div>
 
-          {(cadre.attachments?.aadhaarPhoto || cadre.attachments?.voterIdPhoto) && (
+          {(cadre.attachments?.membershipCard || cadre.attachments?.aadhaarPhoto || cadre.attachments?.voterIdPhoto) && (
             <div className="pt-4 border-t space-y-4">
-              <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Documents</h3>
-              <div className="flex gap-4">
+              <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wider">Verification Documents</h3>
+              <div className="flex flex-wrap gap-4">
+                {cadre.attachments?.membershipCard && (
+                  <div className="space-y-2">
+                    <Label className="text-center block text-xs font-semibold text-red-700 dark:text-red-400">TVK Card</Label>
+                    <button type="button" onClick={() => openPreview(cadre.attachments.membershipCard, 'TVK Membership Card')} className="block w-24 h-24 border rounded-xl overflow-hidden hover:opacity-80 transition-opacity bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary shadow-xs">
+                      {cadre.attachments.membershipCard.includes('blob:') || cadre.attachments.membershipCard.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
+                        <img src={cadre.attachments.membershipCard} alt="TVK Membership Card" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center w-full h-full text-muted-foreground">
+                          <FileText className="w-8 h-8 mb-1 text-red-500" />
+                          <span className="text-[10px] font-bold">Doc</span>
+                        </div>
+                      )}
+                    </button>
+                  </div>
+                )}
                 {cadre.attachments?.aadhaarPhoto && (
                   <div className="space-y-2">
                     <Label className="text-center block text-xs font-semibold">Aadhaar</Label>
-                    <button type="button" onClick={() => openPreview(cadre.attachments.aadhaarPhoto, 'Aadhaar Document')} className="block w-24 h-24 border rounded-xl overflow-hidden hover:opacity-80 transition-opacity bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary">
-                      {cadre.attachments.aadhaarPhoto.includes('blob:') || cadre.attachments.aadhaarPhoto.match(/\.(jpeg|jpg|gif|png)$/i) ? (
+                    <button type="button" onClick={() => openPreview(cadre.attachments.aadhaarPhoto, 'Aadhaar Document')} className="block w-24 h-24 border rounded-xl overflow-hidden hover:opacity-80 transition-opacity bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary shadow-xs">
+                      {cadre.attachments.aadhaarPhoto.includes('blob:') || cadre.attachments.aadhaarPhoto.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
                         <img src={cadre.attachments.aadhaarPhoto} alt="Aadhaar" className="w-full h-full object-cover" />
                       ) : (
                         <div className="flex flex-col items-center justify-center w-full h-full text-muted-foreground">
                           <FileText className="w-8 h-8 mb-1" />
-                          <span className="text-[10px] font-bold">PDF</span>
+                          <span className="text-[10px] font-bold">Doc</span>
                         </div>
                       )}
                     </button>
@@ -202,13 +222,13 @@ export function CadreViewDialog({
                 {cadre.attachments?.voterIdPhoto && (
                   <div className="space-y-2">
                     <Label className="text-center block text-xs font-semibold">Voter ID</Label>
-                    <button type="button" onClick={() => openPreview(cadre.attachments.voterIdPhoto, 'Voter ID Document')} className="block w-24 h-24 border rounded-xl overflow-hidden hover:opacity-80 transition-opacity bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary">
-                      {cadre.attachments.voterIdPhoto.includes('blob:') || cadre.attachments.voterIdPhoto.match(/\.(jpeg|jpg|gif|png)$/i) ? (
+                    <button type="button" onClick={() => openPreview(cadre.attachments.voterIdPhoto, 'Voter ID Document')} className="block w-24 h-24 border rounded-xl overflow-hidden hover:opacity-80 transition-opacity bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary shadow-xs">
+                      {cadre.attachments.voterIdPhoto.includes('blob:') || cadre.attachments.voterIdPhoto.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
                         <img src={cadre.attachments.voterIdPhoto} alt="Voter ID" className="w-full h-full object-cover" />
                       ) : (
                         <div className="flex flex-col items-center justify-center w-full h-full text-muted-foreground">
                           <FileText className="w-8 h-8 mb-1" />
-                          <span className="text-[10px] font-bold">PDF</span>
+                          <span className="text-[10px] font-bold">Doc</span>
                         </div>
                       )}
                     </button>

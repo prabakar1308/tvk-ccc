@@ -272,8 +272,8 @@ export class CadreService {
       return p;
     });
 
-    // Check for duplicates within the uploaded batch
-    const seenPhones = new Map<string, string>();
+    // Check for duplicates within the uploaded batch (Aadhaar, Voter ID, Member ID)
+    // Note: Phone numbers are allowed to be duplicate across multiple cadres (e.g., family members)
     const seenAadhaars = new Map<string, string>();
     const seenVoterIds = new Map<string, string>();
     const seenMemberIds = new Map<string, string>();
@@ -281,13 +281,6 @@ export class CadreService {
 
     for (const p of sanitizedPayloads) {
       const reasons: string[] = [];
-      if (p.phone) {
-        if (seenPhones.has(p.phone)) {
-          reasons.push(`Phone duplicate with ${seenPhones.get(p.phone)}`);
-        } else {
-          seenPhones.set(p.phone, p.name);
-        }
-      }
       if (p.aadhaarNumber) {
         if (seenAadhaars.has(p.aadhaarNumber)) {
           reasons.push(`Aadhaar duplicate with ${seenAadhaars.get(p.aadhaarNumber)}`);
@@ -328,14 +321,12 @@ export class CadreService {
     }
 
     const aadhaars = sanitizedPayloads.map((p) => p.aadhaarNumber).filter(Boolean);
-    const phones = sanitizedPayloads.map((p) => p.phone).filter(Boolean);
     const voterIds = sanitizedPayloads.map((p) => p.voterId).filter(Boolean);
     const memberIds = sanitizedPayloads.map((p) => p.memberId).filter(Boolean);
 
     const orConditions: any[] = [];
     if (aadhaars.length > 0)
       orConditions.push({ aadhaarNumber: { in: aadhaars } });
-    if (phones.length > 0) orConditions.push({ phone: { in: phones } });
     if (voterIds.length > 0) orConditions.push({ voterId: { in: voterIds } });
     if (memberIds.length > 0) orConditions.push({ memberId: { in: memberIds } });
 
@@ -360,7 +351,6 @@ export class CadreService {
         for (const payload of sanitizedPayloads) {
           const matching = existingRecords.find(
             (r) =>
-              (payload.phone && r.phone === payload.phone) ||
               (payload.aadhaarNumber &&
                 r.aadhaarNumber === payload.aadhaarNumber) ||
               (payload.voterId && r.voterId === payload.voterId) ||
@@ -369,8 +359,6 @@ export class CadreService {
 
           if (matching) {
             const reason = [];
-            if (payload.phone && matching.phone === payload.phone)
-              reason.push('Phone');
             if (
               payload.aadhaarNumber &&
               matching.aadhaarNumber === payload.aadhaarNumber
