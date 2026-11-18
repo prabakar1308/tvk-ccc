@@ -6,6 +6,83 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CadreLevel } from '@prisma/client';
 
+export function isExecutiveRole(role?: string | null): boolean {
+  if (!role) return false;
+  const upper = role.toUpperCase().trim();
+  return (
+    upper.includes('EXECUTIVE') ||
+    upper === 'EC' ||
+    upper === 'EC MEMBER' ||
+    upper === 'EC_MEMBER' ||
+    upper.startsWith('EC ') ||
+    upper.endsWith(' EC') ||
+    role.includes('செயற்குழு')
+  );
+}
+
+export function isMultiMemberRole(role?: string | null): boolean {
+  if (!role) return false;
+  const upper = role.toUpperCase().replace(/[_\s-]+/g, ' ').trim();
+  if (
+    upper.includes('DEPUTY SECRETARY') ||
+    role.includes('துணைச் செயலாளர்') ||
+    (role.includes('துணை') && role.includes('செயலாளர்'))
+  ) {
+    return true;
+  }
+  if (
+    upper === 'CO COORDINATOR' ||
+    upper === 'COCOORDINATOR' ||
+    upper.includes('CO COORDINATOR') ||
+    upper.includes('CO_COORDINATOR') ||
+    upper.includes('CO-COORDINATOR') ||
+    role.includes('இணை ஒருங்கிணைப்பாளர்') ||
+    (role.includes('இணை') && role.includes('ஒருங்கிணைப்பாளர்'))
+  ) {
+    return true;
+  }
+  if (isExecutiveRole(role)) {
+    return true;
+  }
+  return false;
+}
+
+export function getRoleRank(rawRole?: string | null): number {
+  if (!rawRole) return 99;
+  const norm = rawRole.toUpperCase().replace(/[_\s-]+/g, ' ').trim();
+  if (norm.includes('PRESIDENT') || rawRole.includes('தலைவர்')) return 1;
+  if (
+    norm.includes('JOINT SECRETARY') ||
+    rawRole.includes('இணைச் செயலாளர்') ||
+    (rawRole.includes('இணை') && rawRole.includes('செயலாளர்'))
+  ) {
+    return 3;
+  }
+  if (
+    norm.includes('DEPUTY SECRETARY') ||
+    rawRole.includes('துணைச் செயலாளர்') ||
+    (rawRole.includes('துணை') && rawRole.includes('செயலாளர்'))
+  ) {
+    return 5;
+  }
+  if (norm.includes('SECRETARY') || rawRole.includes('செயலாளர்')) return 2;
+  if (norm.includes('TREASURER') || rawRole.includes('பொருளாளர்')) return 4;
+  if (isExecutiveRole(rawRole)) return 6;
+  if (
+    norm === 'CO COORDINATOR' ||
+    norm === 'COCOORDINATOR' ||
+    norm.includes('CO COORDINATOR') ||
+    norm.includes('CO_COORDINATOR') ||
+    norm.includes('CO-COORDINATOR') ||
+    rawRole.includes('இணை ஒருங்கிணைப்பாளர்') ||
+    (rawRole.includes('இணை') && rawRole.includes('ஒருங்கிணைப்பாளர்'))
+  ) {
+    return 8;
+  }
+  if (norm === 'COORDINATOR' || rawRole.includes('ஒருங்கிணைப்பாளர்')) return 7;
+  return 99;
+}
+
 @Injectable()
 export class CadreService {
   constructor(private readonly prisma: PrismaService) {}
@@ -32,6 +109,20 @@ export class CadreService {
 
     if (p.phone !== undefined) {
       p.phone = p.phone && String(p.phone).trim() ? String(p.phone).trim() : null;
+    }
+
+    if (p.gender !== undefined) {
+      const g = p.gender && String(p.gender).trim() ? String(p.gender).trim() : 'Male';
+      const lower = g.toLowerCase();
+      if (lower === 'female' || lower === 'பெண்') {
+        p.gender = 'Female';
+      } else if (lower === '3rd gender' || lower === 'third gender' || lower === 'மூன்றாம் பாலினம்' || lower === 'transgender' || lower === 'other') {
+        p.gender = '3rd Gender';
+      } else {
+        p.gender = 'Male';
+      }
+    } else if (!isUpdate) {
+      p.gender = 'Male';
     }
 
     if (p.aadhaarNumber !== undefined) {
@@ -87,6 +178,10 @@ export class CadreService {
 
     if (p.photoUrl !== undefined) {
       p.photoUrl = p.photoUrl && String(p.photoUrl).trim() ? String(p.photoUrl).trim() : null;
+    }
+
+    if (p.position !== undefined) {
+      p.position = p.position !== null && p.position !== '' && !isNaN(Number(p.position)) ? parseInt(String(p.position), 10) : 0;
     }
 
     // Auto-resolve unionId from Kilai if missing
@@ -254,6 +349,19 @@ export class CadreService {
       p.memberId = memberIdVal;
       p.voterId = voterIdVal;
       p.phone = p.phone && String(p.phone).trim() ? String(p.phone).trim() : null;
+      if (p.gender !== undefined) {
+        const g = p.gender && String(p.gender).trim() ? String(p.gender).trim() : 'Male';
+        const lower = g.toLowerCase();
+        if (lower === 'female' || lower === 'பெண்') {
+          p.gender = 'Female';
+        } else if (lower === '3rd gender' || lower === 'third gender' || lower === 'மூன்றாம் பாலினம்' || lower === 'transgender' || lower === 'other') {
+          p.gender = '3rd Gender';
+        } else {
+          p.gender = 'Male';
+        }
+      } else {
+        p.gender = 'Male';
+      }
       p.aadhaarNumber = p.aadhaarNumber && String(p.aadhaarNumber).trim() ? String(p.aadhaarNumber).trim() : null;
       p.role = p.role && String(p.role).trim() ? String(p.role).trim() : null;
       p.area = p.area && String(p.area).trim() ? String(p.area).trim() : null;
@@ -488,17 +596,6 @@ export class CadreService {
       KILAI: 4,
     };
 
-    const ROLE_WEIGHTS: Record<string, number> = {
-      Secretary: 1,
-      'Joint Secretary': 2,
-      Treasurer: 3,
-      'Deputy Secretary': 4,
-      'Executive Committee Member': 5,
-      'EC Member': 5,
-      COORDINATOR: 6,
-      CO_COORDINATOR: 7,
-    };
-
     return cadres.sort((a, b) => {
       if (isWing === 'true') {
         const wingOrderA = (a as any).wing?.order || 999;
@@ -513,15 +610,52 @@ export class CadreService {
         return levelA - levelB;
       }
 
-      const roleA = ROLE_WEIGHTS[a.role || ''] || 99;
-      const roleB = ROLE_WEIGHTS[b.role || ''] || 99;
+      const roleA = getRoleRank(a.role);
+      const roleB = getRoleRank(b.role);
 
       if (roleA !== roleB) {
         return roleA - roleB;
       }
 
+      // If roles are identical, sort by sequential position!
+      const posA = a.position && a.position > 0 ? a.position : 9999;
+      const posB = b.position && b.position > 0 ? b.position : 9999;
+      if (posA !== posB) return posA - posB;
+
       return 0;
     });
+  }
+
+  async reorderPositions(payload: { items?: { id: string; position: number }[]; cadreIds?: string[] }) {
+    const items = payload.items || (payload.cadreIds ? payload.cadreIds.map((id, index) => ({ id, position: index + 1 })) : []);
+    if (!items || items.length === 0) {
+      throw new BadRequestException('No items provided for reordering');
+    }
+
+    // Verify all items exist and belong to valid multi-member roles
+    const cadres = await this.prisma.cadre.findMany({
+      where: { id: { in: items.map((i) => i.id) } },
+      select: { id: true, role: true },
+    });
+
+    for (const cadre of cadres) {
+      if (!isMultiMemberRole(cadre.role)) {
+        throw new BadRequestException(
+          `Cadre with role '${cadre.role}' cannot be manually reordered. Positions can only be set for multi-member roles (Deputy Secretary, Co-coordinator, Executive Committee Member).`
+        );
+      }
+    }
+
+    await this.prisma.$transaction(
+      items.map((item) =>
+        this.prisma.cadre.update({
+          where: { id: item.id },
+          data: { position: item.position },
+        })
+      )
+    );
+
+    return { message: 'Cadre positions updated successfully', success: true };
   }
 
   async findOne(id: string) {
@@ -770,11 +904,12 @@ export class CadreService {
         );
       }
 
-      // Execute updates
+      // Execute updates (swapping roles and their respective position slots)
       const updatedA = await tx.cadre.update({
         where: { id: cadreAId },
         data: {
           role: targetRoleA,
+          position: cadreB.position,
           ...targetAssignmentA,
         },
         include: {
@@ -789,6 +924,7 @@ export class CadreService {
         where: { id: cadreBId },
         data: {
           role: targetRoleB,
+          position: cadreA.position,
           ...targetAssignmentB,
         },
         include: {

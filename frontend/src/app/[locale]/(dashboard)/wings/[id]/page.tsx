@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { 
   ArrowLeft, Users as UsersIcon, UserRound, Phone, PhoneCall, ArrowLeftRight,
   Plus, LayoutGrid, TableProperties, Edit2, Trash2, Shield, ShieldCheck,
-  MapPin, Award, UserPlus, Clock,
+  MapPin, Award, UserPlus, Clock, GripVertical, CheckCircle2,
   Monitor, Scale, Radio, Mic, GraduationCap, Users, TreePine, 
   History, Rainbow, HeartHandshake, Zap, BookOpen, Baby, 
   Store, Sailboat, Scissors, Briefcase, HardHat, Lightbulb, 
@@ -19,16 +19,18 @@ import {
 } from '@/components/ui/table';
 import { CadreFormDialog } from '@/components/cadre-form-dialog';
 import { CadreMoveSwapDialog } from '@/components/cadre-move-swap-dialog';
+import { CadreDragSwapDialog } from '@/components/cadre-drag-swap-dialog';
 import { useQueryClient } from '@tanstack/react-query';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
 
 import { useWings, useWingMembers, useAssignWingMember, useRemoveWingMember } from '@/hooks/use-wings';
 import { isCoordinatorRole, isCoCoordinatorRole, getCanonicalWingRole, translatePersonNameToTamil } from '@/lib/name-translations';
-import { useCadres } from '@/hooks/use-cadres';
+import { useCadres, useReorderCadrePositions, useSwapCadres } from '@/hooks/use-cadres';
 import { useDistricts } from '@/hooks/use-districts';
 import { useUnions } from '@/hooks/use-unions';
 import { useSessionStorage } from '@/hooks/use-session-storage';
+import { cn } from '@/lib/utils';
 
 const iconMap: Record<string, any> = {
   Monitor, Scale, Radio, Mic, GraduationCap, Users, TreePine, 
@@ -66,7 +68,45 @@ export default function WingDetailsPage() {
   
   const WingIcon = iconMap[wing.iconName] || Shield;
 
-  const { data: members = [], isLoading: isMembersLoading } = useWingMembers(wingId, level, orgId);
+  const { data: rawMembers = [], isLoading: isMembersLoading } = useWingMembers(wingId, level, orgId);
+  const [localMembers, setLocalMembers] = useState<any[]>([]);
+
+  useEffect(() => {
+    setLocalMembers(rawMembers);
+  }, [rawMembers]);
+
+  const sortedMembers = useMemo(() => {
+    return [...localMembers].sort((a, b) => {
+      const isCoordA = isCoordinatorRole(a.rawRole || a.canonicalRole || a.role);
+      const isCoordB = isCoordinatorRole(b.rawRole || b.canonicalRole || b.role);
+      if (isCoordA && !isCoordB) return -1;
+      if (!isCoordA && isCoordB) return 1;
+
+      const posA = a.position && a.position > 0 ? a.position : 9999;
+      const posB = b.position && b.position > 0 ? b.position : 9999;
+      if (posA !== posB) return posA - posB;
+
+      return 0;
+    });
+  }, [localMembers]);
+
+  const coordinators = useMemo(() => {
+    return sortedMembers.filter((m: any) => isCoordinatorRole(m.rawRole || m.canonicalRole || m.role));
+  }, [sortedMembers]);
+
+  const coCoordinators = useMemo(() => {
+    return sortedMembers.filter((m: any) => isCoCoordinatorRole(m.rawRole || m.canonicalRole || m.role));
+  }, [sortedMembers]);
+
+  const coCoordinatorPositionMap = useMemo(() => {
+    const map = new Map<string, number>();
+    coCoordinators.forEach((m: any, idx: number) => {
+      const pos = m.position && m.position > 0 ? m.position : idx + 1;
+      map.set(m.id, pos);
+    });
+    return map;
+  }, [coCoordinators]);
+
   const { mutate: assignMember, isPending: isAssigning } = useAssignWingMember();
   const { mutate: removeMember, isPending: isRemoving } = useRemoveWingMember();
 
@@ -84,6 +124,135 @@ export default function WingDetailsPage() {
   const [callPerson, setCallPerson] = useState<{ name: string; phone: string } | null>(null);
   const [isMoveSwapOpen, setIsMoveSwapOpen] = useState(false);
   const [moveSwapCadre, setMoveSwapCadre] = useState<any | null>(null);
+
+  // Drag and drop states for Co-coordinator reordering and cross-role swapping
+  const [draggedCadreId, setDraggedCadreId] = useState<string | null>(null);
+  const [dragOverCadreId, setDragOverCadreId] = useState<string | null>(null);
+  const [swapConfirmation, setSwapConfirmation] = useState<{ cadreA: any; cadreB: any } | null>(null);
+  const [isSwapping, setIsSwapping] = useState(false);
+  const [reorderSuccessMsg, setReorderSuccessMsg] = useState<string | null>(null);
+
+  const reorderMutation = useReorderCadrePositions();
+  const swapMutation = useSwapCadres();
+
+  const handleDragStart = (e: React.DragEvent, member: any) => {
+    setDraggedCadreId(member.id);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', member.id);
+  };
+
+  const handleDragOver = (e: React.DragEvent, targetMember: any) => {
+    if (!draggedCadreId || draggedCadreId === targetMember.id) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverCadreId !== targetMember.id) {
+      setDragOverCadreId(targetMember.id);
+    }
+  };
+
+  const handleDragLeave = () => {
+    // Left target
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetMember: any) => {
+    e.preventDefault();
+    setDragOverCadreId(null);
+
+    if (!draggedCadreId || draggedCadreId === targetMember.id) {
+      setDraggedCadreId(null);
+      return;
+    }
+
+    const cadreA = localMembers.find((m) => m.id === draggedCadreId);
+    const cadreB = targetMember;
+    setDraggedCadreId(null);
+
+    if (!cadreA || !cadreB) return;
+
+    const roleA = cadreA.rawRole || cadreA.canonicalRole || cadreA.role;
+    const roleB = cadreB.rawRole || cadreB.canonicalRole || cadreB.role;
+    const isCoordA = isCoordinatorRole(roleA);
+    const isCoordB = isCoordinatorRole(roleB);
+
+    // Case 1: Both are Co-coordinators -> Reorder positions (#1 to #10)
+    if (!isCoordA && !isCoordB) {
+      const currentCoCoords = [...coCoordinators];
+      const dragIdx = currentCoCoords.findIndex((m) => m.id === cadreA.id);
+      const targetIdx = currentCoCoords.findIndex((m) => m.id === cadreB.id);
+
+      if (dragIdx === -1 || targetIdx === -1 || dragIdx === targetIdx) return;
+
+      const [moved] = currentCoCoords.splice(dragIdx, 1);
+      currentCoCoords.splice(targetIdx, 0, moved);
+
+      const itemsToUpdate = currentCoCoords.map((m, idx) => ({
+        id: m.id,
+        position: idx + 1,
+      }));
+
+      // Optimistic update
+      let pointer = 0;
+      const updatedLocal = localMembers.map((m) => {
+        if (isCoCoordinatorRole(m.rawRole || m.canonicalRole || m.role)) {
+          const updated = currentCoCoords[pointer++];
+          return { ...updated, position: pointer };
+        }
+        return m;
+      });
+
+      setLocalMembers(updatedLocal);
+
+      try {
+        await reorderMutation.mutateAsync(itemsToUpdate);
+        queryClient.invalidateQueries({ queryKey: ['wings', wingId, 'members'] });
+        setReorderSuccessMsg(
+          locale === 'ta'
+            ? 'இணை ஒருங்கிணைப்பாளர் வரிசை எண் புதுப்பிக்கப்பட்டது'
+            : 'Co-coordinator positions updated successfully'
+        );
+        setTimeout(() => setReorderSuccessMsg(null), 3500);
+      } catch (err: any) {
+        console.error('Failed to update positions:', err);
+        setLocalMembers(rawMembers);
+      }
+      return;
+    }
+
+    // Case 2: One is Coordinator, one is Co-coordinator -> Prompt Drag-to-Swap!
+    setSwapConfirmation({ cadreA, cadreB });
+  };
+
+  const handleConfirmSwap = async () => {
+    if (!swapConfirmation) return;
+    setIsSwapping(true);
+    try {
+      await swapMutation.mutateAsync({
+        cadreAId: swapConfirmation.cadreA.id,
+        cadreBId: swapConfirmation.cadreB.id,
+        swapAssignments: false,
+      });
+      queryClient.invalidateQueries({ queryKey: ['wings', wingId, 'members'] });
+      queryClient.invalidateQueries({ queryKey: ['wings'] });
+      queryClient.invalidateQueries({ queryKey: ['cadres'] });
+      setReorderSuccessMsg(
+        locale === 'ta'
+          ? 'பொறுப்புகள் வெற்றிகரமாக மாற்றப்பட்டன'
+          : 'Roles swapped successfully'
+      );
+      setTimeout(() => setReorderSuccessMsg(null), 3500);
+      setSwapConfirmation(null);
+    } catch (err: any) {
+      console.error('Failed to swap roles:', err);
+      alert(err?.response?.data?.message || err?.message || 'Failed to swap roles');
+    } finally {
+      setIsSwapping(false);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedCadreId(null);
+    setDragOverCadreId(null);
+  };
 
   const handleOpenMoveSwap = (cadre?: any) => {
     setMoveSwapCadre(cadre || null);
@@ -105,9 +274,6 @@ export default function WingDetailsPage() {
   
   const { data: cadresResponse } = useCadres(filterParams);
   const cadres = cadresResponse || [];
-
-  const coordinators = members.filter((m: any) => isCoordinatorRole(m.rawRole || m.canonicalRole || m.role));
-  const coCoordinators = members.filter((m: any) => isCoCoordinatorRole(m.rawRole || m.canonicalRole || m.role));
 
   const handleAdd = (role: string) => {
     setEditingId(null);
@@ -194,10 +360,25 @@ export default function WingDetailsPage() {
         ) : isCoordinatorRole ? (
           /* Coordinator Executive Leadership Card (Prominent Wide Layout) */
           <div className="max-w-xl">
-            {memberList.map((member: any) => (
+            {memberList.map((member: any) => {
+              const isDraggingThis = draggedCadreId === member.id;
+              const isOverThis = dragOverCadreId === member.id;
+
+              return (
               <div 
                 key={member.id} 
-                className="group relative overflow-hidden rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/90 dark:border-zinc-800 shadow-sm hover:shadow-[0_20px_40px_-12px_rgba(143,10,27,0.15)] hover:border-[#8F0A1B]/50 transition-all duration-300 hover:-translate-y-1 flex flex-col justify-between"
+                draggable={true}
+                onDragStart={(e) => handleDragStart(e, member)}
+                onDragOver={(e) => handleDragOver(e, member)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, member)}
+                onDragEnd={handleDragEnd}
+                className={cn(
+                  "group relative overflow-hidden rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/90 dark:border-zinc-800 shadow-sm transition-all duration-300 flex flex-col justify-between cursor-grab active:cursor-grabbing",
+                  isDraggingThis && "opacity-40 border-dashed border-[#8F0A1B] scale-95 shadow-lg",
+                  isOverThis && "ring-2 ring-[#8F0A1B] ring-offset-2 scale-[1.02] border-[#8F0A1B] bg-red-50/30 dark:bg-red-950/20",
+                  !isDraggingThis && !isOverThis && "hover:shadow-[0_20px_40px_-12px_rgba(143,10,27,0.15)] hover:border-[#8F0A1B]/50 hover:-translate-y-1"
+                )}
               >
                 {/* Top Accent Strip */}
                 <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-[#8F0A1B] via-[#C2185B] to-[#8F0A1B] opacity-95 group-hover:opacity-100 transition-opacity z-10" />
@@ -219,8 +400,14 @@ export default function WingDetailsPage() {
                       </span>
                     </div>
 
-                    {/* Quick Edit/Delete Actions */}
+                    {/* Quick Edit/Delete Actions + Drag Handle */}
                     <div className="flex items-center gap-1 bg-zinc-50 dark:bg-zinc-800/80 p-1 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60 shadow-xs">
+                      <div 
+                        className="p-1 text-zinc-400 hover:text-[#8F0A1B] cursor-grab active:cursor-grabbing rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                        title={locale === 'ta' ? 'இணை ஒருங்கிணைப்பாளருடன் பொறுப்பை மாற்ற இழுக்கவும்' : 'Drag to swap role with Co-coordinator'}
+                      >
+                        <GripVertical className="w-4 h-4" />
+                      </div>
                       <Button 
                         variant="ghost" 
                         size="icon" 
@@ -295,15 +482,32 @@ export default function WingDetailsPage() {
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           /* Co-coordinators Grid Layout (3 Columns with Ample Breathing Room) */
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {memberList.map((member: any) => (
+            {memberList.map((member: any, index: number) => {
+              const positionNumber = coCoordinatorPositionMap.get(member.id) ?? (index + 1);
+              const isDraggingThis = draggedCadreId === member.id;
+              const isOverThis = dragOverCadreId === member.id;
+
+              return (
               <div 
                 key={member.id} 
-                className="group relative overflow-hidden rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/90 dark:border-zinc-800 shadow-xs hover:shadow-[0_16px_36px_-10px_rgba(84,135,119,0.18)] hover:border-[#548777]/50 transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between"
+                draggable={true}
+                onDragStart={(e) => handleDragStart(e, member)}
+                onDragOver={(e) => handleDragOver(e, member)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, member)}
+                onDragEnd={handleDragEnd}
+                className={cn(
+                  "group relative overflow-hidden rounded-3xl bg-white dark:bg-zinc-900 border border-zinc-200/90 dark:border-zinc-800 shadow-xs transition-all duration-300 flex flex-col justify-between cursor-grab active:cursor-grabbing",
+                  isDraggingThis && "opacity-40 border-dashed border-[#548777] scale-95 shadow-lg",
+                  isOverThis && "ring-2 ring-[#548777] ring-offset-2 scale-[1.02] border-[#548777] bg-teal-50/30 dark:bg-teal-950/20",
+                  !isDraggingThis && !isOverThis && "hover:shadow-[0_16px_36px_-10px_rgba(84,135,119,0.18)] hover:border-[#548777]/50 hover:-translate-y-1.5"
+                )}
               >
                 {/* Top Accent Strip */}
                 <div className="absolute top-0 left-0 right-0 h-1.5 bg-[#548777] opacity-90 group-hover:opacity-100 transition-opacity z-10" />
@@ -312,12 +516,15 @@ export default function WingDetailsPage() {
                 <div className="absolute top-0 right-0 -mt-6 -mr-6 w-32 h-32 bg-gradient-to-br from-[#548777]/15 to-transparent rounded-full opacity-60 group-hover:scale-150 transition-transform duration-700 ease-out pointer-events-none z-0" />
 
                 <div className="p-5 pb-3 flex-1 flex flex-col z-10 relative">
-                  {/* Card Header: Role Badge + Action Buttons */}
+                  {/* Card Header: Role Badge + Position Badge + Action Buttons */}
                   <div className="flex items-center justify-between gap-2 mb-4">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-[#548777]/10 text-[#548777] dark:bg-teal-950/40 dark:text-teal-300 border border-[#548777]/20 shadow-xs">
                         <UsersIcon className="w-3.5 h-3.5 text-[#548777] dark:text-teal-400" />
                         Co-coordinator
+                      </span>
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-black bg-[#548777]/15 text-[#548777] dark:bg-teal-950/60 dark:text-teal-300 border border-[#548777]/30 shadow-xs">
+                        #{positionNumber}
                       </span>
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border border-emerald-200/60">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -325,8 +532,14 @@ export default function WingDetailsPage() {
                       </span>
                     </div>
 
-                    {/* Quick Edit/Delete Actions */}
+                    {/* Quick Edit/Delete Actions + Drag Handle */}
                     <div className="flex items-center gap-0.5 bg-zinc-50 dark:bg-zinc-800/80 p-1 rounded-xl border border-zinc-200/60 dark:border-zinc-700/60 shadow-xs">
+                      <div 
+                        className="p-1 text-zinc-400 hover:text-[#548777] cursor-grab active:cursor-grabbing rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                        title={locale === 'ta' ? 'வரிசை எண்ணை மாற்ற அல்லது ஒருங்கிணைப்பாளருடன் மாற்ற இழுக்கவும்' : 'Drag to reorder position or swap with Coordinator'}
+                      >
+                        <GripVertical className="w-3.5 h-3.5" />
+                      </div>
                       <Button 
                         variant="ghost" 
                         size="icon" 
@@ -401,7 +614,8 @@ export default function WingDetailsPage() {
                   </div>
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -450,62 +664,97 @@ export default function WingDetailsPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                memberList.map((member: any) => (
-                  <TableRow key={member.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-800/40">
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-3.5">
-                        <UserAvatar 
-                          src={member.photoUrl} 
-                          name={member.name} 
-                          size="md" 
-                          shape="square"
-                          ring="primary" 
-                          elevation="sm" 
-                        />
-                        <div>
-                          <span className="font-bold text-zinc-900 dark:text-zinc-100 block">
-                            {locale === 'ta' && member.name
-                              ? translatePersonNameToTamil(member.name)
-                              : member.name}
-                          </span>
-                          <span className="text-xs text-zinc-400">
-                            {locale === 'ta'
-                              ? (role === 'Coordinator' ? 'ஒருங்கிணைப்பாளர்' : 'இணை ஒருங்கிணைப்பாளர்')
-                              : role}
-                          </span>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">
-                        {member.district?.name || member.union?.name || orgName || '—'}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {member.phone ? (
-                        <button
-                          onClick={(e) => handleInitiateCall(member.phone, member.name, e)}
-                          className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 border border-emerald-200/60 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
-                        >
-                          <PhoneCall className="w-3 h-3" />
-                          <span className="font-mono">{member.phone}</span>
-                        </button>
-                      ) : (
-                        <span className="text-xs text-zinc-400 italic">No phone</span>
+                memberList.map((member: any, index: number) => {
+                  const isDraggingThis = draggedCadreId === member.id;
+                  const isOverThis = dragOverCadreId === member.id;
+                  const positionNumber = !isCoordinatorRole 
+                    ? (coCoordinatorPositionMap.get(member.id) ?? (index + 1))
+                    : null;
+
+                  return (
+                    <TableRow 
+                      key={member.id} 
+                      draggable={true}
+                      onDragStart={(e) => handleDragStart(e, member)}
+                      onDragOver={(e) => handleDragOver(e, member)}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, member)}
+                      onDragEnd={handleDragEnd}
+                      className={cn(
+                        "cursor-grab active:cursor-grabbing transition-colors",
+                        isDraggingThis && "opacity-40 bg-zinc-100 dark:bg-zinc-800",
+                        isOverThis && "bg-[#8F0A1B]/10 dark:bg-[#8F0A1B]/20 border-y-2 border-[#8F0A1B]",
+                        !isDraggingThis && !isOverThis && "hover:bg-zinc-50/50 dark:hover:bg-zinc-800/40"
                       )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-lg" onClick={() => handleOpenMoveSwap(member)} title="Move or Swap"><ArrowLeftRight className="w-3.5 h-3.5" /></Button><Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-blue-600 rounded-lg" onClick={() => handleEdit(member)}>
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-red-600 rounded-lg" onClick={() => handleDelete(member)}>
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
+                    >
+                      <TableCell className="font-medium">
+                        <div className="flex items-center gap-3">
+                          <div 
+                            className="text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 cursor-grab active:cursor-grabbing shrink-0"
+                            title={locale === 'ta' ? 'இழுத்து வரிசை மாற்றவும்' : 'Drag to reorder or swap'}
+                          >
+                            <GripVertical className="w-4 h-4" />
+                          </div>
+                          <UserAvatar 
+                            src={member.photoUrl} 
+                            name={member.name} 
+                            size="md" 
+                            shape="square"
+                            ring="primary" 
+                            elevation="sm" 
+                          />
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-zinc-900 dark:text-zinc-100 block">
+                                {locale === 'ta' && member.name
+                                  ? translatePersonNameToTamil(member.name)
+                                  : member.name}
+                              </span>
+                              {positionNumber && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-black bg-[#548777]/15 text-[#548777] dark:text-teal-300 border border-[#548777]/30">
+                                  #{positionNumber}
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-xs text-zinc-400">
+                              {locale === 'ta'
+                                ? (role === 'Coordinator' ? 'ஒருங்கிணைப்பாளர்' : 'இணை ஒருங்கிணைப்பாளர்')
+                                : role}
+                            </span>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">
+                          {member.district?.name || member.union?.name || orgName || '—'}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {member.phone ? (
+                          <button
+                            onClick={(e) => handleInitiateCall(member.phone, member.name, e)}
+                            className="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 border border-emerald-200/60 px-2.5 py-1 rounded-lg transition-colors cursor-pointer"
+                          >
+                            <PhoneCall className="w-3 h-3" />
+                            <span className="font-mono">{member.phone}</span>
+                          </button>
+                        ) : (
+                          <span className="text-xs text-zinc-400 italic">No phone</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50 dark:hover:bg-amber-950/40 rounded-lg" onClick={() => handleOpenMoveSwap(member)} title="Move or Swap"><ArrowLeftRight className="w-3.5 h-3.5" /></Button><Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-blue-600 rounded-lg" onClick={() => handleEdit(member)}>
+                            <Edit2 className="w-3.5 h-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-zinc-400 hover:text-red-600 rounded-lg" onClick={() => handleDelete(member)}>
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
               )}
             </TableBody>
           </Table>
@@ -600,6 +849,27 @@ export default function WingDetailsPage() {
         </div>
       </div>
 
+      {/* Reorder / Swap Success Notification */}
+      {reorderSuccessMsg && (
+        <div className="flex items-center gap-3 p-3.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-2xl text-emerald-800 dark:text-emerald-300 text-sm font-semibold shadow-xs animate-in fade-in duration-200">
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+          <span>{reorderSuccessMsg}</span>
+        </div>
+      )}
+
+      {/* Drag & Drop Guidance Banner */}
+      <div className="flex items-center gap-3 p-3.5 bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200/80 dark:border-zinc-700/80 rounded-2xl text-xs text-zinc-600 dark:text-zinc-300 shadow-2xs">
+        <GripVertical className="w-4 h-4 text-zinc-400 shrink-0" />
+        <div>
+          <span className="font-bold text-zinc-800 dark:text-zinc-100">
+            {locale === 'ta' ? 'இழுத்துப் போடும் வசதி:' : 'Drag & Drop Enabled:'}
+          </span>{' '}
+          {locale === 'ta'
+            ? 'இணை ஒருங்கிணைப்பாளர்களை இழுத்து அவர்களின் வரிசை எண்களை மாற்றலாம் (#1 – #10). ஒருங்கிணைப்பாளர் மற்றும் இணை ஒருங்கிணைப்பாளர் ஒருவரை ஒருவர் மீது இழுத்துப் போடுவதன் மூலம் அவர்களின் பொறுப்புகளைப் பரிமாறிக்கொள்ளலாம்.'
+            : 'Drag and drop co-coordinators to reorder their positions (#1 – #10). Drag between Coordinator and Co-coordinator to swap their roles.'}
+        </div>
+      </div>
+
       <div className="pb-8">
         {isMembersLoading ? (
           <div className="flex justify-center p-12">
@@ -622,7 +892,7 @@ export default function WingDetailsPage() {
         isOpen={isManageDialogOpen}
         onOpenChange={setIsManageDialogOpen}
         editingId={editingId}
-        cadres={members}
+        cadres={sortedMembers}
         defaultLevel={level.toUpperCase() as any}
         lockLevel={true}
         defaultDistrictId={level === 'district' ? orgId : undefined}
@@ -649,6 +919,15 @@ export default function WingDetailsPage() {
           queryClient.invalidateQueries({ queryKey: ['wings'] });
           queryClient.invalidateQueries({ queryKey: ['cadres'] });
         }}
+      />
+
+      <CadreDragSwapDialog
+        isOpen={!!swapConfirmation}
+        onClose={() => setSwapConfirmation(null)}
+        cadreA={swapConfirmation?.cadreA}
+        cadreB={swapConfirmation?.cadreB}
+        isLoading={isSwapping}
+        onConfirm={handleConfirmSwap}
       />
     </div>
   );

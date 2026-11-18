@@ -16,7 +16,9 @@ import {
   UserCheck, 
   Users,
   Building2,
-  ArrowLeftRight
+  ArrowLeftRight,
+  GripVertical,
+  CheckCircle2
 } from 'lucide-react';
 import { useLocale } from 'next-intl';
 import { Button } from '@/components/ui/button';
@@ -24,8 +26,18 @@ import { Input } from '@/components/ui/input';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { CadreCard } from '@/components/cadre-card';
 import { formatDesignation } from '@/components/cadre-card';
-import { translatePersonNameToTamil } from '@/lib/name-translations';
+import {
+  translatePersonNameToTamil,
+  isCadreExecutiveCommittee,
+  isCadreMultiMemberRole,
+  isCadreDraggable,
+  getRoleGroup,
+  isMultiMemberRole,
+} from '@/lib/name-translations';
 import { printCadreRosterPdf, formatAadhaar, formatPhone } from '@/lib/cadre-print';
+import { useReorderCadrePositions, useSwapCadres } from '@/hooks/use-cadres';
+import { CadreDragSwapDialog } from '@/components/cadre-drag-swap-dialog';
+import { cn } from '@/lib/utils';
 import {
   Table,
   TableBody,
@@ -82,6 +94,20 @@ export function CadreRosterTable({
   const [searchQuery, setSearchQuery] = useState('');
   const [maskAadhaar, setMaskAadhaar] = useState(false);
 
+  const [localCadres, setLocalCadres] = useState<any[]>(cadres);
+  const [draggedCadreId, setDraggedCadreId] = useState<string | null>(null);
+  const [dragOverCadreId, setDragOverCadreId] = useState<string | null>(null);
+  const [swapConfirmation, setSwapConfirmation] = useState<{ cadreA: any; cadreB: any } | null>(null);
+  const [isSwapping, setIsSwapping] = useState(false);
+  const [reorderSuccessMsg, setReorderSuccessMsg] = useState<string | null>(null);
+
+  const reorderMutation = useReorderCadrePositions();
+  const swapMutation = useSwapCadres();
+
+  useEffect(() => {
+    setLocalCadres(cadres);
+  }, [cadres]);
+
   // Responsive check: Table view only for desktop (>= 1024px); Tile view for others
   useEffect(() => {
     const handleResize = () => {
@@ -103,13 +129,173 @@ export function CadreRosterTable({
   const formmatedDivisionName = divisionName;
   const formattedOrgUnit = unitType ? `${effectiveUnionName} [ ${unitType} ]` : effectiveUnionName;
 
+  // Map cadre ID to its 1-based sequential position for multi-member roles
+  const cadrePositionMap = useMemo(() => {
+    const map = new Map<string, number>();
+    const roleCounters: Record<string, number> = {};
+
+    localCadres.forEach((c) => {
+      const rawRole = c.officeBearerRoles?.[0]?.role || c.role;
+      const group = getRoleGroup(rawRole);
+      if (isMultiMemberRole(rawRole)) {
+        roleCounters[group] = (roleCounters[group] || 0) + 1;
+        const pos = c.position && c.position > 0 ? c.position : roleCounters[group];
+        map.set(c.id, pos);
+      }
+    });
+
+    return map;
+  }, [localCadres]);
+
+  const hasDraggableCadres = useMemo(() => {
+    return localCadres.some((c) => isCadreDraggable(c));
+  }, [localCadres]);
+
+  // Drag and Drop handlers (supports intra-role position reordering and cross-role swapping)
+  const handleDragStart = (e: React.DragEvent, cadre: any) => {
+    if (!isCadreDraggable(cadre) || searchQuery.trim()) {
+      e.preventDefault();
+      return;
+    }
+    setDraggedCadreId(cadre.id);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', cadre.id);
+  };
+
+  const handleDragOver = (e: React.DragEvent, targetCadre: any) => {
+    if (!draggedCadreId || !isCadreDraggable(targetCadre) || searchQuery.trim()) {
+      return;
+    }
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverCadreId !== targetCadre.id) {
+      setDragOverCadreId(targetCadre.id);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Left target
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetCadre: any) => {
+    e.preventDefault();
+    setDragOverCadreId(null);
+
+    if (!draggedCadreId || draggedCadreId === targetCadre.id || searchQuery.trim()) {
+      setDraggedCadreId(null);
+      return;
+    }
+
+    if (!isCadreDraggable(targetCadre)) {
+      setDraggedCadreId(null);
+      return;
+    }
+
+    const cadreA = localCadres.find((c) => c.id === draggedCadreId);
+    const cadreB = targetCadre;
+    setDraggedCadreId(null);
+
+    if (!cadreA || !cadreB) return;
+
+    const roleA = cadreA.officeBearerRoles?.[0]?.role || cadreA.role;
+    const roleB = cadreB.officeBearerRoles?.[0]?.role || cadreB.role;
+    const groupA = getRoleGroup(roleA);
+    const groupB = getRoleGroup(roleB);
+
+    // Case 1: Same role group -> Reorder positions within the multi-member group
+    if (groupA === groupB) {
+      if (!isMultiMemberRole(roleA)) {
+        return;
+      }
+
+      const groupCadres = localCadres.filter((c) => {
+        const r = c.officeBearerRoles?.[0]?.role || c.role;
+        return getRoleGroup(r) === groupA;
+      });
+
+      const dragIdx = groupCadres.findIndex((c) => c.id === cadreA.id);
+      const targetIdx = groupCadres.findIndex((c) => c.id === cadreB.id);
+
+      if (dragIdx === -1 || targetIdx === -1 || dragIdx === targetIdx) {
+        return;
+      }
+
+      const updatedGroupCadres = [...groupCadres];
+      const [moved] = updatedGroupCadres.splice(dragIdx, 1);
+      updatedGroupCadres.splice(targetIdx, 0, moved);
+
+      const itemsToUpdate = updatedGroupCadres.map((c, index) => ({
+        id: c.id,
+        position: index + 1,
+      }));
+
+      let pointer = 0;
+      const newCadresList = localCadres.map((c) => {
+        const r = c.officeBearerRoles?.[0]?.role || c.role;
+        if (getRoleGroup(r) === groupA) {
+          const updated = updatedGroupCadres[pointer++];
+          return { ...updated, position: pointer };
+        }
+        return c;
+      });
+
+      setLocalCadres(newCadresList);
+
+      try {
+        await reorderMutation.mutateAsync(itemsToUpdate);
+        setReorderSuccessMsg(
+          locale === 'ta'
+            ? 'பதவி வரிசை எண் வெற்றிகரமாக புதுப்பிக்கப்பட்டது'
+            : 'Positions updated successfully'
+        );
+        setTimeout(() => setReorderSuccessMsg(null), 3500);
+      } catch (err: any) {
+        console.error('Failed to save positions:', err);
+        setLocalCadres(cadres);
+      }
+      return;
+    }
+
+    // Case 2: Different role groups -> Prompt Drag-to-Swap confirmation!
+    setSwapConfirmation({ cadreA, cadreB });
+  };
+
+  const handleConfirmSwap = async () => {
+    if (!swapConfirmation) return;
+    setIsSwapping(true);
+    try {
+      await swapMutation.mutateAsync({
+        cadreAId: swapConfirmation.cadreA.id,
+        cadreBId: swapConfirmation.cadreB.id,
+        swapAssignments: false,
+      });
+      setReorderSuccessMsg(
+        locale === 'ta'
+          ? 'பதவிகள் வெற்றிகரமாக மாற்றப்பட்டன'
+          : 'Roles swapped successfully'
+      );
+      setTimeout(() => setReorderSuccessMsg(null), 3500);
+      setSwapConfirmation(null);
+    } catch (err: any) {
+      console.error('Failed to swap roles:', err);
+      alert(err?.response?.data?.message || err?.message || 'Failed to swap roles');
+    } finally {
+      setIsSwapping(false);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedCadreId(null);
+    setDragOverCadreId(null);
+  };
+
   // Filter cadres based on search query
   const filteredCadres = useMemo(() => {
-    if (!cadres || cadres.length === 0) return [];
-    if (!searchQuery.trim()) return cadres;
+    if (!localCadres || localCadres.length === 0) return [];
+    if (!searchQuery.trim()) return localCadres;
 
     const q = searchQuery.toLowerCase().trim();
-    return cadres.filter((cadre) => {
+    return localCadres.filter((cadre) => {
       const name = cadre.name?.toLowerCase() || '';
       const nameTa = (cadre.nameTa || translatePersonNameToTamil(cadre.name || '')).toLowerCase();
       const phone = String(cadre.phone || '').toLowerCase();
@@ -131,14 +317,14 @@ export function CadreRosterTable({
         roleText.includes(q)
       );
     });
-  }, [cadres, searchQuery, locale]);
+  }, [localCadres, searchQuery, locale]);
 
   /**
    * Generates a high-quality printable document with official TVK branding,
    * full Tamil Unicode support, and triggers browser print (Save as PDF).
    */
   const handlePrintPdf = () => {
-    const listToPrint = filteredCadres.length > 0 ? filteredCadres : cadres;
+    const listToPrint = filteredCadres.length > 0 ? filteredCadres : localCadres;
     printCadreRosterPdf({
       cadres: listToPrint,
       locale,
@@ -265,6 +451,35 @@ export function CadreRosterTable({
         </div>
       </div>
 
+      {/* Informative Drag-and-Drop Banner for administrators */}
+      {hasDraggableCadres && !searchQuery.trim() && (
+        <div className="flex items-center justify-between gap-3 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/25 text-amber-900 dark:text-amber-200 text-xs font-semibold shadow-2xs">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="p-1 rounded-md bg-amber-500/20 text-amber-800 dark:text-amber-300 shrink-0">
+              <GripVertical className="w-3.5 h-3.5" />
+            </span>
+            <span className="truncate">
+              {locale === 'ta'
+                ? 'வரிசையை மாற்ற அல்லது பதவிகளை மாற்ற நிர்வாகிகளை இழுத்துப் போடலாம் (Drag to Reorder / Swap).'
+                : 'Drag and drop administrators to reorder positions or swap roles.'}
+            </span>
+          </div>
+          {(reorderMutation.isPending || isSwapping) && (
+            <span className="text-[11px] font-extrabold text-amber-700 dark:text-amber-300 animate-pulse shrink-0">
+              {locale === 'ta' ? 'புதுப்பிக்கப்படுகிறது...' : 'Updating...'}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Success Notification Banner */}
+      {reorderSuccessMsg && (
+        <div className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 text-xs font-bold shadow-2xs animate-in fade-in slide-in-from-top-1">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+          <span>{reorderSuccessMsg}</span>
+        </div>
+      )}
+
       {/* Main Content Area */}
       {filteredCadres.length === 0 ? (
         <div className="text-center py-12 px-4 rounded-2xl bg-zinc-50 dark:bg-zinc-800/40 border border-dashed border-zinc-200 dark:border-zinc-800">
@@ -321,9 +536,14 @@ export function CadreRosterTable({
             </TableHeader>
             <TableBody className="divide-y divide-zinc-100 dark:divide-zinc-800">
               {filteredCadres.map((cadre: any, idx: number) => {
+                const isMultiMember = isCadreMultiMemberRole(cadre);
+                const posNum = cadrePositionMap.get(cadre.id);
+                const canDrag = isCadreDraggable(cadre) && !searchQuery.trim();
+
                 const rawRole = cadre.officeBearerRoles?.[0]?.role || cadre.role || 'Member';
                 const isSecretary = rawRole.toUpperCase().includes('SECRETARY') || rawRole.toUpperCase().includes('TREASURER');
                 const isPresident = rawRole.toUpperCase().includes('PRESIDENT');
+                const isEc = isCadreExecutiveCommittee(cadre);
                 const roleDesignation = formatDesignation(rawRole, locale);
 
                 const primaryName = locale === 'ta' 
@@ -336,12 +556,36 @@ export function CadreRosterTable({
                 return (
                   <TableRow 
                     key={cadre.id || idx}
+                    draggable={canDrag}
+                    onDragStart={canDrag ? (e) => handleDragStart(e, cadre) : undefined}
+                    onDragOver={canDrag ? (e) => handleDragOver(e, cadre) : undefined}
+                    onDragLeave={canDrag ? handleDragLeave : undefined}
+                    onDrop={canDrag ? (e) => handleDrop(e, cadre) : undefined}
+                    onDragEnd={canDrag ? handleDragEnd : undefined}
                     onClick={() => onView && onView(cadre)}
-                    className="hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40 transition-colors cursor-pointer group"
+                    className={cn(
+                      "hover:bg-zinc-50/80 dark:hover:bg-zinc-800/40 transition-colors cursor-pointer group",
+                      canDrag && "hover:bg-amber-50/40 dark:hover:bg-amber-950/20",
+                      draggedCadreId === cadre.id && "opacity-40 bg-zinc-100 dark:bg-zinc-800",
+                      dragOverCadreId === cadre.id && "border-t-2 border-primary bg-primary/10"
+                    )}
                   >
-                    {/* S.No */}
-                    <TableCell className="text-center font-bold text-xs text-zinc-400 group-hover:text-primary transition-colors py-3.5">
-                      {idx + 1}
+                    {/* S.No & Drag Handle */}
+                    <TableCell className="text-center font-bold text-xs py-3.5">
+                      <div className="flex items-center justify-center gap-1.5">
+                        {canDrag && (
+                          <span 
+                            className="cursor-grab active:cursor-grabbing text-zinc-400 hover:text-amber-600 transition-colors"
+                            title={locale === 'ta' ? 'வரிசையை மாற்ற அல்லது பதவியை மாற்ற இழுக்கவும்' : 'Drag to reorder position or swap role'}
+                            onMouseDown={(e) => e.stopPropagation()}
+                          >
+                            <GripVertical className="w-3.5 h-3.5" />
+                          </span>
+                        )}
+                        <span className="text-zinc-400 group-hover:text-primary transition-colors">
+                          {idx + 1}
+                        </span>
+                      </div>
                     </TableCell>
 
                     {/* Name Column - No Member ID below name */}
@@ -367,15 +611,17 @@ export function CadreRosterTable({
                       </div>
                     </TableCell>
 
-                    {/* Role Column */}
+                    {/* Role Column with Position */}
                     <TableCell className="py-3.5">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span 
                           className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold tracking-wide border shadow-2xs ${
                             isSecretary 
                               ? 'bg-red-50 text-[#8F0A1B] dark:bg-red-950/40 dark:text-red-300 border-red-200/80 dark:border-red-900/40' 
                               : isPresident 
                               ? 'bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200/80 dark:border-amber-900/40' 
+                              : isEc
+                              ? 'bg-amber-500/15 text-amber-900 dark:text-amber-200 border-amber-500/30 font-bold'
                               : 'bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border-zinc-200/80 dark:border-zinc-700/80'
                           }`}
                         >
@@ -386,6 +632,16 @@ export function CadreRosterTable({
                           )}
                           <span>{roleDesignation}</span>
                         </span>
+
+                        {isMultiMember && posNum !== undefined && (
+                          <span 
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-mono text-[10px] font-extrabold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300/80 dark:border-amber-800 shadow-2xs"
+                            title={locale === 'ta' ? `பதவி எண்: ${posNum}` : `Position: #${posNum}`}
+                          >
+                            {/* <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> */}
+                            {`#${posNum}`}
+                          </span>
+                        )}
                       </div>
                     </TableCell>
 
@@ -515,6 +771,10 @@ export function CadreRosterTable({
         /* CARDS GRID VIEW */
         <div className="grid gap-5 sm:gap-6 [grid-template-columns:repeat(auto-fill,minmax(240px,1fr))]">
           {filteredCadres.map((cadre: any, index: number) => {
+            const isMultiMember = isCadreMultiMemberRole(cadre);
+            const posNum = cadrePositionMap.get(cadre.id);
+            const canDrag = isCadreDraggable(cadre) && !searchQuery.trim();
+
             const rawRole = cadre.officeBearerRoles?.[0]?.role || cadre.role || 'Member';
             const isSecretary = rawRole.toUpperCase().includes('SECRETARY') || rawRole.toUpperCase().includes('PRESIDENT');
             const highlight = index === 0 && isSecretary;
@@ -526,6 +786,14 @@ export function CadreRosterTable({
                 highlight={highlight}
                 minWidth="240px"
                 showLocation={true}
+                isDraggable={canDrag}
+                isDragOver={dragOverCadreId === cadre.id}
+                positionNumber={isMultiMember ? posNum : undefined}
+                onDragStart={(e) => handleDragStart(e, cadre)}
+                onDragOver={(e) => handleDragOver(e, cadre)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, cadre)}
+                onDragEnd={handleDragEnd}
                 onView={(c) => onView && onView(c)}
                 onEdit={(e, c) => onEdit && onEdit(e, c)}
                 onDelete={(e, id) => onDelete && onDelete(e, id)}
@@ -536,6 +804,16 @@ export function CadreRosterTable({
           })}
         </div>
       )}
+
+      {/* Cross-Role Drag-to-Swap Confirmation Dialog */}
+      <CadreDragSwapDialog
+        isOpen={Boolean(swapConfirmation)}
+        onClose={() => setSwapConfirmation(null)}
+        cadreA={swapConfirmation?.cadreA}
+        cadreB={swapConfirmation?.cadreB}
+        onConfirm={handleConfirmSwap}
+        isLoading={isSwapping}
+      />
     </div>
   );
 }

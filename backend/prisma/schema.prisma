@@ -229,6 +229,7 @@ model Cadre {
   aadhaarNumber String? @unique
   voterId       String? @unique
   photoUrl      String?
+  gender        String? @default("Male")
   attachments   Json?
   translations  Json?
   role          String?
@@ -239,6 +240,7 @@ model Cadre {
   dateOfBirth   String?
   dob           String?
   remarks       String?
+  position      Int?    @default(0)
 
   level CadreLevel @default(KILAI)
 

@@ -27,6 +27,7 @@ import { useKilais } from '@/hooks/use-kilais';
 import { usePanchayats } from '@/hooks/use-panchayats';
 import { useVillages } from '@/hooks/use-villages';
 import { BoothMultiSelect } from '@/components/shared/booth-multi-select';
+import { isExecutiveCommitteeRole } from '@/lib/name-translations';
 
 export interface CadreFormData {
   name: string;
@@ -40,6 +41,8 @@ export interface CadreFormData {
   aadhaarNumber?: string | null;
   voterId?: string | null;
   photoUrl?: string | null;
+  gender?: string | null;
+  position?: number | string | null;
   attachments?: { 
     aadhaarPhoto?: string; 
     voterIdPhoto?: string; 
@@ -111,11 +114,13 @@ export function CadreFormDialog({
     aadhaarNumber: '',
     voterId: '',
     photoUrl: '',
+    gender: 'Male',
     attachments: { aadhaarPhoto: '', voterIdPhoto: '', membershipCard: '' },
     panchayat: defaultPanchayat || defaultArea || '',
     village: defaultVillage || '',
     dateOfBirth: '',
     remarks: '',
+    position: '',
     area: defaultArea || '',
     boothNo: defaultBoothNo || '',
     wingId: defaultWingId,
@@ -217,11 +222,13 @@ export function CadreFormDialog({
             aadhaarNumber: cadre.aadhaarNumber || '',
             voterId: cadre.voterId || '',
             photoUrl: cadre.photoUrl || '',
+            gender: cadre.gender || 'Male',
             attachments: cadre.attachments || { aadhaarPhoto: '', voterIdPhoto: '', membershipCard: '' },
             panchayat: cadre.panchayat || cadre.area || '',
             village: cadre.village || '',
             dateOfBirth: cadre.dateOfBirth || cadre.dob || '',
             remarks: cadre.remarks || '',
+            position: cadre.position || '',
             area: cadre.area || '',
             boothNo: cadre.boothNo || '',
           });
@@ -343,6 +350,7 @@ export function CadreFormDialog({
         phone: trimmedPhone || undefined,
         aadhaarNumber: trimmedAadhaar || undefined,
         photoUrl: photoUrl || undefined,
+        gender: formData.gender || 'Male',
         districtId: formData.level === 'DISTRICT' ? (formData.districtId || undefined) : (editingId ? null : undefined),
         unionId: (formData.level === 'UNION' || formData.level === 'KILAI') ? (formData.unionId || undefined) : (editingId ? null : undefined),
         homeKilaiId: formData.level === 'KILAI' ? (formData.homeKilaiId || undefined) : (editingId ? null : undefined),
@@ -351,6 +359,7 @@ export function CadreFormDialog({
         dateOfBirth: formData.dateOfBirth?.trim() || null,
         dob: formData.dateOfBirth?.trim() || null,
         remarks: formData.remarks?.trim() || null,
+        position: formData.position ? parseInt(String(formData.position), 10) : (editingId ? null : undefined),
         area: [formData.panchayat?.trim(), formData.village?.trim()].filter(Boolean).join(', ') || formData.area || null,
         attachments: {
           aadhaarPhoto: aadhaarPhoto || undefined,
@@ -612,6 +621,27 @@ export function CadreFormDialog({
               </Select>
             </div>
 
+            {isExecutiveCommitteeRole(formData.role) && (
+              <div className="space-y-2 animate-in fade-in duration-200">
+                <Label htmlFor="position" className="flex items-center justify-between">
+                  <span>Executive Committee Position</span>
+                  <span className="text-muted-foreground text-xs font-normal">(e.g. 1, 2, 3...)</span>
+                </Label>
+                <Input 
+                  id="position" 
+                  type="number"
+                  min={1}
+                  value={formData.position || ''}
+                  onChange={(e) => setFormData({ ...formData, position: e.target.value ? parseInt(e.target.value, 10) : '' })}
+                  placeholder="e.g. 1, 2, 3..."
+                  className="w-full font-mono"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Order/rank of this member within the Executive Committee roster. Can also be rearranged via Drag and Drop on the roster.
+                </p>
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="dateOfBirth">
                 Date of Birth <span className="text-muted-foreground text-xs font-normal">(Optional)</span>
@@ -623,6 +653,23 @@ export function CadreFormDialog({
                 onChange={(e) => setFormData({ ...formData, dateOfBirth: e.target.value })}
                 className="w-full"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="gender">Gender</Label>
+              <Select 
+                value={formData.gender || 'Male'} 
+                onValueChange={(val) => setFormData({ ...formData, gender: val })}
+              >
+                <SelectTrigger id="gender" className="w-full">
+                  <SelectValue placeholder="Select gender" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Male">Male</SelectItem>
+                  <SelectItem value="Female">Female</SelectItem>
+                  <SelectItem value="3rd Gender">3rd Gender</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2 flex flex-col">

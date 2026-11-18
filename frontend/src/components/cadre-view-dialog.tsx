@@ -171,6 +171,15 @@ export function CadreViewDialog({
               </div>
             </div>
 
+            <div className="space-y-1">
+              <Label className="text-muted-foreground text-xs uppercase tracking-wider">Gender</Label>
+              <div className="font-medium text-gray-900 dark:text-zinc-100">
+                {locale === 'ta'
+                  ? (cadre.gender === 'Female' ? 'பெண்' : cadre.gender === '3rd Gender' ? 'மூன்றாம் பாலினம்' : 'ஆண்')
+                  : (cadre.gender || 'Male')}
+              </div>
+            </div>
+
             {(cadre.dateOfBirth || cadre.dob) && (
               <div className="space-y-1">
                 <Label className="text-muted-foreground text-xs uppercase tracking-wider">Date of Birth</Label>

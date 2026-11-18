@@ -105,3 +105,17 @@ export function useSwapCadres() {
     },
   });
 }
+
+export function useReorderCadrePositions() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (items: { id: string; position: number }[]) => cadreApi.reorderPositions(items),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['cadres'] });
+      queryClient.invalidateQueries({ queryKey: ['unions'] });
+      queryClient.invalidateQueries({ queryKey: ['kilais'] });
+      queryClient.invalidateQueries({ queryKey: ['wings'] });
+    },
+  });
+}

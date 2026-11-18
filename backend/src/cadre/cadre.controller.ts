@@ -56,6 +56,12 @@ export class CadreController {
     return this.cadreService.findOne(id);
   }
 
+  @Patch('reorder-positions')
+  @ApiOperation({ summary: 'Reorder positions for Executive Committee members' })
+  reorderPositions(@Body() payload: { items?: { id: string; position: number }[]; cadreIds?: string[] }) {
+    return this.cadreService.reorderPositions(payload);
+  }
+
   @Patch(':id')
   @ApiOperation({ summary: 'Update a cadre' })
   update(@Param('id') id: string, @Body() payload: any) {

@@ -267,13 +267,37 @@ export class UnionsService {
 
     const getRoleRank = (cadre: any) => {
       const rawRole = cadre.officeBearerRoles?.[0]?.role || cadre.role || '';
-      const norm = rawRole.toUpperCase().replace(/[_\s]+/g, ' ').trim();
-      if (norm.includes('PRESIDENT')) return 1;
-      if (norm.includes('JOINT SECRETARY')) return 3;
-      if (norm.includes('DEPUTY SECRETARY')) return 5;
-      if (norm.includes('SECRETARY')) return 2;
-      if (norm.includes('TREASURER')) return 4;
-      if (norm.includes('EXECUTIVE') || norm.includes('EC')) return 6;
+      const norm = rawRole.toUpperCase().replace(/[_\s-]+/g, ' ').trim();
+      if (norm.includes('PRESIDENT') || rawRole.includes('தலைவர்')) return 1;
+      if (
+        norm.includes('JOINT SECRETARY') ||
+        rawRole.includes('இணைச் செயலாளர்') ||
+        (rawRole.includes('இணை') && rawRole.includes('செயலாளர்'))
+      ) {
+        return 3;
+      }
+      if (
+        norm.includes('DEPUTY SECRETARY') ||
+        rawRole.includes('துணைச் செயலாளர்') ||
+        (rawRole.includes('துணை') && rawRole.includes('செயலாளர்'))
+      ) {
+        return 5;
+      }
+      if (norm.includes('SECRETARY') || rawRole.includes('செயலாளர்')) return 2;
+      if (norm.includes('TREASURER') || rawRole.includes('பொருளாளர்')) return 4;
+      if (norm.includes('EXECUTIVE') || norm.includes('EC') || rawRole.includes('செயற்குழு')) return 6;
+      if (
+        norm === 'CO COORDINATOR' ||
+        norm === 'COCOORDINATOR' ||
+        norm.includes('CO COORDINATOR') ||
+        norm.includes('CO_COORDINATOR') ||
+        norm.includes('CO-COORDINATOR') ||
+        rawRole.includes('இணை ஒருங்கிணைப்பாளர்') ||
+        (rawRole.includes('இணை') && rawRole.includes('ஒருங்கிணைப்பாளர்'))
+      ) {
+        return 8;
+      }
+      if (norm === 'COORDINATOR' || rawRole.includes('ஒருங்கிணைப்பாளர்')) return 7;
       return ROLE_WEIGHTS[cadre.role || ''] || 99;
     };
 
@@ -291,6 +315,11 @@ export class UnionsService {
       if (rankA !== rankB) {
         return rankA - rankB;
       }
+
+      // If roles are identical, sort by position!
+      const posA = a.position && a.position > 0 ? a.position : 9999;
+      const posB = b.position && b.position > 0 ? b.position : 9999;
+      if (posA !== posB) return posA - posB;
 
       return 0;
     });

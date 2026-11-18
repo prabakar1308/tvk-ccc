@@ -35,13 +35,24 @@ import {
   Check,
   Award,
   Printer,
-  ArrowLeftRight
+  ArrowLeftRight,
+  GripVertical,
+  CheckCircle2
 } from "lucide-react";
 import { Link } from '@/i18n/routing';
 import { useTranslations, useLocale } from 'next-intl';
-import { translatePersonNameToTamil } from '@/lib/name-translations';
+import {
+  translatePersonNameToTamil,
+  isCadreExecutiveCommittee,
+  isCadreMultiMemberRole,
+  isCadreDraggable,
+  getRoleGroup,
+  isMultiMemberRole,
+  isCadreDragDropAllowed,
+} from '@/lib/name-translations';
+import { useUser } from '@/contexts/user-context';
 import { printCadreRosterPdf } from '@/lib/cadre-print';
-import { useCadres, useDeleteCadre } from '@/hooks/use-cadres';
+import { useCadres, useDeleteCadre, useReorderCadrePositions, useSwapCadres } from '@/hooks/use-cadres';
 import { useUnions } from '@/hooks/use-unions';
 import { useKilais } from '@/hooks/use-kilais';
 import { useWings } from '@/hooks/use-wings';
@@ -58,6 +69,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { CadreFormDialog } from '@/components/cadre-form-dialog';
 import { CadreViewDialog } from '@/components/cadre-view-dialog';
 import { CadreMoveSwapDialog } from '@/components/cadre-move-swap-dialog';
+import { CadreDragSwapDialog } from '@/components/cadre-drag-swap-dialog';
 import { CallConfirmationDialog } from '@/components/shared/call-confirmation-dialog';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { CadreCard, formatDesignation } from '@/components/cadre-card';
@@ -68,6 +80,7 @@ export default function CadresPage() {
   const t = useTranslations('Cadres');
   const tCommon = useTranslations('Common');
   const tForms = useTranslations('Forms');
+  const { user, hasPermission } = useUser();
 
   // Primary Level Filter
   const [levelFilter, setLevelFilter] = useState<string>('ALL');
@@ -127,6 +140,15 @@ export default function CadresPage() {
   const [callConfirmation, setCallConfirmation] = useState<{name: string, phone: string} | null>(null);
   const [isMoveSwapOpen, setIsMoveSwapOpen] = useState(false);
   const [moveSwapCadre, setMoveSwapCadre] = useState<any | null>(null);
+
+  // Drag and drop states for multi-member roles and cross-role swapping
+  const [draggedCadreId, setDraggedCadreId] = useState<string | null>(null);
+  const [dragOverCadreId, setDragOverCadreId] = useState<string | null>(null);
+  const [swapConfirmation, setSwapConfirmation] = useState<{ cadreA: any; cadreB: any } | null>(null);
+  const [isSwapping, setIsSwapping] = useState(false);
+  const [reorderSuccessMsg, setReorderSuccessMsg] = useState<string | null>(null);
+  const reorderMutation = useReorderCadrePositions();
+  const swapMutation = useSwapCadres();
 
   const handleOpenMoveSwap = (cadre?: any) => {
     setMoveSwapCadre(cadre || null);
@@ -375,6 +397,183 @@ function matchesRoleFilter(rawRole: string | undefined | null, filterId: string)
     includeKilai,
     filterKilaiId,
   ]);
+
+  // Map cadre ID to its 1-based sequential position for multi-member roles
+  const cadrePositionMap = useMemo(() => {
+    const map = new Map<string, number>();
+    const roleCounters: Record<string, number> = {};
+
+    filteredCadres.forEach((c) => {
+      const rawRole = c.officeBearerRoles?.[0]?.role || c.role;
+      const group = getRoleGroup(rawRole);
+      if (isMultiMemberRole(rawRole)) {
+        roleCounters[group] = (roleCounters[group] || 0) + 1;
+        const pos = c.position && c.position > 0 ? c.position : roleCounters[group];
+        map.set(c.id, pos);
+      }
+    });
+
+    return map;
+  }, [filteredCadres]);
+
+  // Check if drag-and-drop feature is allowed for the currently active filter/unit context
+  const isDragDropEnabled = useMemo(() => {
+    return isCadreDragDropAllowed({
+      levelFilter,
+      filterLevel,
+      filterUnionId,
+      filterKilaiId,
+      filterWingId,
+      wingsFilterType,
+      includeKilai,
+      searchQuery,
+      userRole: user?.role,
+      userPermissions: user?.permissions,
+      hasPermission,
+    });
+  }, [
+    levelFilter,
+    filterLevel,
+    filterUnionId,
+    filterKilaiId,
+    filterWingId,
+    wingsFilterType,
+    includeKilai,
+    searchQuery,
+    user?.role,
+    user?.permissions,
+    hasPermission,
+  ]);
+
+  const hasDraggableCadres = useMemo(() => {
+    return isDragDropEnabled && filteredCadres.some((c) => isCadreDraggable(c));
+  }, [isDragDropEnabled, filteredCadres]);
+
+  // Drag and Drop handlers for administrators (multi-member reorder & cross-role swap)
+  const handleDragStart = (e: React.DragEvent, cadre: any) => {
+    if (!isDragDropEnabled || !isCadreDraggable(cadre) || searchQuery.trim()) {
+      e.preventDefault();
+      return;
+    }
+    setDraggedCadreId(cadre.id);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', cadre.id);
+  };
+
+  const handleDragOver = (e: React.DragEvent, targetCadre: any) => {
+    if (!isDragDropEnabled || !draggedCadreId || !isCadreDraggable(targetCadre) || searchQuery.trim()) {
+      return;
+    }
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverCadreId !== targetCadre.id) {
+      setDragOverCadreId(targetCadre.id);
+    }
+  };
+
+  const handleDragLeave = () => {
+    // Left target
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetCadre: any) => {
+    e.preventDefault();
+    setDragOverCadreId(null);
+
+    if (!isDragDropEnabled || !draggedCadreId || draggedCadreId === targetCadre.id || searchQuery.trim()) {
+      setDraggedCadreId(null);
+      return;
+    }
+
+    if (!isCadreDraggable(targetCadre)) {
+      setDraggedCadreId(null);
+      return;
+    }
+
+    const cadreA = filteredCadres.find((c) => c.id === draggedCadreId);
+    const cadreB = targetCadre;
+
+    setDraggedCadreId(null);
+
+    if (!cadreA || !cadreB) return;
+
+    const roleA = cadreA.officeBearerRoles?.[0]?.role || cadreA.role;
+    const roleB = cadreB.officeBearerRoles?.[0]?.role || cadreB.role;
+    const groupA = getRoleGroup(roleA);
+    const groupB = getRoleGroup(roleB);
+
+    // Case 1: Same role group (e.g. Joint Secretary with Joint Secretary, EC with EC, Co-coordinator with Co-coordinator)
+    if (groupA === groupB) {
+      if (!isMultiMemberRole(roleA)) {
+        return;
+      }
+
+      const roleCadres = filteredCadres.filter((c) => {
+        const r = c.officeBearerRoles?.[0]?.role || c.role;
+        return getRoleGroup(r) === groupA;
+      });
+
+      const dragIdx = roleCadres.findIndex((c) => c.id === cadreA.id);
+      const targetIdx = roleCadres.findIndex((c) => c.id === cadreB.id);
+
+      if (dragIdx === -1 || targetIdx === -1 || dragIdx === targetIdx) {
+        return;
+      }
+
+      const updatedRoleCadres = [...roleCadres];
+      const [moved] = updatedRoleCadres.splice(dragIdx, 1);
+      updatedRoleCadres.splice(targetIdx, 0, moved);
+
+      const itemsToUpdate = updatedRoleCadres.map((c, index) => ({
+        id: c.id,
+        position: index + 1,
+      }));
+
+      try {
+        await reorderMutation.mutateAsync(itemsToUpdate);
+        setReorderSuccessMsg(
+          locale === 'ta'
+            ? 'பதவி வரிசை எண் வெற்றிகரமாக புதுப்பிக்கப்பட்டது'
+            : 'Positions updated successfully'
+        );
+        setTimeout(() => setReorderSuccessMsg(null), 3500);
+      } catch (err: any) {
+        console.error('Failed to save positions:', err);
+      }
+      return;
+    }
+
+    // Case 2: Different role groups -> Prompt Drag-to-Swap confirmation!
+    setSwapConfirmation({ cadreA, cadreB });
+  };
+
+  const handleConfirmSwap = async () => {
+    if (!swapConfirmation) return;
+    setIsSwapping(true);
+    try {
+      await swapMutation.mutateAsync({
+        cadreAId: swapConfirmation.cadreA.id,
+        cadreBId: swapConfirmation.cadreB.id,
+        swapAssignments: false,
+      });
+      setReorderSuccessMsg(
+        locale === 'ta'
+          ? 'பதவிகள் வெற்றிகரமாக மாற்றப்பட்டன'
+          : 'Roles swapped successfully'
+      );
+      setTimeout(() => setReorderSuccessMsg(null), 3500);
+      setSwapConfirmation(null);
+    } catch (err: any) {
+      console.error('Failed to swap roles:', err);
+      alert(err?.response?.data?.message || err?.message || 'Failed to swap roles');
+    } finally {
+      setIsSwapping(false);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggedCadreId(null);
+    setDragOverCadreId(null);
+  };
 
   const getRoleBadge = (role: string | undefined, level: string, isShort = false) => {
     let displayRole = formatDesignation(role, locale);
@@ -851,6 +1050,35 @@ function matchesRoleFilter(rawRole: string | undefined | null, filterId: string)
         </div>
       </div>
 
+      {/* Informative Drag-and-Drop Banner for administrators */}
+      {hasDraggableCadres && !searchQuery.trim() && (
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-500/25 text-amber-900 dark:text-amber-200 text-xs font-semibold shadow-2xs">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="p-1 rounded-md bg-amber-500/20 text-amber-800 dark:text-amber-300 shrink-0">
+              <GripVertical className="w-3.5 h-3.5" />
+            </span>
+            <span className="truncate">
+              {locale === 'ta'
+                ? 'வரிசையை மாற்ற அல்லது பதவிகளை மாற்ற நிர்வாகிகளை இழுத்துப் போடலாம் (Drag to Reorder / Swap).'
+                : 'Drag and drop administrators to reorder positions or swap roles.'}
+            </span>
+          </div>
+          {(reorderMutation.isPending || isSwapping) && (
+            <span className="text-[11px] font-extrabold text-amber-700 dark:text-amber-300 animate-pulse shrink-0">
+              {locale === 'ta' ? 'புதுப்பிக்கப்படுகிறது...' : 'Updating...'}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Success Notification Banner */}
+      {reorderSuccessMsg && (
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 text-xs font-bold shadow-2xs animate-in fade-in slide-in-from-top-1">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+          <span>{reorderSuccessMsg}</span>
+        </div>
+      )}
+
       {/* Main Content Area: Cards Grid or Table */}
       <div id="cadres-table-section" className="scroll-mt-20">
         {isLoading ? (
@@ -881,21 +1109,35 @@ function matchesRoleFilter(rawRole: string | undefined | null, filterId: string)
         ) : viewType === 'TILE' ? (
           /* Responsive Auto-Fill Grid with Minimum Card Width */
           <div className="grid gap-5 sm:gap-6 [grid-template-columns:repeat(auto-fill,minmax(240px,1fr))]">
-            {filteredCadres.map((cadre) => (
-              <CadreCard
-                key={cadre.id}
-                cadre={cadre}
-                minWidth="240px"
-                showMemberId={true}
-                showLevelBadge={levelFilter === 'ALL'}
-                showLocation={true}
-                onView={(c) => handleOpenView(c)}
-                onEdit={(e, c) => handleOpenEdit(e, c)}
-                onDelete={(e, id) => handleDelete(e, id)}
-                onMoveSwap={(e, c) => handleOpenMoveSwap(c)}
-                onCall={(person) => setCallConfirmation(person)}
-              />
-            ))}
+            {filteredCadres.map((cadre) => {
+              const isMultiMember = isCadreMultiMemberRole(cadre);
+              const posNum = cadrePositionMap.get(cadre.id);
+              const canDrag = isDragDropEnabled && isCadreDraggable(cadre) && !searchQuery.trim();
+
+              return (
+                <CadreCard
+                  key={cadre.id}
+                  cadre={cadre}
+                  minWidth="240px"
+                  showMemberId={true}
+                  showLevelBadge={levelFilter === 'ALL'}
+                  showLocation={true}
+                  isDraggable={canDrag}
+                  isDragOver={dragOverCadreId === cadre.id}
+                  positionNumber={isDragDropEnabled && isMultiMember ? posNum : undefined}
+                  onDragStart={(e) => handleDragStart(e, cadre)}
+                  onDragOver={(e) => handleDragOver(e, cadre)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, cadre)}
+                  onDragEnd={handleDragEnd}
+                  onView={(c) => handleOpenView(c)}
+                  onEdit={(e, c) => handleOpenEdit(e, c)}
+                  onDelete={(e, id) => handleDelete(e, id)}
+                  onMoveSwap={(e, c) => handleOpenMoveSwap(c)}
+                  onCall={(person) => setCallConfirmation(person)}
+                />
+              );
+            })}
           </div>
         ) : (
           /* Table View */
@@ -913,38 +1155,76 @@ function matchesRoleFilter(rawRole: string | undefined | null, filterId: string)
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredCadres.map((cadre) => (
-                  <TableRow
-                    key={cadre.id}
-                    className="hover:bg-primary/[0.03] transition-colors group border-b border-zinc-100 dark:border-zinc-800 cursor-pointer"
-                    onClick={() => handleOpenView(cadre)}
-                  >
-                    <TableCell className="font-mono text-xs font-semibold text-muted-foreground py-3.5">
-                      {cadre.memberId}
-                    </TableCell>
-                    <TableCell className="font-bold text-sm py-3.5 text-foreground flex items-center gap-3">
-                      <UserAvatar
-                        src={cadre.photoUrl}
-                        name={locale === 'ta' && cadre.name ? translatePersonNameToTamil(cadre.name) : cadre.name}
-                        size="sm"
-                        ring="default"
-                        elevation="none"
-                      />
-                      <span className="font-extrabold group-hover:text-primary transition-colors">
-                        {locale === 'ta' && cadre.name ? translatePersonNameToTamil(cadre.name) : cadre.name}
-                      </span>
-                    </TableCell>
-                    <TableCell className="py-3.5 font-bold text-xs text-primary">
-                      {cadre.level}
-                    </TableCell>
-                    <TableCell className="py-3.5">
-                      {getRoleBadge(cadre.role, cadre.level)}
-                      {cadre.wing && (
-                        <div className="mt-1 text-[11px] font-semibold text-muted-foreground">
-                          {cadre.wing.name}
-                        </div>
+                {filteredCadres.map((cadre, idx) => {
+                  const isMultiMember = isCadreMultiMemberRole(cadre);
+                  const posNum = cadrePositionMap.get(cadre.id);
+                  const canDrag = isDragDropEnabled && isCadreDraggable(cadre) && !searchQuery.trim();
+
+                  return (
+                    <TableRow
+                      key={cadre.id}
+                      draggable={canDrag}
+                      onDragStart={canDrag ? (e) => handleDragStart(e, cadre) : undefined}
+                      onDragOver={canDrag ? (e) => handleDragOver(e, cadre) : undefined}
+                      onDragLeave={canDrag ? handleDragLeave : undefined}
+                      onDrop={canDrag ? (e) => handleDrop(e, cadre) : undefined}
+                      onDragEnd={canDrag ? handleDragEnd : undefined}
+                      className={cn(
+                        "hover:bg-primary/[0.03] transition-colors group border-b border-zinc-100 dark:border-zinc-800 cursor-pointer",
+                        canDrag && "hover:bg-amber-50/40 dark:hover:bg-amber-950/20",
+                        draggedCadreId === cadre.id && "opacity-40 bg-zinc-100 dark:bg-zinc-800",
+                        dragOverCadreId === cadre.id && "border-t-2 border-primary bg-primary/10"
                       )}
-                    </TableCell>
+                      onClick={() => handleOpenView(cadre)}
+                    >
+                      <TableCell className="font-mono text-xs font-semibold text-muted-foreground py-3.5">
+                        <div className="flex items-center gap-1.5">
+                          {canDrag && (
+                            <span 
+                              className="cursor-grab active:cursor-grabbing text-zinc-400 hover:text-amber-600 transition-colors"
+                              title={locale === 'ta' ? 'வரிசையை மாற்ற அல்லது பதவியை மாற்ற இழுக்கவும்' : 'Drag to reorder position or swap role'}
+                              onMouseDown={(e) => e.stopPropagation()}
+                            >
+                              <GripVertical className="w-3.5 h-3.5" />
+                            </span>
+                          )}
+                          <span>{cadre.memberId}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-bold text-sm py-3.5 text-foreground flex items-center gap-3">
+                        <UserAvatar
+                          src={cadre.photoUrl}
+                          name={locale === 'ta' && cadre.name ? translatePersonNameToTamil(cadre.name) : cadre.name}
+                          size="sm"
+                          ring="default"
+                          elevation="none"
+                        />
+                        <span className="font-extrabold group-hover:text-primary transition-colors">
+                          {locale === 'ta' && cadre.name ? translatePersonNameToTamil(cadre.name) : cadre.name}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-3.5 font-bold text-xs text-primary">
+                        {cadre.level}
+                      </TableCell>
+                      <TableCell className="py-3.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {getRoleBadge(cadre.role, cadre.level)}
+                          {isDragDropEnabled && isMultiMember && posNum !== undefined && (
+                            <span 
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-mono text-[10px] font-extrabold bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300/80 dark:border-amber-800 shadow-2xs"
+                              title={locale === 'ta' ? `பதவி எண்: ${posNum}` : `Position: #${posNum}`}
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                              {`#${posNum}`}
+                            </span>
+                          )}
+                        </div>
+                        {cadre.wing && (
+                          <div className="mt-1 text-[11px] font-semibold text-muted-foreground">
+                            {cadre.wing.name}
+                          </div>
+                        )}
+                      </TableCell>
                     <TableCell className="py-3.5 text-xs text-muted-foreground font-medium">
                       {(cadre.panchayat || cadre.village || cadre.area) ? (
                         <span className="inline-flex items-center gap-1 font-semibold text-zinc-700 dark:text-zinc-300">
@@ -1009,7 +1289,8 @@ function matchesRoleFilter(rawRole: string | undefined | null, filterId: string)
                       </div>
                     </TableCell>
                   </TableRow>
-                ))}
+                );
+              })}
               </TableBody>
             </Table>
           </div>
@@ -1038,6 +1319,16 @@ function matchesRoleFilter(rawRole: string | undefined | null, filterId: string)
         isOpen={isMoveSwapOpen}
         onOpenChange={setIsMoveSwapOpen}
         initialCadre={moveSwapCadre}
+      />
+
+      {/* Cross-Role Drag-to-Swap Confirmation Dialog */}
+      <CadreDragSwapDialog
+        isOpen={Boolean(swapConfirmation)}
+        onClose={() => setSwapConfirmation(null)}
+        cadreA={swapConfirmation?.cadreA}
+        cadreB={swapConfirmation?.cadreB}
+        onConfirm={handleConfirmSwap}
+        isLoading={isSwapping}
       />
 
       {/* Call Confirmation Dialog */}

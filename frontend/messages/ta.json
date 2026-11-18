@@ -134,6 +134,10 @@
   "Forms": {
     "name": "பெயர்",
     "phone": "தொலைபேசி",
+    "gender": "பாலினம்",
+    "male": "ஆண்",
+    "female": "பெண்",
+    "thirdGender": "மூன்றாம் பாலினம்",
     "contactName": "செயலாளர் பெயர்",
     "contactPhone": "தொடர்பு தொலைபேசி",
     "district": "மாவட்டம்",

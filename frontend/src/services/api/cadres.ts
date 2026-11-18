@@ -8,6 +8,7 @@ export interface Cadre {
   aadhaarNumber?: string;
   voterId?: string;
   photoUrl?: string;
+  gender?: 'Male' | 'Female' | '3rd Gender' | string;
   attachments?: any;
   level: 'DISTRICT' | 'GROUP' | 'UNION' | 'KILAI';
   districtId?: string;
@@ -24,6 +25,7 @@ export interface Cadre {
   dateOfBirth?: string;
   dob?: string;
   remarks?: string;
+  position?: number;
   officeBearerRoles?: { role: string }[];
   wingId?: string;
   wing?: any;
@@ -123,6 +125,18 @@ export const cadreApi = {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.message || 'Failed to swap cadres');
+    }
+    return res.json();
+  },
+
+  reorderPositions: async (items: { id: string; position: number }[]): Promise<{ message: string; success: boolean }> => {
+    const res = await fetchWithAuth('/api/v1/cadres/reorder-positions', {
+      method: 'PATCH',
+      body: JSON.stringify({ items }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Failed to reorder cadre positions');
     }
     return res.json();
   },

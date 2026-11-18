@@ -134,6 +134,10 @@
   "Forms": {
     "name": "Name",
     "phone": "Phone",
+    "gender": "Gender",
+    "male": "Male",
+    "female": "Female",
+    "thirdGender": "3rd Gender",
     "contactName": "Secretary Name",
     "contactPhone": "Contact Phone",
     "district": "District",

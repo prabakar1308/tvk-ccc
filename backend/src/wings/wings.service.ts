@@ -59,12 +59,30 @@ export class WingsService {
       whereClause.unionId = unionId;
     }
 
-    return this.prisma.cadre.findMany({
+    const members = await this.prisma.cadre.findMany({
       where: whereClause,
       include: {
         district: true,
         union: true,
       },
+      orderBy: [
+        { role: 'asc' },
+        { position: 'asc' },
+        { createdAt: 'desc' },
+      ],
+    });
+
+    return members.sort((a, b) => {
+      const isCoordA = a.role === 'COORDINATOR';
+      const isCoordB = b.role === 'COORDINATOR';
+      if (isCoordA && !isCoordB) return -1;
+      if (!isCoordA && isCoordB) return 1;
+
+      const posA = a.position && a.position > 0 ? a.position : 9999;
+      const posB = b.position && b.position > 0 ? b.position : 9999;
+      if (posA !== posB) return posA - posB;
+
+      return 0;
     });
   }
 

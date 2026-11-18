@@ -973,3 +973,267 @@ export function isSecretaryRole(role?: string | null): boolean {
   return false;
 }
 
+/**
+ * Checks if a role is an Executive Committee Member (English or Tamil)
+ */
+export function isExecutiveCommitteeRole(role?: string | null): boolean {
+  if (!role || typeof role !== 'string') return false;
+  const upper = role.toUpperCase().trim();
+  return (
+    upper === 'EXECUTIVE_COMMITTEE_MEMBER' ||
+    upper === 'EXECUTIVE COMMITTEE MEMBER' ||
+    upper.includes('EXECUTIVE') ||
+    upper === 'EC' ||
+    upper === 'EC MEMBER' ||
+    upper === 'EC_MEMBER' ||
+    upper.startsWith('EC ') ||
+    upper.endsWith(' EC') ||
+    role.includes('செயற்குழு')
+  );
+}
+
+/**
+ * Checks if a cadre object represents an Executive Committee Member
+ */
+export function isCadreExecutiveCommittee(cadre: any): boolean {
+  if (!cadre) return false;
+  if (isExecutiveCommitteeRole(cadre.role)) return true;
+  if (cadre.officeBearerRoles?.some((ob: any) => isExecutiveCommitteeRole(ob?.role))) return true;
+  return false;
+}
+
+export type RoleGroup =
+  | 'PRESIDENT'
+  | 'SECRETARY'
+  | 'JOINT_SECRETARY'
+  | 'TREASURER'
+  | 'DEPUTY_SECRETARY'
+  | 'EC_MEMBER'
+  | 'COORDINATOR'
+  | 'CO_COORDINATOR'
+  | 'OTHER';
+
+/**
+ * Categorizes any role (English or Tamil) into its canonical administrative group.
+ */
+export function getRoleGroup(role?: string | null): RoleGroup {
+  if (!role || typeof role !== 'string') return 'OTHER';
+  const upper = role.toUpperCase().replace(/[_\s-]+/g, ' ').trim();
+
+  // Co-coordinator (Wings)
+  if (
+    upper === 'CO COORDINATOR' ||
+    upper === 'COCOORDINATOR' ||
+    upper.includes('CO COORDINATOR') ||
+    upper.includes('CO_COORDINATOR') ||
+    upper.includes('CO-COORDINATOR') ||
+    role.includes('இணை ஒருங்கிணைப்பாளர்') ||
+    (role.includes('இணை') && role.includes('ஒருங்கிணைப்பாளர்'))
+  ) {
+    return 'CO_COORDINATOR';
+  }
+
+  // Primary Coordinator (Wings)
+  if (
+    upper === 'COORDINATOR' ||
+    role.includes('ஒருங்கிணைப்பாளர்')
+  ) {
+    return 'COORDINATOR';
+  }
+
+  // Joint Secretary (இணைச் செயலாளர்)
+  if (
+    upper.includes('JOINT SECRETARY') ||
+    role.includes('இணைச் செயலாளர்') ||
+    (role.includes('இணை') && role.includes('செயலாளர்'))
+  ) {
+    return 'JOINT_SECRETARY';
+  }
+
+  // Deputy Secretary (துணைச் செயலாளர்)
+  if (
+    upper.includes('DEPUTY SECRETARY') ||
+    role.includes('துணைச் செயலாளர்') ||
+    (role.includes('துணை') && role.includes('செயலாளர்'))
+  ) {
+    return 'DEPUTY_SECRETARY';
+  }
+
+  // Executive Committee Member (செயற்குழு உறுப்பினர்)
+  if (isExecutiveCommitteeRole(role)) {
+    return 'EC_MEMBER';
+  }
+
+  // Treasurer (பொருளாளர்)
+  if (
+    upper.includes('TREASURER') ||
+    role.includes('பொருளாளர்')
+  ) {
+    return 'TREASURER';
+  }
+
+  // Secretary (செயலாளர் / மாவட்ட/ஒன்றிய/கிளை செயலாளர்)
+  if (
+    upper.includes('SECRETARY') ||
+    role.includes('செயலாளர்')
+  ) {
+    return 'SECRETARY';
+  }
+
+  // President (தலைவர் / ஒன்றிய/கிளை தலைவர்)
+  if (
+    upper.includes('PRESIDENT') ||
+    role.includes('தலைவர்')
+  ) {
+    return 'PRESIDENT';
+  }
+
+  return 'OTHER';
+}
+
+/**
+ * Checks if a role is a multi-member role that supports sequential position ordering (#1, #2, #3...)
+ */
+export function isMultiMemberRole(role?: string | null): boolean {
+  const group = getRoleGroup(role);
+  return (
+    group === 'DEPUTY_SECRETARY' ||
+    group === 'EC_MEMBER' ||
+    group === 'CO_COORDINATOR'
+  );
+}
+
+/**
+ * Checks if a cadre is in a multi-member role
+ */
+export function isCadreMultiMemberRole(cadre: any): boolean {
+  if (!cadre) return false;
+  const role = cadre.officeBearerRoles?.[0]?.role || cadre.role;
+  return isMultiMemberRole(role);
+}
+
+/**
+ * Checks if a role can participate in drag-and-drop actions (reordering or role swapping)
+ */
+export function isDraggableRole(role?: string | null): boolean {
+  const group = getRoleGroup(role);
+  return group !== 'OTHER';
+}
+
+/**
+ * Checks if a cadre can participate in drag-and-drop actions
+ */
+export function isCadreDraggable(cadre: any): boolean {
+  if (!cadre) return false;
+  const role = cadre.officeBearerRoles?.[0]?.role || cadre.role;
+  return isDraggableRole(role);
+}
+
+/**
+ * Scope parameters for evaluating whether drag-and-drop is enabled
+ * on the Administrators (Cadres) page.
+ */
+export interface CadreDragDropScope {
+  levelFilter: string;
+  filterLevel?: string;
+  filterUnionId?: string;
+  filterKilaiId?: string;
+  filterWingId?: string;
+  wingsFilterType?: 'DISTRICT' | 'UNION';
+  includeKilai?: boolean;
+  searchQuery?: string;
+  userRole?: string | null;
+  userPermissions?: string[];
+  hasPermission?: (permission: string) => boolean;
+}
+
+/**
+ * Checks role-based authorization for cadre drag-and-drop operations.
+ * Placeholder for future role-based authorization (RBAC) logic.
+ * E.g., restricting to SUPER_ADMIN, DISTRICT_ADMIN, or users with 'cadres:reorder' permission.
+ */
+export function checkCadreDragDropAuthorization(
+  userRole?: string | null,
+  userPermissions?: string[],
+  hasPermission?: (permission: string) => boolean
+): boolean {
+  // If no user context provided or user has admin privileges, allow
+  if (!userRole && (!userPermissions || userPermissions.length === 0)) {
+    return true;
+  }
+
+  // Example hook for future authorization rules:
+  // if (userRole === 'VIEWER') return false;
+  // if (hasPermission && !hasPermission('cadres:update')) return false;
+
+  return true;
+}
+
+/**
+ * Evaluates whether drag-and-drop feature (position reordering & role swapping)
+ * should be enabled on the Administrators page.
+ *
+ * Requirements:
+ * Drag-and-drop is enabled ONLY when the same unit list is displaying:
+ * - All Administrators ('ALL'): NOT enabled
+ * - District Leadership ('DISTRICT'): Enabled
+ * - Org Unit / Union ('UNION'): Enabled ONLY when one unit selected in filter dropdown
+ * - Special Wings ('WINGS'): Enabled ONLY when one wing selected in filter dropdown
+ * - Kilai / Grassroots ('KILAI'): Enabled ONLY when one org unit selected AND one kilai selected in filter dropdowns
+ *
+ * Also checks role-based authorization via `checkCadreDragDropAuthorization`.
+ */
+export function isCadreDragDropAllowed(scope: CadreDragDropScope): boolean {
+  // 1. Role-based authorization check (for future RBAC expansion)
+  if (!checkCadreDragDropAuthorization(scope.userRole, scope.userPermissions, scope.hasPermission)) {
+    return false;
+  }
+
+  // 2. Disable during search queries because search results represent arbitrary cross-unit subsets
+  if (scope.searchQuery && scope.searchQuery.trim().length > 0) {
+    return false;
+  }
+
+  // 3. Evaluate unit list scoping
+  const effectiveLevel = scope.levelFilter !== 'ALL' ? scope.levelFilter : (scope.filterLevel || 'ALL');
+
+  switch (effectiveLevel) {
+    case 'ALL':
+      // All Administrators - should not be enabled
+      return false;
+
+    case 'DISTRICT':
+      // District Leadership - should be enabled (all cadres belong to the single district leadership unit)
+      return true;
+
+    case 'UNION':
+      // Org Unit / Union - should be enabled only when one unit selected in filter dropdown
+      // (and not mixing Kilai cadres into Union via includeKilai)
+      if (scope.includeKilai) return false;
+      return Boolean(scope.filterUnionId && scope.filterUnionId.trim() !== '');
+
+    case 'WINGS':
+      // Special Wings - should be enabled only when one wing selected in filter dropdown
+      if (!scope.filterWingId || scope.filterWingId.trim() === '') {
+        return false;
+      }
+      // If Org Unit Wings is selected, a specific union/unit must also be selected to ensure single unit list
+      if (scope.wingsFilterType === 'UNION') {
+        return Boolean(scope.filterUnionId && scope.filterUnionId.trim() !== '');
+      }
+      return true;
+
+    case 'KILAI':
+      // Kilai / Grassroots - should be enabled only when one org unit selected and one kilai selected in filter dropdowns
+      return Boolean(
+        scope.filterUnionId &&
+        scope.filterUnionId.trim() !== '' &&
+        scope.filterKilaiId &&
+        scope.filterKilaiId.trim() !== ''
+      );
+
+    default:
+      return false;
+  }
+}
+

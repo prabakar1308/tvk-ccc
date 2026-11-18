@@ -268,6 +268,7 @@ export default function ImportCadresPage() {
       let phoneIdx = 6;
       let aadhaarIdx = 7;
       let voterIdIdx = 8;
+      let genderIdx = -1;
       let dobIdx = -1;
       let remarksIdx = -1;
 
@@ -300,6 +301,8 @@ export default function ImportCadresPage() {
             aadhaarIdx = idx;
           } else if (text.includes('வாக்காளர்') || text.includes('உறுப்பினர்') || text.includes('voter') || text.includes('member')) {
             voterIdIdx = idx;
+          } else if (text.includes('பாலினம்') || text.includes('gender') || text.includes('sex')) {
+            genderIdx = idx;
           } else if (text.includes('பிறந்த') || text.includes('dob') || text.includes('birth')) {
             dobIdx = idx;
           } else if (text.includes('குறிப்பு') || text.includes('remark')) {
@@ -378,8 +381,21 @@ export default function ImportCadresPage() {
         const rawPhone = phoneIdx !== -1 && row[phoneIdx] != null ? String(row[phoneIdx]).trim() : '';
         const rawAadhaar = aadhaarIdx !== -1 && row[aadhaarIdx] != null ? String(row[aadhaarIdx]).trim() : '';
         const rawVoterId = voterIdIdx !== -1 && row[voterIdIdx] != null ? String(row[voterIdIdx]).trim() : '';
+        const rawGender = genderIdx !== -1 && row[genderIdx] != null ? String(row[genderIdx]).trim() : '';
         const rawDob = dobIdx !== -1 && row[dobIdx] != null ? String(row[dobIdx]).trim() : '';
         const rawRemarks = remarksIdx !== -1 && row[remarksIdx] != null ? String(row[remarksIdx]).trim() : '';
+
+        let gender: 'Male' | 'Female' | '3rd Gender' = 'Male';
+        if (rawGender) {
+          const gLower = rawGender.toLowerCase();
+          if (gLower.includes('female') || gLower.includes('பெண்')) {
+            gender = 'Female';
+          } else if (gLower.includes('3rd') || gLower.includes('third') || gLower.includes('மூன்றாம்') || gLower.includes('திருநங்கை') || gLower.includes('திருநம்பி') || gLower.includes('trans')) {
+            gender = '3rd Gender';
+          } else {
+            gender = 'Male';
+          }
+        }
 
         // If specific panchayat / village column not present, parse combined column or area
         if (!rawPanchayat && !rawVillage) {
@@ -442,6 +458,7 @@ export default function ImportCadresPage() {
           aadhaarNumber: cleanAadhaar,
           memberId: cleanMemberId,
           voterId: cleanVoterId,
+          gender,
           dateOfBirth: rawDob || undefined,
           dob: rawDob || undefined,
           remarks: rawRemarks || undefined,
@@ -825,6 +842,7 @@ export default function ImportCadresPage() {
                     <TableHead className="font-semibold text-primary py-4">Village</TableHead>
                     <TableHead className="font-semibold text-primary py-4">Booth No</TableHead>
                     <TableHead className="font-semibold text-primary py-4">Phone</TableHead>
+                    <TableHead className="font-semibold text-primary py-4">Gender</TableHead>
                     <TableHead className="font-semibold text-primary py-4">Aadhaar</TableHead>
                     <TableHead className="font-semibold text-primary py-4">Voter ID</TableHead>
                     <TableHead className="text-right sticky right-0 bg-primary/5 z-10 font-semibold text-primary py-4">Actions</TableHead>
@@ -840,6 +858,7 @@ export default function ImportCadresPage() {
                       <TableCell className="p-3">{cadre.village || '-'}</TableCell>
                       <TableCell className="p-3">{cadre.boothNo || '-'}</TableCell>
                       <TableCell className="p-3">{cadre.phone || '-'}</TableCell>
+                      <TableCell className="p-3">{cadre.gender || 'Male'}</TableCell>
                       <TableCell className="p-3">{cadre.aadhaarNumber || '-'}</TableCell>
                       <TableCell className="p-3">{cadre.voterId || '-'}</TableCell>
                       <TableCell className="p-2 text-right sticky right-0 bg-card group-hover:bg-primary/5 transition-colors z-10 shadow-[-1px_0_0_rgba(0,0,0,0.05)]">
@@ -1003,6 +1022,22 @@ export default function ImportCadresPage() {
                     value={editingRow.dateOfBirth || editingRow.dob || ''}
                     onChange={(e) => setEditingRow({ ...editingRow, dateOfBirth: e.target.value, dob: e.target.value })}
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label>Gender</Label>
+                  <Select
+                    value={editingRow.gender || 'Male'}
+                    onValueChange={(val) => setEditingRow({ ...editingRow, gender: val as any })}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select gender" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Male">Male</SelectItem>
+                      <SelectItem value="Female">Female</SelectItem>
+                      <SelectItem value="3rd Gender">3rd Gender</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="space-y-2">
                   <Label>Remarks <span className="text-muted-foreground text-xs font-normal">(Optional)</span></Label>

@@ -1,12 +1,17 @@
 'use client';
 
 import React from 'react';
-import { Phone, Edit2, Trash2, Award, Shield, UserCheck, MapPin, Sparkles, ArrowLeftRight } from 'lucide-react';
+import { Phone, Edit2, Trash2, Award, Shield, UserCheck, MapPin, Sparkles, ArrowLeftRight, GripVertical } from 'lucide-react';
 import { useLocale } from 'next-intl';
 import { UserAvatar } from '@/components/ui/user-avatar';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { translatePersonNameToTamil } from '@/lib/name-translations';
+import {
+  translatePersonNameToTamil,
+  isCadreExecutiveCommittee,
+  isCadreMultiMemberRole,
+  isCadreDraggable,
+} from '@/lib/name-translations';
 
 export interface CadreCardData {
   id: string;
@@ -23,6 +28,7 @@ export interface CadreCardData {
   homeKilai?: { id?: string; name: string };
   area?: string;
   boothNo?: string;
+  position?: number;
   [key: string]: any;
 }
 
@@ -34,6 +40,14 @@ export interface CadreCardProps {
   showLocation?: boolean;
   showMemberId?: boolean;
   showLevelBadge?: boolean;
+  isDraggable?: boolean;
+  isDragOver?: boolean;
+  positionNumber?: number;
+  onDragStart?: (e: React.DragEvent) => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDragLeave?: (e: React.DragEvent) => void;
+  onDrop?: (e: React.DragEvent) => void;
+  onDragEnd?: (e: React.DragEvent) => void;
   onView?: (cadre: CadreCardData) => void;
   onEdit?: (e: React.MouseEvent, cadre: CadreCardData) => void;
   onDelete?: (e: React.MouseEvent, id: string) => void;
@@ -206,6 +220,14 @@ export const CadreCard: React.FC<CadreCardProps> = ({
   showLocation = true,
   showMemberId = true,
   showLevelBadge = false,
+  isDraggable = false,
+  isDragOver = false,
+  positionNumber,
+  onDragStart,
+  onDragOver,
+  onDragLeave,
+  onDrop,
+  onDragEnd,
   onView,
   onEdit,
   onDelete,
@@ -216,9 +238,14 @@ export const CadreCard: React.FC<CadreCardProps> = ({
   const rawRole = cadre.officeBearerRoles?.[0]?.role || cadre.role || 'Member';
   const designation = formatDesignation(rawRole, locale);
   const badgeConfig = getRoleBadgeConfig(designation, cadre.level);
+  const isEc = isCadreExecutiveCommittee(cadre);
+  const isMultiMember = isCadreMultiMemberRole(cadre);
+  const canDrag = isDraggable && isCadreDraggable(cadre);
   
   // Highlight if explicit prop or primary Secretary/President leader
   const isHighlighted = explicitHighlight ?? (badgeConfig.isLeader && Boolean(cadre.officeBearerRoles?.length));
+
+  const effectivePosition = positionNumber ?? (cadre.position && cadre.position > 0 ? cadre.position : undefined);
 
   const handleCardClick = () => {
     if (onView) {
@@ -272,10 +299,18 @@ export const CadreCard: React.FC<CadreCardProps> = ({
   return (
     <div
       onClick={handleCardClick}
+      draggable={canDrag}
+      onDragStart={canDrag ? onDragStart : undefined}
+      onDragOver={canDrag ? onDragOver : undefined}
+      onDragLeave={canDrag ? onDragLeave : undefined}
+      onDrop={canDrag ? onDrop : undefined}
+      onDragEnd={canDrag ? onDragEnd : undefined}
       style={{ minWidth }}
       className={cn(
         'group relative flex flex-col justify-between rounded-2xl sm:rounded-3xl border transition-all duration-300 overflow-hidden cursor-pointer select-none text-left',
         'shadow-[0_4px_20px_-4px_rgba(0,0,0,0.06)] hover:shadow-[0_16px_36px_-6px_rgba(143,10,27,0.18)] hover:-translate-y-1.5',
+        isDragOver && 'ring-2 ring-primary ring-offset-2 border-primary shadow-xl scale-[1.02] bg-primary/5',
+        canDrag && 'hover:border-amber-500/80',
         isHighlighted
           ? 'bg-gradient-to-b from-[#8F0A1B]/[0.05] via-white to-amber-500/[0.04] dark:from-[#8F0A1B]/20 dark:via-zinc-900 dark:to-amber-500/10 border-[#8F0A1B]/40 hover:border-[#8F0A1B] dark:border-[#8F0A1B]/50'
           : 'bg-white dark:bg-zinc-900/95 border-zinc-200/80 dark:border-zinc-800 hover:border-[#8F0A1B]/50 dark:hover:border-[#8F0A1B]/60',
@@ -288,14 +323,16 @@ export const CadreCard: React.FC<CadreCardProps> = ({
           'absolute top-0 left-0 w-full h-1.5 transition-all duration-300',
           isHighlighted
             ? 'bg-gradient-to-r from-[#8F0A1B] via-[#FFC72C] to-[#8F0A1B] opacity-100'
-            : 'bg-gradient-to-r from-zinc-200 via-primary/30 to-zinc-200 dark:from-zinc-800 dark:via-primary/40 dark:to-zinc-800 group-hover:from-[#8F0A1B] group-hover:via-[#FFC72C] group-hover:to-[#8F0A1B]'
+            : isEc
+              ? 'bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 opacity-80 group-hover:opacity-100'
+              : 'bg-gradient-to-r from-zinc-200 via-primary/30 to-zinc-200 dark:from-zinc-800 dark:via-primary/40 dark:to-zinc-800 group-hover:from-[#8F0A1B] group-hover:via-[#FFC72C] group-hover:to-[#8F0A1B]'
         )}
       />
 
       {/* Ambient Top Glow on Hover */}
       <div className="absolute -top-12 -right-12 w-32 h-32 bg-gradient-to-br from-[#8F0A1B]/10 via-[#FFC72C]/10 to-transparent rounded-full blur-2xl pointer-events-none group-hover:scale-150 transition-transform duration-500" />
 
-      {/* Card Header: Member ID / Leader Tag & Action Buttons */}
+      {/* Card Header: Member ID / Leader Tag / Position & Action Buttons */}
       <div className="pt-4 px-4 sm:px-5 flex items-center justify-between gap-2 z-10 relative">
         <div className="flex items-center gap-1.5 flex-wrap min-w-0">
           {isHighlighted && (
@@ -305,11 +342,7 @@ export const CadreCard: React.FC<CadreCardProps> = ({
             </span>
           )}
 
-          {/* {showMemberId && cadre.memberId && (
-            <span className="inline-flex items-center text-[10px] font-mono font-semibold text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded-md border border-zinc-200/60 dark:border-zinc-700/60">
-              {cadre.memberId}
-            </span>
-          )} */}
+          
 
           {showLevelBadge && cadre.level && (
             <span className="inline-flex items-center text-[9px] font-extrabold uppercase tracking-wider text-primary/80 dark:text-primary/90 bg-primary/10 px-1.5 py-0.5 rounded">
@@ -318,9 +351,21 @@ export const CadreCard: React.FC<CadreCardProps> = ({
           )}
         </div>
 
-        {/* Action Buttons (Move/Swap / Edit / Delete) */}
-        {(onEdit || onDelete || onMoveSwap) && (
-          <div className="flex items-center gap-1 transition-opacity duration-200 opacity-90 sm:opacity-0 sm:group-hover:opacity-100">
+        {/* Action Controls (Drag Handle + Edit/Delete/Swap) */}
+        <div className="flex items-center gap-1">
+          {canDrag && (
+            <div
+              className="p-1 rounded-md text-zinc-400 group-hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30 cursor-grab active:cursor-grabbing transition-colors"
+              title={locale === 'ta' ? 'வரிசையை மாற்ற அல்லது பதவியை மாற்ற இழுக்கவும்' : 'Drag to reorder position or swap role'}
+              onMouseDown={(e) => e.stopPropagation()}
+            >
+              <GripVertical className="w-4 h-4" />
+            </div>
+          )}
+
+          {/* Action Buttons (Move/Swap / Edit / Delete) */}
+          {(onEdit || onDelete || onMoveSwap) && (
+            <div className="flex items-center gap-1 transition-opacity duration-200 opacity-90 sm:opacity-0 sm:group-hover:opacity-100">
             {onMoveSwap && (
               <Button
                 variant="ghost"
@@ -360,6 +405,7 @@ export const CadreCard: React.FC<CadreCardProps> = ({
             )}
           </div>
         )}
+        </div>
       </div>
 
       {/* Main Body: Avatar, Name, Role, Location */}
@@ -387,16 +433,27 @@ export const CadreCard: React.FC<CadreCardProps> = ({
 
         {/* Role / Designation Badge */}
         <div className="flex flex-col items-center gap-1 w-full">
-          <span
-            className={cn(
-              'inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full text-[11px] sm:text-[12px] font-bold tracking-wide uppercase max-w-full truncate',
-              badgeConfig.style
+          <div className="flex items-center justify-center gap-1">
+            <span
+              className={cn(
+                'inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full text-[11px] sm:text-[12px] font-bold tracking-wide uppercase max-w-full truncate',
+                badgeConfig.style
+              )}
+              title={designation}
+            >
+              <RoleIcon className="w-3 h-3 shrink-0" />
+              <span className="truncate">{designation}</span>
+            </span>
+            {isMultiMember && effectivePosition !== undefined && (
+              <span 
+                className="inline-flex items-center gap-1 text-[10px] font-mono font-extrabold px-2 py-0.5 rounded-md bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300/80 dark:border-amber-800 shadow-2xs"
+                title={locale === 'ta' ? `பதவி எண்: #${effectivePosition}` : `Position: #${effectivePosition}`}
+              >
+                {/* <span className="w-1.5 h-1.5 rounded-full bg-amber-500" /> */}
+                {`#${effectivePosition}`}
+              </span>
             )}
-            title={designation}
-          >
-            <RoleIcon className="w-3 h-3 shrink-0" />
-            <span className="truncate">{designation}</span>
-          </span>
+          </div>
 
           {/* Wing Badge (if exists) */}
           {cadre.wing && (
